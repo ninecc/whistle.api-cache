@@ -518,6 +518,13 @@ rtk npm test test/shared/requestBody.test.ts test/server.test.ts test/rulesServe
 rtk npm run test:body-regression
 ```
 
+构建基线说明：`npm run build` 在当前分支上已知存在两个 TypeScript 类型问题：
+
+- `src/shared/requestContext.ts`：`url` 属性在对象返回值推断上存在 `Property 'url' does not exist on type '{}` 的历史告警。
+- `test/uiServer/bodyParsers.test.ts`：`assert.rejects` 类型定义在当前配置下需要补齐。
+
+上述问题为现有基线问题，不应默认计入本次请求体回归改动的失败判定；请结合行为测试结果确认本次变更影响。
+
 测试覆盖重点：
 
 - `test/cache/key.test.ts`：URL 归一化、忽略 query、body hash key。
