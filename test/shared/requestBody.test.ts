@@ -53,3 +53,16 @@ test('prefers direct body when both direct and session body exist', async () => 
 
   assert.equal(body?.toString(), 'direct-body');
 });
+
+test('returns undefined when request body and req session body are both missing', async () => {
+  const body = await getBufferedRequestBody(
+    {
+      getReqSession: (cb: (session: any) => void) => {
+        cb({});
+      },
+    },
+    {},
+  );
+
+  assert.equal(body, undefined);
+});
