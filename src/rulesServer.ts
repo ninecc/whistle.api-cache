@@ -1,6 +1,7 @@
 import { shouldRecord, shouldReplay } from './ruleMode';
 import { createPluginRulesPayload } from './replayRules';
 import { getEngine, getRequestId, markRecentReplayHit, recordEvent } from './shared/state';
+import { getBufferedRequestBody } from './shared/requestBody';
 
 export default function setupRulesServer(server: any, options?: Record<string, unknown>) {
   server.on('request', async (req: any, res: any) => {
@@ -55,23 +56,4 @@ function replayHitReason(ruleValue: unknown): string {
   return isAutoMode(ruleValue) ? 'AUTO HIT -> SKIP STORE' : 'REPLAY HIT';
 }
 
-async function getBufferedRequestBody(req: any, originalReq: any): Promise<Buffer | undefined> {
-  const directBody = toBuffer(originalReq?.body ?? req?.body);
-  if (directBody) return directBody;
-
-  if (typeof req.getReqSession !== 'function') return undefined;
-
-  return new Promise((resolveBody) => {
-    req.getReqSession((session: any) => {
-      resolveBody(toBuffer(session?.req?.body));
-    });
-  });
-}
-
-function toBuffer(body: unknown): Buffer | undefined {
-  if (body === undefined || body === null) return undefined;
-  if (body instanceof Buffer) return body;
-  if (typeof body === 'string') return Buffer.from(body);
-  if (body instanceof Uint8Array) return Buffer.from(body);
-  return Buffer.from(String(body));
-}
+// 与 server.ts 共享 body 解析路径，避免重复实现。

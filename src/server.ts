@@ -1,5 +1,6 @@
 import { getEngine, markRecentReplayHit, recordEvent } from './shared/state';
 import { shouldRecord, shouldReplay } from './ruleMode';
+import { getBufferedRequestBody } from './shared/requestBody';
 
 export default function setupServer(server: any, options?: Record<string, unknown>) {
   server.on('request', async (req: any, res: any) => {
@@ -67,23 +68,4 @@ function passThrough(req: any, res: any) {
   res.end('whistle.cache miss and passThrough is unavailable');
 }
 
-async function getBufferedRequestBody(req: any, originalReq: any): Promise<Buffer | undefined> {
-  const directBody = toBuffer(originalReq?.body ?? req?.body);
-  if (directBody) return directBody;
-
-  if (typeof req.getReqSession !== 'function') return undefined;
-
-  return new Promise((resolveBody) => {
-    req.getReqSession((session: any) => {
-      resolveBody(toBuffer(session?.req?.body));
-    });
-  });
-}
-
-function toBuffer(body: unknown): Buffer | undefined {
-  if (body === undefined || body === null) return undefined;
-  if (body instanceof Buffer) return body;
-  if (typeof body === 'string') return Buffer.from(body);
-  if (body instanceof Uint8Array) return Buffer.from(body);
-  return Buffer.from(String(body));
-}
+// 保持逻辑与 rulesServer 一致，通过共享工具读取请求体。

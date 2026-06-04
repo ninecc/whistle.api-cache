@@ -10,7 +10,7 @@ import {
   clearRecentEvents,
   updateIgnoredQueryNames,
 } from '../shared/state';
-import { DeleteBatchInput, TtlOperation, UpdateTtlInput } from '../cache/engine';
+import { parseDeleteBatchBody, parseUpdateTtlBody } from './requestParsers';
 
 const publicDir = join(__dirname, '../../../public');
 const pluginBasePath = '/whistle.api-cache';
@@ -178,41 +178,6 @@ function contentType(filePath: string): string {
   if (filePath.endsWith('.css')) return 'text/css; charset=utf-8';
   if (filePath.endsWith('.js')) return 'application/javascript; charset=utf-8';
   return 'application/octet-stream';
-}
-
-function parseDeleteBatchBody(body: Record<string, unknown>): DeleteBatchInput {
-  const scope = String(body.scope || '');
-  if (scope === 'ids') {
-    const ids = Array.isArray(body.ids) ? body.ids.map(String) : [];
-    return { scope, ids };
-  }
-  if (scope === 'same-host' || scope === 'same-path') {
-    return { scope, entryId: String(body.entryId || '') };
-  }
-  if (scope === 'expired' || scope === 'never-hit') {
-    return { scope };
-  }
-  return { scope: 'ids' as const, ids: [] };
-}
-
-function parseUpdateTtlBody(body: Record<string, unknown>): UpdateTtlInput {
-  return {
-    ...parseDeleteBatchBody(body),
-    operation: parseTtlOperation(body.operation),
-  };
-}
-
-function parseTtlOperation(value: unknown): TtlOperation {
-  const operation = String(value || '');
-  if (
-    operation === 'extend-30m' ||
-    operation === 'never-expire' ||
-    operation === 'default-ttl' ||
-    operation === 'expire-now'
-  ) {
-    return operation;
-  }
-  return 'default-ttl';
 }
 
 function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
