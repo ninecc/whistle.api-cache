@@ -22,6 +22,7 @@ const elements = {
   dataDir: document.querySelector('#dataDir'),
   statusChips: document.querySelector('#statusChips'),
   matchInput: document.querySelector('#matchInput'),
+  currentRuleMode: document.querySelector('#currentRuleMode'),
   freshCount: document.querySelector('#freshCount'),
   expiredCount: document.querySelector('#expiredCount'),
   hitEntryCount: document.querySelector('#hitEntryCount'),
@@ -540,6 +541,13 @@ async function copyRules() {
 function updateRule() {
   const match = elements.matchInput.value.trim() || 'www.example.com/api';
   elements.rulesBlock.textContent = `${match} whistle.api-cache://${state.ruleMode}`;
+  elements.currentRuleMode.textContent = getRuleModeLabel(state.ruleMode);
+}
+
+function getRuleModeLabel(mode) {
+  if (mode === 'replay') return '回放';
+  if (mode === 'auto') return '自动';
+  return '录制';
 }
 
 function toggleEntryDetails(id) {

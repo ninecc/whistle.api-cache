@@ -60,10 +60,14 @@
                 <button type="button" data-mode="replay">回放</button>
                 <button type="button" data-mode="auto">自动</button>
               </div>
+              <div class="modeStatus">
+                <span class="label">当前复制规则模式</span>
+                <strong id="currentRuleMode">录制</strong>
+              </div>
             </div>
           </div>
           <pre id="rulesBlock">www.example.com/api whistle.api-cache://record</pre>
-          <p class="hint">复制后粘贴到 Whistle Rules。插件不会自动改写主规则，避免覆盖已有配置。</p>
+          <p class="hint">复制后粘贴到 Whistle Rules。插件不会自动改写主规则，避免覆盖已有配置；record、replay、auto 会自动注入不同颜色，无需手写 style。</p>
         </section>
 
         <section class="panel">

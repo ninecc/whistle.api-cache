@@ -243,6 +243,25 @@ textarea {
   color: #ffffff;
 }
 
+.modeStatus {
+  margin-top: 8px;
+}
+
+.modeStatus .label {
+  margin-bottom: 4px;
+}
+
+.modeStatus strong {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #175cd3;
+  font-size: 12px;
+  padding: 0 10px;
+}
+
 .healthGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
