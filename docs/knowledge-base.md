@@ -512,6 +512,12 @@ rtk npm test test/resStatsServer.test.ts
 rtk npm test test/shared/requestBody.test.ts test/server.test.ts test/rulesServer.test.ts test/resStatsServer.test.ts -t body
 ```
 
+也可直接执行统一脚本：
+
+```bash
+rtk npm run test:body-regression
+```
+
 测试覆盖重点：
 
 - `test/cache/key.test.ts`：URL 归一化、忽略 query、body hash key。
