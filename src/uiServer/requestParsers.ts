@@ -30,6 +30,25 @@ export function parseUpdateTtlBody(body: Record<string, unknown>): UpdateTtlInpu
   };
 }
 
+export interface MatchRequestBody {
+  method: string;
+  url: string;
+  requestBody?: Buffer;
+}
+
+/**
+ * 规范化 cache match 接口输入，统一处理 method/url/requestBody 缺省值。
+ */
+export function parseCacheMatchBody(body: Record<string, unknown>): MatchRequestBody {
+  return {
+    method: String(body.method || 'GET').toUpperCase(),
+    url: String(body.url || ''),
+    requestBody: typeof body.requestBody === 'string' && body.requestBody.length
+      ? Buffer.from(body.requestBody)
+      : undefined,
+  };
+}
+
 /**
  * 解析 ttl 操作枚举，非法输入回退到默认值。
  */

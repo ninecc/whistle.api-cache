@@ -259,6 +259,17 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 
 对应验证用例见 `test/uiServer/bodyParsers.test.ts`。
 
+### Cache match 入参统一
+
+`/cgi-bin/cache/match` 的参数解析也已集中到 `src/uiServer/requestParsers.ts` 的 `parseCacheMatchBody`。
+
+- 默认请求方法为 `GET`。
+- `method` 会统一大写。
+- `url` 统一转字符串。
+- `requestBody` 只在字符串且非空时转换为 `Buffer`。
+
+这样可以保证 `match` 接口在不同入口下的行为一致。
+
 主要 API：
 
 | 方法 | 路径 | 功能 |

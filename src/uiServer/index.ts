@@ -10,7 +10,7 @@ import {
   clearRecentEvents,
   updateIgnoredQueryNames,
 } from '../shared/state';
-import { parseDeleteBatchBody, parseUpdateTtlBody } from './requestParsers';
+import { parseCacheMatchBody, parseDeleteBatchBody, parseUpdateTtlBody } from './requestParsers';
 import { readJsonBody } from './bodyParsers';
 
 const publicDir = join(__dirname, '../../../public');
@@ -80,14 +80,7 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/match') {
         const body = await readJsonBody(req);
-        const requestBody = typeof body.requestBody === 'string' && body.requestBody.length
-          ? Buffer.from(body.requestBody)
-          : undefined;
-        return sendJson(res, await getEngine(options).match({
-          method: String(body.method || 'GET'),
-          url: String(body.url || ''),
-          requestBody,
-        }));
+        return sendJson(res, await getEngine(options).match(parseCacheMatchBody(body)));
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/open-data-dir') {
