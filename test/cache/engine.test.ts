@@ -346,3 +346,23 @@ test('deletes cache entries by batch scope', async () => {
   assert.equal(removed, 2);
   assert.deepEqual((await engine.list()).map((entry) => entry.url), ['https://other.example.com/users/1']);
 });
+
+test('disables and enables cache entries for replay', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-toggle-'));
+  const engine = new CacheEngine(new FileCacheStore(root), profile);
+  await engine.record({
+    method: 'GET',
+    url: 'https://api.example.com/users',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  const [entry] = await engine.list();
+  assert.equal(await engine.setEnabled(entry.id, false), true);
+  assert.equal((await engine.replay({ method: 'GET', url: entry.url })).hit, false);
+
+  assert.equal(await engine.setEnabled(entry.id, true), true);
+  assert.equal((await engine.replay({ method: 'GET', url: entry.url })).hit, true);
+});

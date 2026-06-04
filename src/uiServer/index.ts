@@ -56,6 +56,13 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
         return sendJson(res, { removed: await getEngine(options).deleteBatch(parseDeleteBatchBody(body)) });
       }
 
+      if (method === 'POST' && pathname === '/cgi-bin/cache/enabled') {
+        const body = await readJsonBody(req);
+        return sendJson(res, {
+          updated: await getEngine(options).setEnabled(String(body.id || ''), Boolean(body.enabled)),
+        });
+      }
+
       if (method === 'POST' && pathname === '/cgi-bin/cache/match') {
         const body = await readJsonBody(req);
         const requestBody = typeof body.requestBody === 'string' && body.requestBody.length

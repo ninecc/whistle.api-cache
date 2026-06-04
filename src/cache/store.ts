@@ -56,6 +56,21 @@ export class FileCacheStore {
     return true;
   }
 
+  async setEnabled(id: string, enabled: boolean): Promise<boolean> {
+    return this.withWriteLock(async () => {
+      const index = await this.readIndex();
+      let found = false;
+      const entries = index.entries.map((entry) => {
+        if (entry.id !== id) return entry;
+        found = true;
+        return { ...entry, enabled };
+      });
+      if (!found) return false;
+      await this.writeIndex({ entries });
+      return true;
+    });
+  }
+
   async clearExpired(now: Date = new Date()): Promise<number> {
     const expired = await this.withWriteLock(async () => {
       const index = await this.readIndex();

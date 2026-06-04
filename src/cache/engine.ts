@@ -243,6 +243,10 @@ export class CacheEngine {
     return this.store.deleteEntry(id);
   }
 
+  async setEnabled(id: string, enabled: boolean): Promise<boolean> {
+    return this.store.setEnabled(id, enabled);
+  }
+
   async deleteBatch(input: DeleteBatchInput): Promise<number> {
     const entries = await this.store.listEntries();
     const ids = new Set(getBatchDeleteIds(input, entries));

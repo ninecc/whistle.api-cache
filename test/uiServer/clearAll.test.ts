@@ -162,6 +162,37 @@ test('ui server deletes cache entries by batch scope', async () => {
   assert.equal((await getEngine(options).list()).length, 0);
 });
 
+test('ui server toggles cache entry enabled state', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-toggle-'));
+  const options = { baseDir: root };
+  await getEngine(options).clearAll();
+  await getEngine(options).record({
+    method: 'GET',
+    url: 'https://api.example.com/users',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  const [entry] = await getEngine(options).list();
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupUiServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = createJsonResponse();
+  await handler?.(createJsonRequest('/cgi-bin/cache/enabled', {
+    id: entry.id,
+    enabled: false,
+  }), response);
+
+  assert.deepEqual(response.body, { updated: true });
+  assert.equal((await getEngine(options).list())[0].enabled, false);
+});
+
 function createJsonResponse() {
   return {
     statusCode: 200,

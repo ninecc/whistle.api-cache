@@ -192,9 +192,12 @@ function renderEntries() {
       <td>${escapeHtml(String(entry.hitCount || 0))}</td>
       <td>${formatRelativeDate(entry.lastHitAt)}</td>
       <td>${formatRelativeDate(entry.createdAt)}</td>
-      <td><span class="badge ${expiry.className}">${escapeHtml(expiry.label)}</span></td>
+      <td>
+        <span class="badge ${entry.enabled ? expiry.className : 'muted'}">${escapeHtml(entry.enabled ? expiry.label : '已禁用')}</span>
+      </td>
       <td class="rowActions">
         <button type="button" data-action="details" data-id="${escapeHtml(entry.id)}">${state.expandedEntryId === entry.id ? '收起' : '详情'}</button>
+        <button type="button" data-action="enabled" data-id="${escapeHtml(entry.id)}">${entry.enabled ? '禁用' : '启用'}</button>
         <button type="button" data-action="same-host" data-id="${escapeHtml(entry.id)}">同 Host</button>
         <button type="button" data-action="same-path" data-id="${escapeHtml(entry.id)}">同 Path</button>
         <button type="button" class="danger" data-action="delete" data-id="${escapeHtml(entry.id)}">删除</button>
@@ -202,6 +205,7 @@ function renderEntries() {
     `;
     row.querySelector('[data-action="select"]').addEventListener('change', (event) => toggleEntrySelection(entry.id, event.target.checked));
     row.querySelector('[data-action="details"]').addEventListener('click', () => toggleEntryDetails(entry.id));
+    row.querySelector('[data-action="enabled"]').addEventListener('click', () => setEntryEnabled(entry.id, !entry.enabled));
     row.querySelector('[data-action="same-host"]').addEventListener('click', () => deleteBatch({ scope: 'same-host', entryId: entry.id }));
     row.querySelector('[data-action="same-path"]').addEventListener('click', () => deleteBatch({ scope: 'same-path', entryId: entry.id }));
     row.querySelector('[data-action="delete"]').addEventListener('click', () => deleteEntry(entry.id));
@@ -412,6 +416,20 @@ async function deleteEntry(id) {
   }
 }
 
+async function setEntryEnabled(id, enabled) {
+  try {
+    hideError();
+    const data = await requestJson('cgi-bin/cache/enabled', {
+      method: 'POST',
+      body: JSON.stringify({ id, enabled }),
+    });
+    showToast(data.updated ? `已${enabled ? '启用' : '禁用'}缓存条目。` : '未找到缓存条目。');
+    await refresh();
+  } catch (error) {
+    showError(error);
+  }
+}
+
 async function testMatch() {
   const url = elements.matchUrlInput.value.trim();
   if (!url) {
@@ -534,6 +552,7 @@ function renderEntryDetails(entry) {
     ['Request Body Hash', entry.requestBodyHash || '-'],
     ['Body Hash', entry.bodyHash],
     ['Content Type', entry.contentType || '-'],
+    ['启用状态', entry.enabled ? '启用' : '禁用'],
     ['创建时间', formatAbsoluteDate(entry.createdAt)],
     ['过期时间', formatAbsoluteDate(entry.expiresAt)],
     ['最近命中', formatAbsoluteDate(entry.lastHitAt)],
