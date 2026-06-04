@@ -1,4 +1,4 @@
-import { CacheExportBundle, DeleteBatchInput, TtlOperation, UpdateTtlInput } from '../cache/engine';
+import { CacheExportBundle, CacheExportEntry, DeleteBatchInput, TtlOperation, UpdateTtlInput } from '../cache/engine';
 import { CacheEvent } from '../shared/state';
 
 /**
@@ -18,7 +18,9 @@ export function parseImportBody(body: Record<string, unknown>): CacheExportBundl
   return {
     version: typeof candidate.version === 'number' ? candidate.version : 1,
     exportedAt: String(candidate.exportedAt || ''),
-    entries: Array.isArray(candidate.entries) ? candidate.entries : [],
+    entries: Array.isArray(candidate.entries) ? candidate.entries.filter((entry): entry is CacheExportEntry => (
+      Boolean(entry) && typeof entry === 'object' && typeof (entry as Partial<CacheExportEntry>).bodyBase64 === 'string'
+    )) : [],
   };
 }
 

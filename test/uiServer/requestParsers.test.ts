@@ -111,12 +111,16 @@ test('normalizes import body with default values and fallback for invalid input'
     bundle: {
       version: 2,
       exportedAt: 't',
-      entries: [1, 2, 3],
+      entries: [
+        { bodyBase64: 'a2V5', id: 'entry-1' },
+        2,
+        { noBase64: 'x' },
+      ],
     },
   });
   assert.equal(withEntries.version, 2);
   assert.equal(withEntries.exportedAt, 't');
-  assert.deepEqual(withEntries.entries, [1, 2, 3]);
+  assert.deepEqual(withEntries.entries, [{ bodyBase64: 'a2V5', id: 'entry-1' }]);
 });
 
 test('filters events by after id with invalid input fallback', () => {
