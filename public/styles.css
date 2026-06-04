@@ -584,6 +584,10 @@ ul {
   margin: 0 0 12px;
 }
 
+.compactPolicy {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .settingField {
   display: block;
   margin-bottom: 10px;

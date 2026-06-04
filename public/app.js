@@ -2,6 +2,7 @@ const state = {
   entries: [],
   events: [],
   profile: {},
+  replayHeaderPolicy: {},
   ruleMode: 'record',
   expandedEntryId: undefined,
   eventFilter: 'all',
@@ -37,6 +38,7 @@ const elements = {
   filterSelect: document.querySelector('#filterSelect'),
   ignoredQueryInput: document.querySelector('#ignoredQueryInput'),
   policyList: document.querySelector('#policyList'),
+  replayHeaderPolicyList: document.querySelector('#replayHeaderPolicyList'),
   toast: document.querySelector('#toast'),
   appMain: document.querySelector('#appMain'),
   cacheTable: document.querySelector('#cacheTable'),
@@ -112,6 +114,7 @@ function applyState(data, options = {}) {
   state.entries = data.entries || [];
   state.selectedEntryIds = new Set(Array.from(state.selectedEntryIds).filter((id) => state.entries.some((entry) => entry.id === id)));
   state.events = data.events || [];
+  state.replayHeaderPolicy = data.replayHeaderPolicy || {};
   state.lastEventId = getMaxEventId(state.events, state.lastEventId);
   state.profile = data.profile || {};
   elements.profileId.textContent = state.profile.id || 'default';
@@ -295,6 +298,14 @@ function renderPolicy() {
     ['最大 Body', formatBytes(profile.maxBodySize || 0)],
   ];
   elements.policyList.innerHTML = rows.map(([name, value]) => `
+    <div><dt>${escapeHtml(name)}</dt><dd>${escapeHtml(value)}</dd></div>
+  `).join('');
+
+  const replayHeaderRows = [
+    ['回放移除响应头', (state.replayHeaderPolicy.removedHeaders || []).join(', ') || '-'],
+    ['回放注入响应头', (state.replayHeaderPolicy.injectedHeaders || []).join(', ') || '-'],
+  ];
+  elements.replayHeaderPolicyList.innerHTML = replayHeaderRows.map(([name, value]) => `
     <div><dt>${escapeHtml(name)}</dt><dd>${escapeHtml(value)}</dd></div>
   `).join('');
 }

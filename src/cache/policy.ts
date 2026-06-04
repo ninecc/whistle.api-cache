@@ -25,6 +25,11 @@ export interface CacheabilityResult {
   reason?: string;
 }
 
+export interface ReplayHeaderPolicy {
+  removedHeaders: string[];
+  injectedHeaders: string[];
+}
+
 export function isCacheableResponse(input: CacheabilityInput): CacheabilityResult {
   if (!input.profile.recordEnabled) return { cacheable: false, reason: 'recording disabled' };
   if (!['GET', 'POST'].includes(input.method.toUpperCase())) return { cacheable: false, reason: 'method not supported' };
@@ -54,6 +59,18 @@ export function sanitizeReplayHeaders(headers: HeaderMap, bodySize: number): Rec
   result['content-length'] = String(bodySize);
   result['x-whistle-cache'] = 'HIT';
   return result;
+}
+
+export function getReplayHeaderPolicy(): ReplayHeaderPolicy {
+  return {
+    removedHeaders: Array.from(new Set([
+      ...HOP_BY_HOP_HEADERS,
+      'content-encoding',
+      'content-length',
+      'set-cookie',
+    ])).sort(),
+    injectedHeaders: ['content-length', 'x-whistle-cache'],
+  };
 }
 
 function hasHeader(headers: HeaderMap, name: string): boolean {

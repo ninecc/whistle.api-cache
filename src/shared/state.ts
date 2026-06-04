@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import { CacheEngine } from '../cache/engine';
+import { getReplayHeaderPolicy } from '../cache/policy';
 import { FileCacheStore } from '../cache/store';
 import { CacheProfile } from '../cache/types';
 
@@ -68,6 +69,7 @@ export async function getState(options?: Record<string, unknown>) {
     totalSize,
     entries,
     events: getRecentEvents(),
+    replayHeaderPolicy: getReplayHeaderPolicy(),
   };
 }
 
