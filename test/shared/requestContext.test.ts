@@ -87,6 +87,20 @@ test('ignores empty originalReq object and keeps root values', () => {
   assert.equal(context.url, 'https://example.test/api/from-root');
 });
 
+test('prefers non-empty url from fallback before fallback.req.url', () => {
+  const context = parseRequestContext(
+    {
+      originalReq: { fullUrl: '' },
+    },
+    {
+      fullUrl: 'https://example.test/api/fallback-full',
+      url: 'https://example.test/api/fallback-req',
+    },
+  );
+
+  assert.equal(context.url, 'https://example.test/api/fallback-full');
+});
+
 test('treats empty-string url fields as unavailable for fallback', () => {
   const context = parseRequestContext(
     {
