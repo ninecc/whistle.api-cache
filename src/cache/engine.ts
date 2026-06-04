@@ -3,6 +3,7 @@ import { createCacheKey, hashRequestBody, normalizeUrl } from './key';
 import { isCacheableResponse, sanitizeReplayHeaders } from './policy';
 import { FileCacheStore, hashBody } from './store';
 import { CacheEntry, CacheProfile, CacheRecordInput } from './types';
+import { getHeaderValue, normalizeHeaderMap } from '../shared/headers';
 
 export type RecordResult = {
   stored: boolean;
@@ -101,8 +102,8 @@ export class CacheEngine {
       normalizedUrl: normalizeUrl(input.url, this.profile.ignoredQueryNames),
       requestBodyHash,
       statusCode: input.statusCode,
-      headers: normalizeHeaders(input.responseHeaders),
-      contentType: String(getHeader(input.responseHeaders, 'content-type') || ''),
+      headers: normalizeHeaderMap(input.responseHeaders),
+      contentType: String(getHeaderValue(input.responseHeaders, 'content-type') || ''),
       bodyHash,
       bodySize: input.body.byteLength,
       createdAt: now.toISOString(),
@@ -364,21 +365,4 @@ function getExpiresAtForOperation(operation: TtlOperation, defaultTtlSeconds: nu
   if (operation === 'expire-now') return now.toISOString();
   const seconds = operation === 'extend-30m' ? 30 * 60 : defaultTtlSeconds;
   return new Date(now.getTime() + seconds * 1000).toISOString();
-}
-
-function normalizeHeaders(headers: Record<string, string | string[] | undefined>): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [name, value] of Object.entries(headers)) {
-    if (value === undefined) continue;
-    result[name.toLowerCase()] = Array.isArray(value) ? value.join(', ') : String(value);
-  }
-  return result;
-}
-
-function getHeader(headers: Record<string, string | string[] | undefined>, name: string): string | string[] | undefined {
-  const lower = name.toLowerCase();
-  for (const [headerName, value] of Object.entries(headers)) {
-    if (headerName.toLowerCase() === lower) return value;
-  }
-  return undefined;
 }

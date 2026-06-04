@@ -1,5 +1,6 @@
 import { consumeRecentReplayHit, getEngine, getRequestId, recordEvent } from './shared/state';
 import { toBuffer } from './shared/requestBody';
+import { normalizeHeaderMap } from './shared/headers';
 import { HeaderMap } from './cache/types';
 import { shouldRecord } from './ruleMode';
 
@@ -76,9 +77,5 @@ export default function setupResStatsServer(server: any, options?: Record<string
  * 统一请求/响应头部的大小写标准化行为。
  */
 function normalizeHeaders(headers: HeaderMap): HeaderMap {
-  const result: HeaderMap = {};
-  for (const [name, value] of Object.entries(headers)) {
-    result[name.toLowerCase()] = value;
-  }
-  return result;
+  return normalizeHeaderMap(headers) as HeaderMap;
 }

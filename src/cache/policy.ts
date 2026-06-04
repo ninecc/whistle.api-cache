@@ -1,4 +1,5 @@
 import { CacheProfile, HeaderMap } from './types';
+import { getHeaderValue } from '../shared/headers';
 
 const HOP_BY_HOP_HEADERS = new Set([
   'connection',
@@ -41,12 +42,12 @@ export function isCacheableResponse(input: CacheabilityInput): CacheabilityResul
   if (input.statusCode < 200 || input.statusCode > 299) return { cacheable: false, reason: 'status not cacheable' };
   if (input.bodySize > input.profile.maxBodySize) return { cacheable: false, reason: 'body too large' };
 
-  if (hasHeader(input.requestHeaders, 'authorization') || hasHeader(input.requestHeaders, 'cookie')) {
+  if (hasHeaderValue(input.requestHeaders, 'authorization') || hasHeaderValue(input.requestHeaders, 'cookie')) {
     return { cacheable: false, reason: 'sensitive request headers' };
   }
-  if (hasHeader(input.responseHeaders, 'set-cookie')) return { cacheable: false, reason: 'set-cookie response' };
+  if (hasHeaderValue(input.responseHeaders, 'set-cookie')) return { cacheable: false, reason: 'set-cookie response' };
 
-  const contentType = String(getHeader(input.responseHeaders, 'content-type') || '').toLowerCase();
+  const contentType = String(getHeaderValue(input.responseHeaders, 'content-type') || '').toLowerCase();
   const matchesType = input.profile.cacheableContentTypes.some((prefix) => contentType.startsWith(prefix));
   if (!matchesType) return { cacheable: false, reason: 'content type not cacheable' };
 
@@ -91,14 +92,6 @@ export function getContentTypePolicy(profile: CacheProfile): ContentTypePolicy {
   };
 }
 
-function hasHeader(headers: HeaderMap, name: string): boolean {
-  return getHeader(headers, name) !== undefined;
-}
-
-function getHeader(headers: HeaderMap, name: string): string | string[] | undefined {
-  const lower = name.toLowerCase();
-  for (const [headerName, value] of Object.entries(headers)) {
-    if (headerName.toLowerCase() === lower) return value;
-  }
-  return undefined;
+function hasHeaderValue(headers: HeaderMap, name: string): boolean {
+  return getHeaderValue(headers, name) !== undefined;
 }
