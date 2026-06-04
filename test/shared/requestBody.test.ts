@@ -87,6 +87,20 @@ test('prefers direct body when both direct and session body exist', async () => 
   assert.equal(body?.toString(), 'direct-body');
 });
 
+test('uses req.body when originalReq.body is missing', async () => {
+  const body = await getBufferedRequestBody(
+    {
+      body: Buffer.from('req-body'),
+      getReqSession: (cb: (session: any) => void) => {
+        cb({ req: { body: 'session-body' } });
+      },
+    },
+    {},
+  );
+
+  assert.equal(body?.toString(), 'req-body');
+});
+
 test('prefers non-empty direct body over session body', async () => {
   for (const [directBody, expected] of [
     [0, '0'],
