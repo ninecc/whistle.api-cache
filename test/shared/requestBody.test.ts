@@ -2,6 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getBufferedRequestBody, toBuffer } from '../../src/shared/requestBody';
 
+// 语义按优先级逐层验证：
+// 1) 先转化输入类型为 Buffer（含空值定义）
+// 2) 再验证 direct body 与 session body 的优先级
+// 3) 最后确认缺失场景返回 undefined
+
 test('converts known body types to Buffer', () => {
   assert.deepEqual(toBuffer(Buffer.from('hello')), Buffer.from('hello'));
   assert.deepEqual(toBuffer('hello'), Buffer.from('hello'));
