@@ -9,19 +9,20 @@ export async function getBufferedRequestBody(req: any, originalReq: any): Promis
 
   // 同时存在 getReqSession 与 getSession 时，优先 getReqSession（回放链路）以保持既有行为。
   // 否则再回退到 getSession（resStats 场景）。
-  const getSession =
-    typeof req.getReqSession === 'function'
-      ? req.getReqSession.bind(req)
-      : typeof req.getSession === 'function'
-        ? req.getSession.bind(req)
-        : undefined;
-  if (!getSession) return undefined;
+  const getSessionReader = getSessionReaderFromRequest(req);
+  if (!getSessionReader) return undefined;
 
   return new Promise((resolveBody) => {
-    getSession((session: any) => {
+    getSessionReader((session: any) => {
       resolveBody(toBuffer(session?.req?.body));
     });
   });
+}
+
+function getSessionReaderFromRequest(req: any) {
+  if (typeof req.getReqSession === 'function') return req.getReqSession.bind(req);
+  if (typeof req.getSession === 'function') return req.getSession.bind(req);
+  return undefined;
 }
 
 /**
