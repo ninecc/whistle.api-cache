@@ -51,6 +51,7 @@
 
 `test/server.test.ts` 覆盖了 `originalReq` 为空壳对象且携带非字符串 `method`（如 `0`）时的边界：会回退到当前 `req` 上下文（`method`、`url`）进行回放，避免误判。
 `test/server.test.ts` 也覆盖了 `fullUrl` 无法解析到合法 URL 时的 `passThrough` 降级路径，确保空地址不误触发缓存回放。
+`test/server.test.ts` 还覆盖了 `originalReq.body = false` 时应直接命中缓存的场景，确保布尔值按 `toBuffer` 语义参与 body key 计算。
 
 如果环境中没有 `passThrough()`，会返回 `502` 和 `x-whistle-cache: MISS`，这是测试或非标准 Whistle 环境下的兜底。
 
@@ -72,6 +73,7 @@
 `test/rulesServer.test.ts` 覆盖了 `originalReq` 为空壳对象但携带 `ruleValue` 的场景：回放时仍应使用当前 `req` 的 `method/url`。
 `test/rulesServer.test.ts` 还覆盖了 `POST` 场景下 `originalReq.body` 缺失时，应从 `req.body` 回退获取请求体，保证 body 匹配可命中。
 `test/rulesServer.test.ts` 同时覆盖了 `req.body` 为空字符串时应按“无 body”处理，避免把空字符串误当作可匹配 body。
+`test/rulesServer.test.ts` 进一步覆盖了 `originalReq.body = false` 时应命中缓存的场景，验证其不应被误判为缺失体而回退 session。
 
 这个 hook 适合 Whistle 原生规则链路。维护时如果发现回放响应没有走 `server.ts`，也要检查 `rulesServer.ts` 是否已经生成了回放规则。
 
@@ -239,7 +241,7 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 - 如果直接 body 与 session body 都为空（未定义/空值），则返回 `undefined`，回放/录制端会继续 MISS / BYPASS 分支。
 - 支持 `Buffer`、`string`、`Uint8Array`，其余值按 `String(value)` 转为缓冲区。
 
-对应测试已补充到 `test/shared/requestBody.test.ts`。
+对应测试已补充到 `test/shared/requestBody.test.ts`，并覆盖到 `server.ts` / `rulesServer.ts` 的回放链路。
 
 维护注意：
 
