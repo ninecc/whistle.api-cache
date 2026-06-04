@@ -23,6 +23,19 @@ test('falls back to req.url when fullUrl fields are unavailable', () => {
   assert.equal(context.url, '/api/from-req');
 });
 
+test('prioritizes req.url over fallback.fullUrl when fullUrl missing', () => {
+  const context = parseRequestContext(
+    {
+      url: '/api/from-req',
+    },
+    {
+      fullUrl: 'https://example.test/api/fallback',
+    },
+  );
+
+  assert.equal(context.url, '/api/from-req');
+});
+
 test('falls back to req and fallback values when original missing', () => {
   const context = parseRequestContext(
     { method: 'GET', fullUrl: 'https://example.test/api/root' },
