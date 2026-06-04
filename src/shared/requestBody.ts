@@ -5,6 +5,10 @@ export async function getBufferedRequestBody(req: any, originalReq: any): Promis
   // 注意：toBuffer('') 返回空 Buffer，为了保持与回放键一致，空 Buffer 按“无请求体”处理，
   // 因此这里使用 truthy 判断触发回退逻辑，可从会话继续尝试获取更完整 body。
   const directBody = toBuffer(originalReq?.body ?? req?.body);
+
+  // 这段 fallback 统一了三种请求上下文场景：
+  // - server/rulesServer：优先从当前请求体读取，必要时回退 getReqSession。
+  // - resStatsServer：仅有 getSession 时，也能沿同一规则拿到会话请求体。
   if (directBody) return directBody;
 
   // 同时存在 getReqSession 与 getSession 时，优先 getReqSession（回放链路）以保持既有行为。

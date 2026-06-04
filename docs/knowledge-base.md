@@ -240,6 +240,7 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 - 当 `originalReq.body` 为 `undefined` 时，若 `req.body` 也为 `''`（空字符串），仍按“空 body”规则回退到会话 body。
 - 当 `originalReq.body` 为 `null` 且 `req.body` 为 `''` 时，也按“空 body”规则回退到 session body。
 - 当 `originalReq.body` 与 `req.body` 都缺失且都不是可用值时，`requestBody` 会按 `undefined` 处理，回放/录制统一走无体 body 的 key（若其他条件满足可命中）。
+- server/rulesServer 的实现会先走 `originalReq.body` 与 `req.body` 的直读回退，再共享同一 `getBufferedRequestBody` 处理函数；resStatsServer 虽只读 `getSession`，也走到同一语义路径，确保三链路在同一 `undefined/''/null` 定义下行为一致。
 - `null`/`undefined` 会视为缺失，仍会回退到会话 body（若存在）。
 - 即便 `originalReq.body` 明确为 `undefined`，也会回退到 `req.body` 或 `session` body；但 `originalReq.body` 与 `req.body` 都缺失且会话 body 为空时，则返回 `undefined`。
 - `toBuffer('')` 实际返回长度为 0 的 `Buffer`，由调用侧的 truthy 判定决定是否进入会话回退。
