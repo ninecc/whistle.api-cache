@@ -368,6 +368,47 @@ test('rules server prefers false originalReq.body over session body', async () =
   assert.equal(event.url, 'https://api.example.com/boolean-body-priority');
 });
 
+test('rules server prefers numeric originalReq.body over session body', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-number-body-session-'));
+  const options = { baseDir: root };
+  clearRecentEvents();
+
+  await getEngine(options).record({
+    method: 'POST',
+    url: 'https://api.example.com/number-body-priority',
+    requestHeaders: {},
+    requestBody: Buffer.from('0'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupRulesServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = createTextResponse();
+  await handler?.({
+    method: 'POST',
+    url: 'https://api.example.com/number-body-priority',
+    originalReq: {
+      body: 0,
+      ruleValue: 'replay',
+    },
+    getReqSession(cb: (session: any) => void) {
+      cb({ req: { body: 'session-body' } });
+    },
+  }, response);
+
+  const [event] = getRecentEvents();
+  assert.equal(event.type, 'HIT');
+  assert.equal(event.method, 'POST');
+  assert.equal(event.url, 'https://api.example.com/number-body-priority');
+});
+
 function createTextResponse() {
   return {
     body: '',

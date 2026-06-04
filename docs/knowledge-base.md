@@ -51,7 +51,7 @@
 
 `test/server.test.ts` 覆盖了 `originalReq` 为空壳对象且携带非字符串 `method`（如 `0`）时的边界：会回退到当前 `req` 上下文（`method`、`url`）进行回放，避免误判。
 `test/server.test.ts` 也覆盖了 `fullUrl` 无法解析到合法 URL 时的 `passThrough` 降级路径，确保空地址不误触发缓存回放。
-`test/server.test.ts` 还覆盖了 `originalReq.body = false` 时应直接命中缓存的场景，确保布尔值按 `toBuffer` 语义参与 body key 计算。
+`test/server.test.ts`、`test/rulesServer.test.ts` 覆盖了 `originalReq.body = false` 和 `originalReq.body = 0` 时应直接命中缓存，确保数值与布尔值按 `toBuffer` 语义参与 body key 计算。
 
 如果环境中没有 `passThrough()`，会返回 `502` 和 `x-whistle-cache: MISS`，这是测试或非标准 Whistle 环境下的兜底。
 
