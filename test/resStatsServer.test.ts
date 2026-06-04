@@ -105,6 +105,50 @@ test('res stats records requestId on store diagnostics', async () => {
   clearRecentEvents();
 });
 
+test('res stats falls back to session.req.method and session.req.url when originalReq is incomplete', async () => {
+  clearRecentEvents();
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-res-stats-session-fallback-'));
+  const options = { baseDir: root };
+
+  let handler: ((req: any) => void) | undefined;
+  setupResStatsServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  handler?.({
+    originalReq: {
+      ruleValue: 'auto',
+      headers: {},
+    },
+    originalRes: {
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+    },
+    getSession(callback: (session: any) => void) {
+      callback({
+        req: {
+          method: 'post',
+          url: 'https://api.example.com/sessions',
+          headers: {},
+        },
+        res: {
+          statusCode: 200,
+          headers: { 'content-type': 'application/json' },
+          body: Buffer.from('{"ok":true}'),
+        },
+      });
+    },
+  });
+
+  const event = await waitForEvent('STORE');
+  assert.equal(event.type, 'STORE');
+  assert.equal(event.method, 'POST');
+  assert.equal(event.url, 'https://api.example.com/sessions');
+  clearRecentEvents();
+});
+
 async function waitForEvent(type: string) {
   const deadline = Date.now() + 1000;
   while (Date.now() < deadline) {

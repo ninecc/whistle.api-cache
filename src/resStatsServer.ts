@@ -18,7 +18,8 @@ export default function setupResStatsServer(server: any, options?: Record<string
         if (!shouldRecord(originalReq.ruleValue)) return;
 
         const originalRes = req.originalRes || session?.res || {};
-        const { method, url } = parseRequestContext(req, { ...originalReq, ...session });
+        // originalReq 可能是占位对象；补充 session.req 可兜底 method/url，避免回放上下文回退后误判。
+        const { method, url } = parseRequestContext(req, { ...originalReq, ...session, ...session?.req });
         const requestId = getRequestId(originalReq, session?.req, req);
         const statusCode = Number(originalRes.statusCode || session?.res?.statusCode || 0);
         const requestBody = toBuffer(originalReq.body ?? session?.req?.body);
