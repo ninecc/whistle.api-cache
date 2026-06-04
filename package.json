@@ -15,7 +15,7 @@
     "dev": "tsc -w -p tsconfig.json",
     "e2e:auto-replay": "npm run build && node dist/src/e2e/autoReplay.js",
     "test": "npm run build && node --test --test-concurrency=1 dist/test/*.test.js dist/test/**/*.test.js",
-    "test:body-regression": "npm run build && node --test --test-concurrency=1 -t body dist/test/shared/requestBody.test.js dist/test/server.test.js dist/test/rulesServer.test.js dist/test/resStatsServer.test.js"
+    "test:body-regression": "npm run build && node --test --test-concurrency=1 -t body dist/test/**/*.test.js"
   },
   "whistleConfig": {
     "openInPlugins": true,
