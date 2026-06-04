@@ -113,3 +113,63 @@ test('server passes through when resolved url is empty', async () => {
   assert.equal(response.body, '');
   assert.equal(getRecentEvents(), []);
 });
+
+test('server replays when originalReq.body is false', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-server-false-body-'));
+  const options = { baseDir: root };
+
+  await getEngine(options).record({
+    method: 'POST',
+    url: 'https://api.example.com/boolean-body',
+    requestHeaders: {},
+    requestBody: Buffer.from('false'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  let passThroughCalled = false;
+  setupServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = {
+    headers: {} as Record<string, string>,
+    statusCode: 0,
+    body: '',
+    setHeader(name: string, value: string | number | string[]) {
+      this.headers[name] = String(Array.isArray(value) ? value.join(',') : value);
+    },
+    end(data?: string | Buffer) {
+      this.body = data?.toString() || '';
+    },
+    passThrough() {
+      passThroughCalled = true;
+    },
+  };
+
+  clearRecentEvents();
+  await handler?.({
+    ruleValue: 'replay',
+    method: 'POST',
+    url: 'https://api.example.com/boolean-body',
+    originalReq: {
+      body: false,
+      ruleValue: 'replay',
+    },
+    passThrough() {
+      passThroughCalled = true;
+    },
+  }, response);
+
+  assert.equal(passThroughCalled, false);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body, '{"ok":true}');
+  const [event] = getRecentEvents();
+  assert.equal(event.type, 'HIT');
+  assert.equal(event.method, 'POST');
+  assert.equal(event.url, 'https://api.example.com/boolean-body');
+});
