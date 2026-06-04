@@ -7,7 +7,8 @@ export async function getBufferedRequestBody(req: any, originalReq: any): Promis
   const directBody = toBuffer(originalReq?.body ?? req?.body);
   if (directBody) return directBody;
 
-  // 优先使用 getReqSession（兼容回放链路），否则回退到 getSession（resStats 场景）。
+  // 同时存在 getReqSession 与 getSession 时，优先 getReqSession（回放链路）以保持既有行为。
+  // 否则再回退到 getSession（resStats 场景）。
   const getSession =
     typeof req.getReqSession === 'function'
       ? req.getReqSession.bind(req)

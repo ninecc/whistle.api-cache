@@ -43,6 +43,22 @@ test('reads request body from response session when req.getSession exists', asyn
   assert.equal(body?.toString(), 'getSession-body');
 });
 
+test('prefers getReqSession over getSession when both are present', async () => {
+  const body = await getBufferedRequestBody(
+    {
+      getReqSession: (cb: (session: any) => void) => {
+        cb({ req: { body: 'getReqSession-body' } });
+      },
+      getSession: (cb: (session: any) => void) => {
+        cb({ req: { body: 'getSession-body' } });
+      },
+    },
+    {},
+  );
+
+  assert.equal(body?.toString(), 'getReqSession-body');
+});
+
 test('prefers non-empty direct body over getSession body', async () => {
   for (const [bodyValue, expected] of [
     [false, 'false'],
