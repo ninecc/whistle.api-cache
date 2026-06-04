@@ -93,6 +93,7 @@ www.example.com/api whistle.api-cache://auto
 - `replay` 优先回放缓存，未命中放行真实请求。
 - `auto` 等价于 `record,replay`：先尝试回放，未命中后请求真实服务并录制。
 - 逗号分隔的 `record,replay` 也会启用自动闭环。
+- 解析会先标准化逗号分隔 token，跳过空白/空 token；例如 `record, replay, , auto` 仍会得到 `record + replay`。
 - 未知模式会被忽略。
 
 `src/replayRules.ts` 还会根据模式生成不同的 `style://` 规则，用于 Network 高亮。

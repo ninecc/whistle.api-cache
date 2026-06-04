@@ -7,6 +7,8 @@ test('parses plugin rule modes from rule values', () => {
   assert.deepEqual(parseRuleModes('replay'), new Set(['replay']));
   assert.deepEqual(parseRuleModes('auto'), new Set(['record', 'replay']));
   assert.deepEqual(parseRuleModes('record,replay'), new Set(['record', 'replay']));
+  assert.deepEqual(parseRuleModes('record, replay , ,auto'), new Set(['record', 'replay']));
+  assert.deepEqual(parseRuleModes('unknown, ,record'), new Set(['record']));
 });
 
 test('uses record mode when rule value is omitted', () => {
