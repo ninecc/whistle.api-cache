@@ -76,5 +76,7 @@ declare module 'node:http' {
 
 declare const __dirname: string;
 declare const process: {
+  argv: string[];
+  exitCode?: number;
   platform: 'aix' | 'android' | 'darwin' | 'freebsd' | 'haiku' | 'linux' | 'openbsd' | 'sunos' | 'win32' | 'cygwin' | 'netbsd';
 };

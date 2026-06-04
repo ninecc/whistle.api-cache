@@ -119,3 +119,17 @@ export function updateIgnoredQueryNames(names: string[]): string[] {
   });
   return [...defaultProfile.ignoredQueryNames];
 }
+
+export function resetStateForTests(): void {
+  engine = undefined;
+  store = undefined;
+  nextEventId = 1;
+  recentEvents.length = 0;
+  recentReplayHits.clear();
+  defaultProfile.recordEnabled = true;
+  defaultProfile.replayEnabled = true;
+  defaultProfile.ttlSeconds = 1800;
+  defaultProfile.ignoredQueryNames = ['_t', 't', 'timestamp', 'ticket', 'wsgsig'];
+  defaultProfile.maxBodySize = 1024 * 1024;
+  defaultProfile.cacheableContentTypes = ['application/json', 'text/'];
+}
