@@ -14,7 +14,15 @@ export function parseRequestContext(req: unknown, fallback?: unknown): ParsedReq
   const alt = toRecord(fallback);
   const requestLike = getRequestLikeSource(root);
   const method = normalizeMethod(selectFirstValue(requestLike.method, root.method, alt.method), 'GET');
-  const url = requestLike.fullUrl || root.fullUrl || root.url || alt.url || alt.fullUrl || alt.req?.url;
+  const url = selectFirstValue(
+    requestLike.fullUrl,
+    requestLike.url,
+    root.fullUrl,
+    root.url,
+    alt.fullUrl,
+    alt.url,
+    alt.req?.url,
+  );
 
   return { method, url };
 }
@@ -36,7 +44,7 @@ function getRequestLikeSource(root: Record<string, unknown>): Record<string, unk
 }
 
 function hasRequestContext(source: Record<string, unknown>, fields: string[]): boolean {
-  return fields.some((field) => Boolean(source[field]));
+  return selectFirstValue(...fields.map((field) => source[field])) !== undefined;
 }
 
 export function normalizeMethod(value: unknown, fallback = 'GET'): string {
