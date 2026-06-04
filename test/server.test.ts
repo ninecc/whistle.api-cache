@@ -389,3 +389,58 @@ test('server falls back req.body empty string when originalReq.body is undefined
   assert.equal(response.statusCode, 200);
   assert.equal(response.body, '{"ok":true}');
 });
+
+test('server falls back req.body empty string when originalReq.body is null', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-server-empty-req-body-with-null-original-'));
+  const options = { baseDir: root };
+
+  await getEngine(options).record({
+    method: 'POST',
+    url: 'https://api.example.com/empty-req-body-with-null-original',
+    requestHeaders: {},
+    requestBody: Buffer.from('session-body'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  const response = {
+    headers: {} as Record<string, string>,
+    statusCode: 0,
+    body: '',
+    setHeader(name: string, value: string | number | string[]) {
+      this.headers[name] = String(Array.isArray(value) ? value.join(',') : value);
+    },
+    end(data?: string | Buffer) {
+      this.body = data?.toString() || '';
+    },
+    getReqSession(cb: (session: any) => void) {
+      cb({ req: { body: 'session-body' } });
+    },
+    passThrough() {},
+  };
+
+  clearRecentEvents();
+  await setupServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  await handler?.({
+    ruleValue: 'replay',
+    method: 'POST',
+    url: 'https://api.example.com/empty-req-body-with-null-original',
+    body: '',
+    originalReq: {
+      ruleValue: 'replay',
+      body: null,
+    },
+  }, response);
+
+  const [event] = getRecentEvents();
+  assert.equal(event.type, 'HIT');
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body, '{"ok":true}');
+});
