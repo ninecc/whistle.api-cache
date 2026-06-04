@@ -19,7 +19,9 @@ export async function getBufferedRequestBody(req: any, originalReq: any): Promis
   });
 }
 
-function getSessionReaderFromRequest(req: any) {
+type SessionReader = (callback: (session: any) => void) => void;
+
+function getSessionReaderFromRequest(req: any): SessionReader | undefined {
   if (typeof req.getReqSession === 'function') return req.getReqSession.bind(req);
   if (typeof req.getSession === 'function') return req.getSession.bind(req);
   return undefined;
