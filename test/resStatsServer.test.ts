@@ -149,6 +149,47 @@ test('res stats falls back to session.req.method and session.req.url when origin
   clearRecentEvents();
 });
 
+test('res stats emits BYPASS when url cannot be resolved', async () => {
+  clearRecentEvents();
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-res-stats-empty-url-'));
+  const options = { baseDir: root };
+
+  let handler: ((req: any) => void) | undefined;
+  setupResStatsServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  handler?.({
+    originalReq: {
+      ruleValue: 'auto',
+    },
+    originalRes: {
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+    },
+    getSession(callback: (session: any) => void) {
+      callback({
+        req: {
+          method: 'GET',
+          headers: {},
+        },
+        res: {
+          statusCode: 200,
+          headers: { 'content-type': 'application/json' },
+          body: Buffer.from('{"ok":true}'),
+        },
+      });
+    },
+  });
+
+  const event = await waitForEvent('BYPASS');
+  assert.equal(event.type, 'BYPASS');
+  assert.equal(event.reason, 'missing url or response body');
+  assert.equal(await getEngine(options).list(), 0);
+});
+
 async function waitForEvent(type: string) {
   const deadline = Date.now() + 1000;
   while (Date.now() < deadline) {
