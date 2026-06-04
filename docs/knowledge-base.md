@@ -249,6 +249,7 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 - 如果某个接口一直 MISS，先检查动态 query 是否在忽略列表中。
 - 如果 POST 接口 MISS，检查请求 body 是否可被 Whistle hook 读取到。
 - 如果没有 request body 且同 URL 有多条 POST 候选，`match()` 会返回 `AMBIGUOUS_POST_CANDIDATES`。
+- `resStatsServer` 的录制阶段也要保证 `false/0` 等可见 body 直接值优先于 session fallback，与回放路径保持一致。
 
 ## 存储结构
 
