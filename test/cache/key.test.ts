@@ -45,3 +45,14 @@ test('describes cache key composition', () => {
     ignoredQueryNames: ['_t', 'wsgsig'],
   });
 });
+
+test('normalizes non-string methods in cache key helpers', () => {
+  const key = createCacheKey({
+    method: 12 as unknown as string,
+    url: 'https://api.example.com/orders',
+  });
+  const description = describeCacheKey({ method: 12 as unknown as string, normalizedUrl: 'https://api.example.com/orders' });
+
+  assert.equal(key, '12 https://api.example.com/orders');
+  assert.equal(description.method, '12');
+});

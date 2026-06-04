@@ -22,6 +22,8 @@ export interface CacheKeyDescription {
   ignoredQueryNames: string[];
 }
 
+// 缓存 key 逻辑统一依赖共享方法标准化入口，避免输入 method 大小写分歧导致 key 映射漂移。
+
 export function normalizeUrl(rawUrl: string, ignoredQueryNames: string[] = []): string {
   const ignored = new Set(ignoredQueryNames);
   const url = new URL(rawUrl);
