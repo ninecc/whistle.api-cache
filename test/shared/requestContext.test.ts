@@ -92,6 +92,23 @@ test('keeps zero as string method instead of falling back', () => {
   assert.equal(context.method, '0');
 });
 
+test('keeps zero method with fallback for empty originalReq url fields', () => {
+  const context = parseRequestContext(
+    {
+      method: 'POST',
+      url: '/api/from-root',
+      originalReq: {
+        method: 0,
+        fullUrl: '',
+        url: '',
+      },
+    },
+  );
+
+  assert.equal(context.method, '0');
+  assert.equal(context.url, '/api/from-root');
+});
+
 test('prefers fallback fullUrl before fallback.req.url', () => {
   const context = parseRequestContext({}, {
     fullUrl: 'https://example.test/api/fallback-full',
