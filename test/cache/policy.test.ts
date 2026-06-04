@@ -60,6 +60,7 @@ test('rejects authenticated requests and set-cookie responses', () => {
 test('sanitizes replay headers and recalculates content length', () => {
   const headers = sanitizeReplayHeaders({
     'content-type': 'application/json',
+    'content-encoding': 'gzip',
     'transfer-encoding': 'chunked',
     connection: 'keep-alive',
     'content-length': '999',

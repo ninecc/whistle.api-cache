@@ -47,7 +47,7 @@ export function sanitizeReplayHeaders(headers: HeaderMap, bodySize: number): Rec
   const result: Record<string, string> = {};
   for (const [rawName, value] of Object.entries(headers)) {
     const name = rawName.toLowerCase();
-    if (HOP_BY_HOP_HEADERS.has(name) || name === 'content-length' || name === 'set-cookie') continue;
+    if (HOP_BY_HOP_HEADERS.has(name) || name === 'content-length' || name === 'content-encoding' || name === 'set-cookie') continue;
     const normalized = Array.isArray(value) ? value.join(', ') : value;
     if (normalized !== undefined) result[name] = String(normalized);
   }
