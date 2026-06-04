@@ -14,6 +14,7 @@ import {
   parseCacheMatchBody,
   parseDeleteBatchBody,
   parseEventsAfter,
+  parseIgnoredQueryNames,
   parseUpdateTtlBody,
 } from './requestParsers';
 import { readJsonBody } from './bodyParsers';
@@ -96,8 +97,7 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
 
       if (method === 'POST' && pathname === '/cgi-bin/profile/ignored-query-names') {
         const body = await readJsonBody(req);
-        const names = Array.isArray(body.names) ? body.names.map(String) : [];
-        return sendJson(res, { ignoredQueryNames: updateIgnoredQueryNames(names) });
+        return sendJson(res, { ignoredQueryNames: updateIgnoredQueryNames(parseIgnoredQueryNames(body)) });
       }
 
       return serveStatic(res, pathname === '/' ? '/index.html' : pathname);

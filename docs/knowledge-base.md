@@ -279,6 +279,15 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 
 对应验证用例见 `test/uiServer/requestParsers.test.ts`。
 
+### ignored query names 解析统一
+
+`/cgi-bin/profile/ignored-query-names` 的参数解析也已抽到 `src/uiServer/requestParsers.ts`。
+
+- 仅当 `names` 为数组时逐项转字符串。
+- 非数组输入返回空数组。
+
+对应验证用例见 `test/uiServer/requestParsers.test.ts`。
+
 主要 API：
 
 | 方法 | 路径 | 功能 |

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCacheMatchBody, parseDeleteBatchBody, parseEventsAfter, parseUpdateTtlBody } from '../../src/uiServer/requestParsers';
+import { parseCacheMatchBody, parseDeleteBatchBody, parseEventsAfter, parseIgnoredQueryNames, parseUpdateTtlBody } from '../../src/uiServer/requestParsers';
 
 test('defaults unknown delete scope to empty id list scope', () => {
   assert.deepEqual(parseDeleteBatchBody({ scope: 'unknown' }), {
@@ -56,4 +56,10 @@ test('parses cache match request body with defaults and non-empty request payloa
     method: 'POST',
     url: '',
   });
+});
+
+test('normalizes ignored query names input', () => {
+  assert.deepEqual(parseIgnoredQueryNames({ names: ['a', 1, 'b'] }), ['a', '1', 'b']);
+  assert.deepEqual(parseIgnoredQueryNames({}), []);
+  assert.deepEqual(parseIgnoredQueryNames({ names: 'not-array' as unknown as string[] }), []);
 });

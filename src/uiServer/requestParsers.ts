@@ -44,6 +44,13 @@ export interface MatchRequestBody {
 }
 
 /**
+ * 规范化 ignored query names 配置。
+ */
+export function parseIgnoredQueryNames(body: Record<string, unknown>): string[] {
+  return Array.isArray(body.names) ? body.names.map(String) : [];
+}
+
+/**
  * 规范化 cache match 接口输入，统一处理 method/url/requestBody 缺省值。
  */
 export function parseCacheMatchBody(body: Record<string, unknown>): MatchRequestBody {
