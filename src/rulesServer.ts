@@ -1,6 +1,6 @@
 import { getEngine, recordEvent } from './shared/state';
 import { shouldReplay } from './ruleMode';
-import { createReplayRulesPayload } from './replayRules';
+import { createPluginRulesPayload } from './replayRules';
 
 export default function setupRulesServer(server: any, options?: Record<string, unknown>) {
   server.on('request', async (req: any, res: any) => {
@@ -8,8 +8,12 @@ export default function setupRulesServer(server: any, options?: Record<string, u
     const method = originalReq.method || req.method || 'GET';
     const fullUrl = originalReq.fullUrl || req.fullUrl || req.url;
 
-    if (!shouldReplay(originalReq.ruleValue) || !fullUrl) {
+    if (!fullUrl) {
       return res.end('');
+    }
+
+    if (!shouldReplay(originalReq.ruleValue)) {
+      return res.end(createPluginRulesPayload(originalReq.ruleValue));
     }
 
     try {
@@ -17,11 +21,11 @@ export default function setupRulesServer(server: any, options?: Record<string, u
       const replay = await getEngine(options).replay({ method, url: fullUrl, requestBody });
       if (!replay.hit) {
         recordEvent({ type: 'MISS', method, url: fullUrl, reason: 'cache miss or expired' });
-        return res.end('');
+        return res.end(createPluginRulesPayload(originalReq.ruleValue, replay));
       }
 
       recordEvent({ type: 'HIT', method, url: fullUrl });
-      res.end(createReplayRulesPayload(replay));
+      res.end(createPluginRulesPayload(originalReq.ruleValue, replay));
     } catch (error) {
       recordEvent({
         type: 'ERROR',
