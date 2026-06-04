@@ -70,6 +70,20 @@ test('uses originalReq.fullUrl before req.url when method missing', () => {
   assert.equal(context.url, 'https://example.test/api/from-original');
 });
 
+test('treats empty-string url fields as unavailable for fallback', () => {
+  const context = parseRequestContext(
+    {
+      method: 'GET',
+      fullUrl: '',
+      url: '',
+      originalReq: { fullUrl: '' },
+    },
+    { url: 'https://example.test/api/fallback' },
+  );
+
+  assert.equal(context.url, 'https://example.test/api/fallback');
+});
+
 test('returns undefined url when unavailable', () => {
   const context = parseRequestContext({}, {});
 
