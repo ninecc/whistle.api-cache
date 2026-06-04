@@ -251,6 +251,17 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 
 对应测试已补充到 `test/shared/requestBody.test.ts`，并覆盖到 `server.ts` / `rulesServer.ts` 的回放链路。
 
+覆盖清单（便于验收）：
+
+- 共享转换层：`test/shared/requestBody.test.ts`
+  - `toBuffer` 空值/类型转换、空字符串回退、null/undefined 缺失、session 回退、direct 优先级。
+- server 回放链路：`test/server.test.ts`
+  - `false`、`0`、`undefined`、空字符串、`null` 与 body 为空/缺失的优先级与回退验证。
+- rulesServer 回放链路：`test/rulesServer.test.ts`
+  - 空壳 originalReq、`req.body` 缺失、空字符串、`undefined`、`null`、直接 body 与 session 的双重回退验证。
+- resStats 录制链路：`test/resStatsServer.test.ts`
+  - `originalReq` 缺失与空值、`req.body` 空值、session fallback、记录/回放命中闭环验证。
+
 维护注意：
 
 - 如果某个接口一直 MISS，先检查动态 query 是否在忽略列表中。
