@@ -497,6 +497,21 @@ rtk npm test
 rtk npm run e2e:auto-replay
 ```
 
+请求体读取语义回归命令（可选）：
+
+```bash
+rtk npm test test/shared/requestBody.test.ts
+rtk npm test test/server.test.ts
+rtk npm test test/rulesServer.test.ts
+rtk npm test test/resStatsServer.test.ts
+```
+
+若需按 body 关键字筛选，可再加 `-t body`：
+
+```bash
+rtk npm test test/shared/requestBody.test.ts test/server.test.ts test/rulesServer.test.ts test/resStatsServer.test.ts -t body
+```
+
 测试覆盖重点：
 
 - `test/cache/key.test.ts`：URL 归一化、忽略 query、body hash key。
