@@ -56,30 +56,23 @@ test('prefers direct body when both direct and session body exist', async () => 
   assert.equal(body?.toString(), 'direct-body');
 });
 
-test('prefers numeric direct body over session body', async () => {
-  const body = await getBufferedRequestBody(
-    {
-      getReqSession: (cb: (session: any) => void) => {
-        cb({ req: { body: 'session-body' } });
+test('prefers non-empty direct body over session body', async () => {
+  for (const [directBody, expected] of [
+    [0, '0'],
+    [false, 'false'],
+    ['direct-body', 'direct-body'],
+  ] as const) {
+    const body = await getBufferedRequestBody(
+      {
+        getReqSession: (cb: (session: any) => void) => {
+          cb({ req: { body: 'session-body' } });
+        },
       },
-    },
-    { body: 0 },
-  );
+      { body: directBody },
+    );
 
-  assert.equal(body?.toString(), '0');
-});
-
-test('prefers boolean direct body over session body', async () => {
-  const body = await getBufferedRequestBody(
-    {
-      getReqSession: (cb: (session: any) => void) => {
-        cb({ req: { body: 'session-body' } });
-      },
-    },
-    { body: false },
-  );
-
-  assert.equal(body?.toString(), 'false');
+    assert.equal(body?.toString(), expected);
+  }
 });
 
 test('returns undefined when request body and req session body are both missing', async () => {
