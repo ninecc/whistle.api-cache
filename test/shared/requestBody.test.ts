@@ -59,8 +59,25 @@ test('prefers getReqSession over getSession when both are present', async () => 
   assert.equal(body?.toString(), 'getReqSession-body');
 });
 
-test('prefers non-empty direct body over getSession body', async () => {
-  for (const [bodyValue, expected] of [
+test('prefers direct body over session body', async () => {
+  for (const [directBody, expected] of [
+    [false, 'false'],
+    [0, '0'],
+    ['direct-body', 'direct-body'],
+  ] as const) {
+    const body = await getBufferedRequestBody(
+      {
+        getReqSession: (cb: (session: any) => void) => {
+          cb({ req: { body: 'session-body' } });
+        },
+      },
+      { body: directBody },
+    );
+
+    assert.equal(body?.toString(), expected);
+  }
+
+  for (const [directBody, expected] of [
     [false, 'false'],
     [0, '0'],
   ] as const) {
@@ -70,7 +87,7 @@ test('prefers non-empty direct body over getSession body', async () => {
           cb({ req: { body: 'session-body' } });
         },
       },
-      { body: bodyValue },
+      { body: directBody },
     );
 
     assert.equal(body?.toString(), expected);
@@ -90,18 +107,6 @@ test('treats empty string as missing and reads session body', async () => {
   assert.equal(body?.toString(), 'session-body');
 });
 
-test('prefers direct body when both direct and session body exist', async () => {
-  const body = await getBufferedRequestBody(
-    {
-      getReqSession: (cb: (session: any) => void) => {
-        cb({ req: { body: 'session-body' } });
-      },
-    },
-    { body: 'direct-body' },
-  );
-
-  assert.equal(body?.toString(), 'direct-body');
-});
 
 test('uses req.body when originalReq.body is missing', async () => {
   const body = await getBufferedRequestBody(
@@ -145,25 +150,6 @@ test('falls back to session body when direct body is null', async () => {
   );
 
   assert.equal(body?.toString(), 'session-body');
-});
-
-test('prefers non-empty direct body over session body', async () => {
-  for (const [directBody, expected] of [
-    [0, '0'],
-    [false, 'false'],
-    ['direct-body', 'direct-body'],
-  ] as const) {
-    const body = await getBufferedRequestBody(
-      {
-        getReqSession: (cb: (session: any) => void) => {
-          cb({ req: { body: 'session-body' } });
-        },
-      },
-      { body: directBody },
-    );
-
-    assert.equal(body?.toString(), expected);
-  }
 });
 
 test('returns undefined when request body and req session body are both missing', async () => {
