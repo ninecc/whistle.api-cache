@@ -124,6 +124,18 @@ test('uses originalReq.fullUrl before req.url when method missing', () => {
   assert.equal(context.url, 'https://example.test/api/from-original');
 });
 
+test('uses originalReq.url before req.fullUrl when method is present', () => {
+  const context = parseRequestContext(
+    {
+      method: 'GET',
+      fullUrl: 'https://example.test/api/from-root-full',
+      originalReq: { url: 'https://example.test/api/from-original-url' },
+    },
+  );
+
+  assert.equal(context.url, 'https://example.test/api/from-original-url');
+});
+
 test('ignores empty originalReq object and keeps root values', () => {
   const context = parseRequestContext(
     {
