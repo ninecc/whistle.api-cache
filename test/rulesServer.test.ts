@@ -4,9 +4,9 @@ import { mkdtemp } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import setupRulesServer from '../src/rulesServer';
-import { getEngine } from '../src/shared/state';
+import { consumeRecentReplayHit, getEngine } from '../src/shared/state';
 
-test('rules server only injects styles and does not replay cached bodies', async () => {
+test('rules server injects replay rules for cache hits and marks them', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-'));
   const options = { baseDir: root };
   await getEngine(options).record({
@@ -36,12 +36,13 @@ test('rules server only injects styles and does not replay cached bodies', async
     },
   }, response);
 
-  assert.equal(
-    JSON.parse(response.body).rules,
-    '* style://bgColor=@1d4ed8 style://color=@dbeafe style://fontStyle=bold',
-  );
+  const rules = JSON.parse(response.body).rules;
+  assert.ok(rules.startsWith('* style://bgColor=@1d4ed8 style://color=@dbeafe style://fontStyle=bold\n* statusCode://200'));
+  assert.ok(rules.includes('resHeaders://{whistleApiCache'));
+  assert.ok(rules.includes('resBody://{whistleApiCache'));
   const [entry] = await getEngine(options).list();
-  assert.equal(entry.hitCount, 0);
+  assert.equal(entry.hitCount, 1);
+  assert.equal(consumeRecentReplayHit('GET', 'https://api.example.com/users'), true);
 });
 
 function createTextResponse() {

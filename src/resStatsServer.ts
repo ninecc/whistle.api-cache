@@ -1,4 +1,4 @@
-import { getEngine, recordEvent } from './shared/state';
+import { consumeRecentReplayHit, getEngine, recordEvent } from './shared/state';
 import { HeaderMap } from './cache/types';
 import { shouldRecord } from './ruleMode';
 
@@ -20,6 +20,8 @@ export default function setupResStatsServer(server: any, options?: Record<string
         const statusCode = Number(originalRes.statusCode || session?.res?.statusCode || 0);
         const requestBody = toBuffer(originalReq.body ?? session?.req?.body);
         const responseBody = toBuffer(session?.res?.body);
+
+        if (url && consumeRecentReplayHit(method, url)) return;
 
         if (!url || !responseBody) {
           console.warn('[whistle.cache] BYPASS missing url or response body');

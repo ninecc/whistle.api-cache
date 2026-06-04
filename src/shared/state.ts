@@ -29,6 +29,7 @@ let store: FileCacheStore | undefined;
 let nextEventId = 1;
 const recentEvents: CacheEvent[] = [];
 const maxRecentEvents = 20;
+const recentReplayHits = new Set<string>();
 
 export function getDataDir(options?: Record<string, unknown>): string {
   const candidate = [
@@ -90,6 +91,21 @@ export function clearRecentEvents(): number {
   const removed = recentEvents.length;
   recentEvents.length = 0;
   return removed;
+}
+
+export function markRecentReplayHit(method: string, url: string): void {
+  recentReplayHits.add(replayHitKey(method, url));
+}
+
+export function consumeRecentReplayHit(method: string, url: string): boolean {
+  const key = replayHitKey(method, url);
+  const found = recentReplayHits.has(key);
+  recentReplayHits.delete(key);
+  return found;
+}
+
+function replayHitKey(method: string, url: string): string {
+  return `${method.toUpperCase()} ${url}`;
 }
 
 export function updateIgnoredQueryNames(names: string[]): string[] {

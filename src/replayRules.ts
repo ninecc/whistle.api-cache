@@ -1,3 +1,4 @@
+import { ReplayResult } from './cache/engine';
 import { parseRuleModes } from './ruleMode';
 
 type RulesPayload = {
@@ -11,9 +12,10 @@ const MODE_STYLES = {
   combined: 'style://bgColor=@7c2d12 style://color=@ffedd5 style://fontStyle=bold',
 };
 
-export function createPluginRulesPayload(ruleValue: unknown): string {
+export function createPluginRulesPayload(ruleValue: unknown, replay?: ReplayResult): string {
   const payloads = [
     createStyleRulesPayload(ruleValue),
+    createReplayRulesPayload(replay),
   ].filter((payload): payload is RulesPayload => Boolean(payload));
 
   if (!payloads.length) return '';
@@ -24,6 +26,24 @@ export function createPluginRulesPayload(ruleValue: unknown): string {
   };
   if (Object.keys(values).length) result.values = values;
   return JSON.stringify(result);
+}
+
+function createReplayRulesPayload(replay?: ReplayResult): RulesPayload | undefined {
+  if (!replay?.hit) return undefined;
+
+  const safeId = replay.entry.id.replace(/[^a-zA-Z0-9]/g, '');
+  const bodyKey = `whistleApiCache${safeId}Body`;
+  const headersKey = `whistleApiCache${safeId}Headers`;
+  const headers = { ...replay.headers };
+  delete headers['content-length'];
+
+  return {
+    values: {
+      [bodyKey]: replay.body.toString(),
+      [headersKey]: headers,
+    },
+    rules: `* statusCode://${replay.statusCode} resHeaders://{${headersKey}} resBody://{${bodyKey}}`,
+  };
 }
 
 function createStyleRulesPayload(ruleValue: unknown): RulesPayload {

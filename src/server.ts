@@ -1,4 +1,4 @@
-import { getEngine, recordEvent } from './shared/state';
+import { getEngine, markRecentReplayHit, recordEvent } from './shared/state';
 import { shouldReplay } from './ruleMode';
 
 export default function setupServer(server: any, options?: Record<string, unknown>) {
@@ -24,6 +24,7 @@ export default function setupServer(server: any, options?: Record<string, unknow
       }
 
       recordEvent({ type: 'HIT', method, url: fullUrl });
+      markRecentReplayHit(method, fullUrl);
       res.statusCode = replay.statusCode;
       for (const [name, value] of Object.entries(replay.headers)) {
         res.setHeader(name, value);

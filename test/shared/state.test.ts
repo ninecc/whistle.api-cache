@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { clearRecentEvents, getRecentEvents, recordEvent, updateIgnoredQueryNames, defaultProfile } from '../../src/shared/state';
+import {
+  clearRecentEvents,
+  consumeRecentReplayHit,
+  getRecentEvents,
+  markRecentReplayHit,
+  recordEvent,
+  updateIgnoredQueryNames,
+  defaultProfile,
+} from '../../src/shared/state';
 
 test('recordEvent keeps the newest cache diagnostic events first', () => {
   clearRecentEvents();
@@ -37,6 +45,14 @@ test('clearRecentEvents removes diagnostic events', () => {
 
   assert.equal(removed, 1);
   assert.deepEqual(getRecentEvents(), []);
+});
+
+test('recent replay hit markers are consumed once', () => {
+  markRecentReplayHit('GET', 'https://example.test/api');
+
+  assert.equal(consumeRecentReplayHit('GET', 'https://example.test/api'), true);
+  assert.equal(consumeRecentReplayHit('GET', 'https://example.test/api'), false);
+  assert.equal(consumeRecentReplayHit('POST', 'https://example.test/api'), false);
 });
 
 test('updateIgnoredQueryNames normalizes and stores query names', () => {
