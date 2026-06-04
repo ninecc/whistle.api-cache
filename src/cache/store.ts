@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, rm, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CacheEntry } from './types';
@@ -10,6 +10,7 @@ interface CacheIndex {
 export class FileCacheStore {
   private readonly indexPath: string;
   private readonly objectsDir: string;
+  private writeQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly rootDir: string) {
     this.indexPath = join(rootDir, 'cache-index.json');
@@ -30,50 +31,65 @@ export class FileCacheStore {
   }
 
   async putEntry(entry: CacheEntry, body: Buffer): Promise<void> {
-    await this.ensureDirs();
-    const bodyHash = entry.bodyHash || hashBody(body);
-    const nextEntry = { ...entry, bodyHash, bodySize: body.byteLength };
-    const index = await this.readIndex();
-    const withoutExisting = index.entries.filter((item) => item.id !== nextEntry.id && item.key !== nextEntry.key);
-    withoutExisting.push(nextEntry);
-    await writeFile(this.bodyPath(bodyHash), body);
-    await this.writeIndex({ entries: withoutExisting });
+    await this.withWriteLock(async () => {
+      await this.ensureDirs();
+      const bodyHash = entry.bodyHash || hashBody(body);
+      const nextEntry = { ...entry, bodyHash, bodySize: body.byteLength };
+      const index = await this.readIndex();
+      const withoutExisting = index.entries.filter((item) => item.id !== nextEntry.id && item.key !== nextEntry.key);
+      withoutExisting.push(nextEntry);
+      await writeFile(this.bodyPath(bodyHash), body);
+      await this.writeIndex({ entries: withoutExisting });
+    });
   }
 
   async deleteEntry(id: string): Promise<boolean> {
-    const index = await this.readIndex();
-    const entry = index.entries.find((item) => item.id === id);
+    const entry = await this.withWriteLock(async () => {
+      const index = await this.readIndex();
+      const found = index.entries.find((item) => item.id === id);
+      if (!found) return undefined;
+      await this.writeIndex({ entries: index.entries.filter((item) => item.id !== id) });
+      return found;
+    });
     if (!entry) return false;
-    await this.writeIndex({ entries: index.entries.filter((item) => item.id !== id) });
     await unlink(this.bodyPath(entry.bodyHash)).catch(() => undefined);
     return true;
   }
 
   async clearExpired(now: Date = new Date()): Promise<number> {
-    const index = await this.readIndex();
-    const expired = index.entries.filter((entry) => new Date(entry.expiresAt).getTime() <= now.getTime());
-    if (!expired.length) return 0;
+    const expired = await this.withWriteLock(async () => {
+      const index = await this.readIndex();
+      const expiredEntries = index.entries.filter((entry) => new Date(entry.expiresAt).getTime() <= now.getTime());
+      if (!expiredEntries.length) return [];
 
-    const expiredIds = new Set(expired.map((entry) => entry.id));
-    await this.writeIndex({ entries: index.entries.filter((entry) => !expiredIds.has(entry.id)) });
+      const expiredIds = new Set(expiredEntries.map((entry) => entry.id));
+      await this.writeIndex({ entries: index.entries.filter((entry) => !expiredIds.has(entry.id)) });
+      return expiredEntries;
+    });
+    if (!expired.length) return 0;
     await Promise.all(expired.map((entry) => unlink(this.bodyPath(entry.bodyHash)).catch(() => undefined)));
     return expired.length;
   }
 
   async clearAll(): Promise<number> {
-    const index = await this.readIndex();
-    await this.writeIndex({ entries: [] });
-    await rm(this.objectsDir, { recursive: true, force: true });
-    await mkdir(this.objectsDir, { recursive: true });
-    return index.entries.length;
+    const count = await this.withWriteLock(async () => {
+      const index = await this.readIndex();
+      await this.writeIndex({ entries: [] });
+      await rm(this.objectsDir, { recursive: true, force: true });
+      await mkdir(this.objectsDir, { recursive: true });
+      return index.entries.length;
+    });
+    return count;
   }
 
   async markHit(id: string, now: Date = new Date()): Promise<void> {
-    const index = await this.readIndex();
-    const entries = index.entries.map((entry) => entry.id === id
-      ? { ...entry, hitCount: entry.hitCount + 1, lastHitAt: now.toISOString() }
-      : entry);
-    await this.writeIndex({ entries });
+    await this.withWriteLock(async () => {
+      const index = await this.readIndex();
+      const entries = index.entries.map((entry) => entry.id === id
+        ? { ...entry, hitCount: entry.hitCount + 1, lastHitAt: now.toISOString() }
+        : entry);
+      await this.writeIndex({ entries });
+    });
   }
 
   private bodyPath(bodyHash: string): string {
@@ -97,9 +113,15 @@ export class FileCacheStore {
 
   private async writeIndex(index: CacheIndex): Promise<void> {
     await this.ensureDirs();
-    const tmpPath = `${this.indexPath}.tmp`;
+    const tmpPath = `${this.indexPath}.${randomUUID()}.tmp`;
     await writeFile(tmpPath, `${JSON.stringify(index, null, 2)}\n`);
     await rename(tmpPath, this.indexPath);
+  }
+
+  private async withWriteLock<T>(operation: () => Promise<T>): Promise<T> {
+    const run = this.writeQueue.then(operation, operation);
+    this.writeQueue = run.then(() => undefined, () => undefined);
+    return run;
   }
 }
 

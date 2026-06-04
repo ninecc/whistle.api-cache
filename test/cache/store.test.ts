@@ -66,3 +66,35 @@ test('clears expired entries', async () => {
   assert.equal(removed, 1);
   assert.equal((await store.listEntries()).length, 0);
 });
+
+test('serializes concurrent entry writes without losing index updates', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-concurrent-'));
+  const store = new FileCacheStore(root);
+
+  const entries = Array.from({ length: 25 }, (_, index): CacheEntry => ({
+    id: `entry-${index}`,
+    profileId: 'default',
+    key: `POST https://api.example.com/items/${index}`,
+    method: 'POST',
+    url: `https://api.example.com/items/${index}`,
+    normalizedUrl: `https://api.example.com/items/${index}`,
+    statusCode: 200,
+    headers: { 'content-type': 'application/json' },
+    contentType: 'application/json',
+    bodyHash: `body-${index}`,
+    bodySize: 12,
+    createdAt: '2026-06-04T00:00:00.000Z',
+    expiresAt: '2026-06-04T01:00:00.000Z',
+    hitCount: 0,
+    enabled: true,
+  }));
+
+  await Promise.all(entries.map((entry) => store.putEntry(entry, Buffer.from(`{"id":${entry.id.split('-')[1]}}`))));
+
+  const stored = await store.listEntries();
+  assert.equal(stored.length, entries.length);
+  assert.deepEqual(
+    stored.map((entry) => entry.id).sort(),
+    entries.map((entry) => entry.id).sort(),
+  );
+});
