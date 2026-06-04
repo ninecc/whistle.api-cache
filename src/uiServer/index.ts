@@ -16,6 +16,7 @@ import {
   parseDeleteBody,
   parseImportBody,
   parseEventsAfter,
+  filterEventsAfter,
   parseIgnoredQueryNames,
   parseEnabledBody,
   parseUpdateTtlBody,
@@ -37,7 +38,9 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
       }
 
       if (method === 'GET' && pathname === '/cgi-bin/events') {
-        return sendJson(res, { events: getEventsAfter(parseEventsAfter(url.searchParams.get('after'))) });
+        return sendJson(res, {
+          events: filterEventsAfter(getRecentEvents(), parseEventsAfter(url.searchParams.get('after'))),
+        });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/events/clear') {
@@ -116,11 +119,6 @@ function normalizePathname(pathname: string): string {
   if (pathname === pluginBasePath) return '/';
   if (pathname.startsWith(`${pluginBasePath}/`)) return pathname.slice(pluginBasePath.length);
   return pathname;
-}
-
-function getEventsAfter(after: string | null) {
-  const afterId = Number(after || 0);
-  return getRecentEvents().filter((event) => !Number.isFinite(afterId) || event.id > afterId);
 }
 
 async function openDirectory(dir: string): Promise<void> {

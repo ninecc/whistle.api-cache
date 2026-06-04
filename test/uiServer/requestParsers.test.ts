@@ -5,11 +5,13 @@ import {
   parseDeleteBody,
   parseDeleteBatchBody,
   parseImportBody,
+  filterEventsAfter,
   parseEnabledBody,
   parseEventsAfter,
   parseIgnoredQueryNames,
   parseUpdateTtlBody,
 } from '../../src/uiServer/requestParsers';
+import { CacheEvent } from '../../src/shared/state';
 
 test('defaults unknown delete scope to empty id list scope', () => {
   assert.deepEqual(parseDeleteBatchBody({ scope: 'unknown' }), {
@@ -115,4 +117,15 @@ test('normalizes import body with default values and fallback for invalid input'
   assert.equal(withEntries.version, 2);
   assert.equal(withEntries.exportedAt, 't');
   assert.deepEqual(withEntries.entries, [1, 2, 3]);
+});
+
+test('filters events by after id with invalid input fallback', () => {
+  const events: CacheEvent[] = [
+    { id: 1, type: 'HIT', timestamp: '2026-01-01T00:00:00.000Z' },
+    { id: 3, type: 'MISS', timestamp: '2026-01-01T00:00:01.000Z' },
+    { id: 5, type: 'STORE', timestamp: '2026-01-01T00:00:02.000Z' },
+  ];
+
+  assert.deepEqual(filterEventsAfter(events, 1), [events[1], events[2]]);
+  assert.deepEqual(filterEventsAfter(events, Number.NaN), events);
 });

@@ -1,4 +1,5 @@
 import { CacheExportBundle, DeleteBatchInput, TtlOperation, UpdateTtlInput } from '../cache/engine';
+import { CacheEvent } from '../shared/state';
 
 /**
  * 规范化单条缓存删除接口参数，缺省 id 为空字符串。
@@ -62,6 +63,13 @@ export interface MatchRequestBody {
   method: string;
   url: string;
   requestBody?: Buffer;
+}
+
+/**
+ * 按事件 id 过滤最近事件，支持返回 after 之后的数据。
+ */
+export function filterEventsAfter(events: CacheEvent[], after: number): CacheEvent[] {
+  return events.filter((event) => !Number.isFinite(after) || event.id > after);
 }
 
 export interface EnabledRequestBody {
