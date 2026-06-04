@@ -68,6 +68,8 @@
 4. 未命中时返回样式规则，并记录结构化 MISS 原因。
 5. MISS/HIT 原因字符串与 `server.ts` 采用同一共享规则，便于 e2e 与日志一致性验证。
 
+`test/rulesServer.test.ts` 覆盖了 `originalReq` 为空壳对象但携带 `ruleValue` 的场景：回放时仍应使用当前 `req` 的 `method/url`。
+
 这个 hook 适合 Whistle 原生规则链路。维护时如果发现回放响应没有走 `server.ts`，也要检查 `rulesServer.ts` 是否已经生成了回放规则。
 
 ### `resStatsServer`

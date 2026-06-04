@@ -121,7 +121,6 @@ test('rules server falls back to req context when originalReq is empty shell', a
     originalReq: {
       ruleValue: 'replay',
     },
-    ruleValue: 'replay',
   }, response);
 
   const rules = JSON.parse(response.body).rules;
