@@ -78,6 +78,8 @@
 4. 调用 `CacheEngine.record()`。
 5. 根据结果记录 `STORE` 或 `BYPASS` 诊断事件。
 
+`resStatsServer` 使用 `src/shared/requestBody.ts` 的 `toBuffer` 统一请求/响应 body 转 Buffer，和服务端回放阶段共享同一边界行为。
+
 ## 规则模式
 
 规则示例：
