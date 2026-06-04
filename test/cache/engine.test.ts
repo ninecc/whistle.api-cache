@@ -45,6 +45,29 @@ test('records cacheable responses and replays them by key', async () => {
   }
 });
 
+test('normalizes lowercase methods for engine replay matching', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-lowercase-method-'));
+  const engine = new CacheEngine(new FileCacheStore(root), profile);
+
+  await engine.record({
+    method: 'post',
+    url: 'https://api.example.com/login',
+    requestHeaders: {},
+    requestBody: Buffer.from('user=alpha&pwd=1'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  const replay = await engine.replay({
+    method: 'post',
+    url: 'https://api.example.com/login',
+    requestBody: Buffer.from('user=alpha&pwd=1'),
+  });
+
+  assert.equal(replay.hit, true);
+});
+
 test('bypasses unsafe responses and misses absent cache entries', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-bypass-'));
   const engine = new CacheEngine(new FileCacheStore(root), profile);

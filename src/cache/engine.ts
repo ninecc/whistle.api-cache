@@ -4,6 +4,7 @@ import { isCacheableResponse, sanitizeReplayHeaders } from './policy';
 import { FileCacheStore, hashBody } from './store';
 import { CacheEntry, CacheProfile, CacheRecordInput } from './types';
 import { getHeaderValue, normalizeHeaderMap } from '../shared/headers';
+import { normalizeMethod } from '../shared/requestContext';
 
 export type RecordResult = {
   stored: boolean;
@@ -75,7 +76,7 @@ export class CacheEngine {
 
   async record(input: Omit<CacheRecordInput, 'profile'>): Promise<RecordResult> {
     const cacheability = isCacheableResponse({
-      method: input.method,
+      method: normalizeMethod(input.method),
       statusCode: input.statusCode,
       requestHeaders: input.requestHeaders,
       responseHeaders: input.responseHeaders,
@@ -87,7 +88,7 @@ export class CacheEngine {
     const now = new Date();
     const bodyHash = hashBody(input.body);
     const key = createCacheKey({
-      method: input.method,
+      method: normalizeMethod(input.method),
       url: input.url,
       ignoredQueryNames: this.profile.ignoredQueryNames,
       requestBody: input.requestBody,
@@ -97,7 +98,7 @@ export class CacheEngine {
       id: randomUUID(),
       profileId: this.profile.id,
       key,
-      method: input.method.toUpperCase(),
+      method: normalizeMethod(input.method),
       url: input.url,
       normalizedUrl: normalizeUrl(input.url, this.profile.ignoredQueryNames),
       requestBodyHash,
@@ -118,7 +119,7 @@ export class CacheEngine {
 
   async replay(input: { method: string; url: string; requestBody?: Buffer }): Promise<ReplayResult> {
     if (!this.profile.replayEnabled) return { hit: false };
-    const method = input.method.toUpperCase();
+    const method = normalizeMethod(input.method);
     const key = createCacheKey({
       method,
       url: input.url,
@@ -149,7 +150,7 @@ export class CacheEngine {
   }
 
   async match(input: { method: string; url: string; requestBody?: Buffer }): Promise<MatchResult> {
-    const method = input.method.toUpperCase();
+    const method = normalizeMethod(input.method);
     const normalizedUrl = normalizeUrl(input.url, this.profile.ignoredQueryNames);
     const requestBodyHash = input.requestBody?.byteLength ? hashRequestBody(input.requestBody) : undefined;
     const entries = (await this.store.listEntries()).filter((entry) => entry.profileId === this.profile.id);

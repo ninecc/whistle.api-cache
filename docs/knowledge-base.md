@@ -84,6 +84,7 @@
 `parseRequestContext` 的回退链条与大小写行为均已有测试覆盖，位于 `test/shared/requestContext.test.ts`。
 文档说明中补充了回退优先级细节，并新增边界测试覆盖了 `req.url` 回退场景，确保 `parseRequestContext` 在缺少 `fullUrl` 时仍可从 `url` 提取上下文。
 新增 `normalizeMethod` 共享方法后，`uiServer/requestParsers.ts` 的 `parseCacheMatchBody` 也复用同一标准化逻辑（包括非字符串的 `toString` + `toUpperCase`），并同步补充对应测试。
+`src/cache/engine.ts` 中 `record/replay/match` 输入方法也改为走 `normalizeMethod`，确保记录与回放路径在方法大小写规则上完全一致，避免因输入大小写导致的分支漂移。
 
 ## 规则模式
 
