@@ -22,14 +22,16 @@ import {
   parseUpdateTtlBody,
 } from './requestParsers';
 import { readJsonBody } from './bodyParsers';
+import { parseRequestContext } from '../shared/requestContext';
 
 const publicDir = join(__dirname, '../../../public');
 const pluginBasePath = '/whistle.api-cache';
 
 export default function setupUiServer(server: any, options?: Record<string, unknown>) {
-  server.on('request', async (req: IncomingMessage, res: ServerResponse) => {
+    server.on('request', async (req: IncomingMessage, res: ServerResponse) => {
     try {
-      const method = req.method || 'GET';
+      // 统一从请求上下文中提取方法，复用服务端统一的默认值和回退顺序。
+      const { method } = parseRequestContext(req);
       const url = new URL(req.url || '/', 'http://whistle.api-cache');
       const pathname = normalizePathname(url.pathname);
 
