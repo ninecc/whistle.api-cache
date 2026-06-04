@@ -10,6 +10,11 @@ export function parseRuleModes(ruleValue: unknown): Set<RuleMode> {
   }
 
   for (const part of ruleValue.split(',')) {
+    if (part.trim() === 'auto') {
+      modes.add('record');
+      modes.add('replay');
+      continue;
+    }
     const mode = part.trim() as RuleMode;
     if (KNOWN_MODES.has(mode)) modes.add(mode);
   }
