@@ -170,6 +170,45 @@ test('rules server normalizes method for empty-shell originalReq fallback', asyn
   assert.equal(event.url, 'https://api.example.com/method-lowercase');
 });
 
+test('rules server falls back requestBody from req.body when originalReq.body is missing', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-body-fallback-'));
+  const options = { baseDir: root };
+  clearRecentEvents();
+  await getEngine(options).record({
+    method: 'POST',
+    url: 'https://api.example.com/body-from-req',
+    requestHeaders: {},
+    requestBody: Buffer.from('x=1'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupRulesServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = createTextResponse();
+  await handler?.({
+    method: 'post',
+    url: 'https://api.example.com/body-from-req',
+    body: Buffer.from('x=1'),
+    originalReq: {
+      ruleValue: 'replay',
+    },
+  }, response);
+
+  const rules = JSON.parse(response.body).rules;
+  assert.ok(rules.includes('resBody://{whistleApiCache'));
+  const [event] = getRecentEvents();
+  assert.equal(event.type, 'HIT');
+  assert.equal(event.method, 'POST');
+  assert.equal(event.url, 'https://api.example.com/body-from-req');
+});
+
 function createTextResponse() {
   return {
     body: '',

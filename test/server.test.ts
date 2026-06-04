@@ -111,4 +111,5 @@ test('server passes through when resolved url is empty', async () => {
   assert.equal(passThroughCalled, true);
   assert.equal(response.statusCode, 0);
   assert.equal(response.body, '');
+  assert.equal(getRecentEvents(), []);
 });
