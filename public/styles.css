@@ -5,8 +5,20 @@
   background: #f6f7f9;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: #f6f7f9;
+}
+
 body {
   margin: 0;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .topbar {
@@ -14,9 +26,13 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 24px;
+  padding: 18px clamp(14px, 3vw, 28px);
   background: #ffffff;
   border-bottom: 1px solid #dfe3e8;
+}
+
+.topbar > div {
+  min-width: 0;
 }
 
 h1,
@@ -43,7 +59,9 @@ li {
 main {
   display: grid;
   gap: 14px;
-  padding: 18px 24px 28px;
+  width: min(100%, 1440px);
+  margin: 0 auto;
+  padding: 18px clamp(12px, 3vw, 28px) 28px;
 }
 
 main.isLoading {
@@ -58,9 +76,11 @@ main.isLoading {
 
 .summary > div,
 .panel {
+  min-width: 0;
   background: #ffffff;
   border: 1px solid #dfe3e8;
   border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
 }
 
 .summary > div {
@@ -84,6 +104,7 @@ main.isLoading {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+  min-width: 0;
 }
 
 button {
@@ -94,6 +115,8 @@ button {
   cursor: pointer;
   font-size: 13px;
   padding: 6px 10px;
+  min-height: 34px;
+  white-space: nowrap;
 }
 
 button:hover {
@@ -108,7 +131,6 @@ button:disabled {
 input,
 textarea,
 select {
-  box-sizing: border-box;
   width: 100%;
   border: 1px solid #c8d0da;
   border-radius: 6px;
@@ -137,7 +159,7 @@ textarea {
 
 .dashboard {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
   gap: 14px;
 }
 
@@ -155,6 +177,11 @@ textarea {
 .inlineActions select {
   width: auto;
   min-width: 104px;
+}
+
+.inlineActions,
+.tableActions {
+  min-width: 0;
 }
 
 .pathActions {
@@ -221,7 +248,7 @@ textarea {
 
 .ruleBuilder {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) auto;
+  grid-template-columns: minmax(220px, 1fr) minmax(210px, auto);
   gap: 12px;
   margin-bottom: 12px;
 }
@@ -231,9 +258,12 @@ textarea {
   border: 1px solid #c8d0da;
   border-radius: 7px;
   padding: 2px;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .segmented button {
+  flex: 1 1 auto;
   border: 0;
   padding: 6px 10px;
 }
@@ -340,6 +370,7 @@ textarea {
 
 pre {
   overflow: auto;
+  max-width: 100%;
   margin: 0 0 8px;
   padding: 12px;
   border-radius: 6px;
@@ -349,8 +380,15 @@ pre {
   line-height: 1.5;
 }
 
+.tableWrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 table {
   width: 100%;
+  min-width: 1080px;
   border-collapse: collapse;
   font-size: 12px;
 }
@@ -364,16 +402,19 @@ td {
 }
 
 .rowActions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
   white-space: nowrap;
 }
 
 .rowActions button + button {
-  margin-left: 6px;
+  margin-left: 0;
 }
 
 .rowActions select {
   width: 118px;
-  margin-left: 6px;
+  margin-left: 0;
   padding: 5px 7px;
 }
 
@@ -387,8 +428,25 @@ th {
   font-weight: 600;
 }
 
+th:nth-child(4),
+th:nth-child(5),
+th:nth-child(6),
+th:nth-child(7),
+th:nth-child(8),
+th:nth-child(9),
+td:nth-child(4),
+td:nth-child(5),
+td:nth-child(6),
+td:nth-child(7),
+td:nth-child(8),
+td:nth-child(9) {
+  white-space: nowrap;
+}
+
 .url {
-  max-width: 520px;
+  width: 42%;
+  min-width: 300px;
+  max-width: 560px;
 }
 
 .url strong,
@@ -573,10 +631,12 @@ ul {
 
 .tableActions {
   margin-left: auto;
+  justify-content: flex-end;
 }
 
 .tableActions input {
   width: 240px;
+  min-width: 180px;
 }
 
 .tableActions select {
@@ -627,6 +687,7 @@ ul {
 }
 
 .policyList dd {
+  overflow-wrap: anywhere;
   margin: 5px 0 0;
   color: #20242a;
   font-weight: 600;
@@ -668,6 +729,21 @@ ul {
     flex-direction: column;
   }
 
+  .panelHeader > button,
+  .panelHeader > .inlineActions,
+  .panelHeader > .tableActions,
+  .panelHeader > .pathActions {
+    width: 100%;
+  }
+
+  .pathActions {
+    justify-content: flex-start;
+  }
+
+  .pathActions .muted {
+    max-width: 100%;
+  }
+
   .tableActions {
     margin-left: 0;
     width: 100%;
@@ -682,5 +758,136 @@ ul {
   .matchEntry,
   .headersBlock dl {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .topbar button {
+    width: 100%;
+  }
+
+  main {
+    gap: 12px;
+  }
+
+  .panel,
+  .summary > div {
+    padding: 12px;
+  }
+
+  .summary,
+  .healthGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .chips .chip,
+  .inlineActions > *,
+  .tableActions > *,
+  .quickTags button {
+    flex: 1 1 auto;
+  }
+
+  .segmented {
+    width: 100%;
+  }
+
+  .tableWrap {
+    overflow: visible;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td {
+    display: block;
+  }
+
+  table {
+    min-width: 0;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  tr {
+    border: 1px solid #edf0f3;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 10px;
+  }
+
+  td {
+    display: grid;
+    grid-template-columns: 86px minmax(0, 1fr);
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 0;
+  }
+
+  td::before {
+    color: #667085;
+    content: attr(data-label);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  td:nth-child(1)::before { content: "选择"; }
+  td:nth-child(2)::before { content: "Method"; }
+  td:nth-child(3)::before { content: "URL"; }
+  td:nth-child(4)::before { content: "状态"; }
+  td:nth-child(5)::before { content: "大小"; }
+  td:nth-child(6)::before { content: "命中"; }
+  td:nth-child(7)::before { content: "最近命中"; }
+  td:nth-child(8)::before { content: "创建"; }
+  td:nth-child(9)::before { content: "过期"; }
+  td:nth-child(10)::before { content: "操作"; }
+
+  td.url {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .rowActions {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+
+  .rowActions button,
+  .rowActions select {
+    flex: 1 1 96px;
+  }
+
+  .detailRow {
+    padding: 0;
+  }
+
+  .detailRow td {
+    display: block;
+    padding: 10px;
+  }
+
+  .detailRow td::before {
+    content: none;
+  }
+
+  .toast {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    max-width: none;
   }
 }
