@@ -29,6 +29,7 @@ export function parseRequestContext(req: unknown, fallback?: unknown): ParsedReq
 }
 
 function selectFirstValue(...values: unknown[]): unknown {
+  // 空值定义：undefined/null/空字符串会被跳过，其他值（包括数字 0、对象）按原样返回。
   for (const value of values) {
     if (value !== undefined && value !== null && !(typeof value === 'string' && value.length === 0)) {
       return value;

@@ -166,6 +166,19 @@ test('ignores empty originalReq object and keeps root values', () => {
   assert.equal(context.url, 'https://example.test/api/from-root');
 });
 
+test('ignores empty originalReq.method and keeps root method', () => {
+  const context = parseRequestContext(
+    {
+      method: 'POST',
+      url: '/api/from-root',
+      originalReq: { method: '' },
+    },
+  );
+
+  assert.equal(context.method, 'POST');
+  assert.equal(context.url, '/api/from-root');
+});
+
 test('prefers non-empty url from fallback before fallback.req.url', () => {
   const context = parseRequestContext(
     {
