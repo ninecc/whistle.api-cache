@@ -20,7 +20,8 @@ export default function setupRulesServer(server: any, options?: Record<string, u
       const requestBody = await getBufferedRequestBody(req, originalReq);
       const replay = await getEngine(options).replay({ method, url: fullUrl, requestBody });
       if (!replay.hit) {
-        recordEvent({ type: 'MISS', method, url: fullUrl, reason: replayMissReason(originalReq.ruleValue) });
+        const match = await getEngine(options).match({ method, url: fullUrl, requestBody });
+        recordEvent({ type: 'MISS', method, url: fullUrl, reason: replayMissReason(originalReq.ruleValue, match.reason) });
         return res.end(createPluginRulesPayload(originalReq.ruleValue, replay));
       }
 
@@ -43,8 +44,9 @@ function isAutoMode(ruleValue: unknown): boolean {
   return shouldRecord(ruleValue) && shouldReplay(ruleValue);
 }
 
-function replayMissReason(ruleValue: unknown): string {
-  return isAutoMode(ruleValue) ? 'AUTO MISS -> STORE' : 'REPLAY MISS -> PASS THROUGH';
+function replayMissReason(ruleValue: unknown, reason?: string): string {
+  const prefix = isAutoMode(ruleValue) ? 'AUTO MISS -> STORE' : 'REPLAY MISS -> PASS THROUGH';
+  return reason && reason !== 'HIT' ? `${prefix}: ${reason}` : prefix;
 }
 
 function replayHitReason(ruleValue: unknown): string {

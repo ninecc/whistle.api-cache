@@ -59,17 +59,21 @@ UI 已提供“测试匹配”能力：
 
 该能力适合排查 POST、多签名 query、动态参数等场景。
 
-## 第一优先级
-
 ### POST 多候选提示和 miss 原因增强
 
-当 request body 不可得且同 URL 存在多条候选时，诊断应明确显示：
+回放 MISS 诊断已复用命中测试的 dry-run 原因。当 request body 不可得且同 URL 存在多条候选时，诊断会明确显示：
 
 ```txt
-MISS: ambiguous POST candidates: 3
+REPLAY MISS -> PASS THROUGH: ambiguous POST candidates: 3
 ```
 
 避免用户误以为缓存不存在。
+
+同时保留自动模式链路前缀，例如：
+
+```txt
+AUTO MISS -> STORE: request body hash mismatch
+```
 
 ## 缓存管理增强
 
@@ -169,8 +173,7 @@ MISS: ambiguous POST candidates: 3
 
 ## 建议实施顺序
 
-1. POST 多候选提示和 miss 原因增强。
-2. 缓存批量删除和启用/禁用。
-3. 当前规则模式提示和自动高亮说明。
-4. 响应头策略展示。
-5. 端到端回放验证脚本。
+1. 缓存批量删除和启用/禁用。
+2. 当前规则模式提示和自动高亮说明。
+3. 响应头策略展示。
+4. 端到端回放验证脚本。
