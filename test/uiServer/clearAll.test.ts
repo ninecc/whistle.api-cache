@@ -90,6 +90,39 @@ test('ui server returns an empty favicon response without throwing', async () =>
   assert.equal(response.ended, true);
 });
 
+test('ui server tests cache matches from request input', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-match-'));
+  const options = { baseDir: root };
+  await getEngine(options).record({
+    method: 'POST',
+    url: 'https://api.example.com/search?_t=1',
+    requestHeaders: {},
+    requestBody: Buffer.from('{"keyword":"alpha"}'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"result":"alpha"}'),
+  });
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupUiServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = createJsonResponse();
+  await handler?.(createJsonRequest('/cgi-bin/cache/match', {
+    method: 'POST',
+    url: 'https://api.example.com/search?_t=2',
+    requestBody: '{"keyword":"alpha"}',
+  }), response);
+
+  const body = response.body as { hit: boolean; reason: string; entry: { url: string } };
+  assert.equal(body.hit, true);
+  assert.equal(body.reason, 'HIT');
+  assert.equal(body.entry.url, 'https://api.example.com/search?_t=1');
+});
+
 function createJsonResponse() {
   return {
     statusCode: 200,
@@ -112,6 +145,24 @@ function createEmptyResponse() {
     },
     end() {
       this.ended = true;
+    },
+  };
+}
+
+function createJsonRequest(url: string, body: Record<string, unknown>) {
+  const listeners = new Map<string, Function>();
+  return {
+    method: 'POST',
+    url,
+    on(event: string, listener: Function) {
+      listeners.set(event, listener);
+      if (event === 'end') {
+        queueMicrotask(() => {
+          listeners.get('data')?.(Buffer.from(JSON.stringify(body)));
+          listener();
+        });
+      }
+      return this;
     },
   };
 }

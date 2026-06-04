@@ -256,6 +256,69 @@ textarea {
   padding: 12px;
 }
 
+.matchTester {
+  display: grid;
+  grid-template-columns: 140px minmax(260px, 1fr);
+  gap: 12px;
+}
+
+.matchBodyField {
+  grid-column: 1 / -1;
+}
+
+.matchResult {
+  margin-top: 12px;
+  border: 1px solid #dfe3e8;
+  border-radius: 7px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.matchResult.hit {
+  border-color: #abefc6;
+  background: #f6fef9;
+}
+
+.matchResult.miss {
+  border-color: #b2ddff;
+  background: #f5faff;
+}
+
+.matchResultHeader {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.matchEntry {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.matchEntry > div {
+  min-width: 0;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 8px;
+}
+
+.matchEntry dt {
+  color: #667085;
+  font-size: 11px;
+}
+
+.matchEntry dd {
+  overflow: hidden;
+  margin: 4px 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 pre {
   overflow: auto;
   margin: 0 0 8px;
@@ -543,8 +606,13 @@ ul {
   .summary,
   .dashboard,
   .policyList,
-  .ruleBuilder {
+  .ruleBuilder,
+  .matchTester {
     grid-template-columns: 1fr;
+  }
+
+  .matchBodyField {
+    grid-column: auto;
   }
 
   .panelHeader {
@@ -563,6 +631,7 @@ ul {
   }
 
   .detailGrid,
+  .matchEntry,
   .headersBlock dl {
     grid-template-columns: 1fr;
   }

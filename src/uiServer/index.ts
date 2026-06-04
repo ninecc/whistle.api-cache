@@ -50,6 +50,18 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
         return sendJson(res, { deleted: await getEngine(options).delete(String(body.id || '')) });
       }
 
+      if (method === 'POST' && pathname === '/cgi-bin/cache/match') {
+        const body = await readJsonBody(req);
+        const requestBody = typeof body.requestBody === 'string' && body.requestBody.length
+          ? Buffer.from(body.requestBody)
+          : undefined;
+        return sendJson(res, await getEngine(options).match({
+          method: String(body.method || 'GET'),
+          url: String(body.url || ''),
+          requestBody,
+        }));
+      }
+
       if (method === 'POST' && pathname === '/cgi-bin/open-data-dir') {
         const dataDir = getDataDir(options);
         await openDirectory(dataDir);

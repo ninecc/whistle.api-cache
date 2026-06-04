@@ -26,6 +26,11 @@ const elements = {
   hitEntryCount: document.querySelector('#hitEntryCount'),
   eventsList: document.querySelector('#eventsList'),
   eventFilterSelect: document.querySelector('#eventFilterSelect'),
+  matchMethodSelect: document.querySelector('#matchMethodSelect'),
+  matchUrlInput: document.querySelector('#matchUrlInput'),
+  matchBodyInput: document.querySelector('#matchBodyInput'),
+  matchTestBtn: document.querySelector('#matchTestBtn'),
+  matchResult: document.querySelector('#matchResult'),
   searchInput: document.querySelector('#searchInput'),
   filterSelect: document.querySelector('#filterSelect'),
   ignoredQueryInput: document.querySelector('#ignoredQueryInput'),
@@ -54,6 +59,7 @@ elements.clearExpiredBtn.addEventListener('click', clearExpired);
 elements.clearAllBtn.addEventListener('click', clearAll);
 elements.clearEventsBtn.addEventListener('click', clearEvents);
 elements.copyRulesBtn.addEventListener('click', copyRules);
+elements.matchTestBtn.addEventListener('click', testMatch);
 elements.matchInput.addEventListener('input', updateRule);
 elements.searchInput.addEventListener('input', renderEntries);
 elements.filterSelect.addEventListener('change', renderEntries);
@@ -366,6 +372,70 @@ async function deleteEntry(id) {
   } catch (error) {
     showError(error);
   }
+}
+
+async function testMatch() {
+  const url = elements.matchUrlInput.value.trim();
+  if (!url) {
+    showMatchResult({ hit: false, reason: '请输入请求 URL', candidates: [], reasons: [] });
+    return;
+  }
+
+  try {
+    hideError();
+    elements.matchTestBtn.disabled = true;
+    const requestBody = elements.matchBodyInput.value;
+    const data = await requestJson('cgi-bin/cache/match', {
+      method: 'POST',
+      body: JSON.stringify({
+        method: elements.matchMethodSelect.value,
+        url,
+        requestBody: requestBody.trim() ? requestBody : undefined,
+      }),
+    });
+    showMatchResult(data);
+  } catch (error) {
+    showError(error);
+  } finally {
+    elements.matchTestBtn.disabled = false;
+  }
+}
+
+function showMatchResult(result) {
+  elements.matchResult.hidden = false;
+  const candidates = result.candidates || [];
+  const reasons = result.reasons || [];
+  const title = result.hit ? '命中缓存' : '未命中';
+  const entry = result.entry || candidates[0];
+
+  elements.matchResult.className = `matchResult ${result.hit ? 'hit' : 'miss'}`;
+  elements.matchResult.innerHTML = `
+    <div class="matchResultHeader">
+      <span class="badge ${result.hit ? 'hit' : 'miss'}">${escapeHtml(title)}</span>
+      <strong>${escapeHtml(result.reason || '-')}</strong>
+    </div>
+    ${entry ? renderMatchEntry(entry) : ''}
+    ${reasons.length ? `
+      <ul>
+        ${reasons.map((reason) => `<li>${escapeHtml(reason.message || reason.type || '-')}</li>`).join('')}
+      </ul>
+    ` : ''}
+    ${!result.hit && candidates.length ? `<p class="hint">候选缓存：${escapeHtml(String(candidates.length))} 条</p>` : ''}
+  `;
+}
+
+function renderMatchEntry(entry) {
+  const parsed = parseUrl(entry.url);
+  return `
+    <dl class="matchEntry">
+      <div><dt>Method</dt><dd>${escapeHtml(entry.method)}</dd></div>
+      <div><dt>Status</dt><dd>${escapeHtml(String(entry.statusCode))}</dd></div>
+      <div><dt>URL</dt><dd title="${escapeHtml(entry.url)}">${escapeHtml(parsed.host)}${escapeHtml(parsed.path)}</dd></div>
+      <div><dt>Request Body Hash</dt><dd>${escapeHtml(entry.requestBodyHash || '-')}</dd></div>
+      <div><dt>过期时间</dt><dd>${escapeHtml(formatAbsoluteDate(entry.expiresAt))}</dd></div>
+      <div><dt>命中次数</dt><dd>${escapeHtml(String(entry.hitCount || 0))}</dd></div>
+    </dl>
+  `;
 }
 
 async function copyRules() {

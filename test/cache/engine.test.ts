@@ -237,3 +237,77 @@ test('replays entries recorded before default signed query names were ignored', 
     assert.equal(replay.body.toString(), '{"legacy":true}');
   }
 });
+
+test('explains cache match results without marking hits', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-match-'));
+  const store = new FileCacheStore(root);
+  const engine = new CacheEngine(store, profile);
+
+  await engine.record({
+    method: 'POST',
+    url: 'https://api.example.com/search?_t=1',
+    requestHeaders: {},
+    requestBody: Buffer.from('{"keyword":"alpha"}'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"result":"alpha"}'),
+  });
+
+  const hit = await engine.match({
+    method: 'POST',
+    url: 'https://api.example.com/search?_t=2',
+    requestBody: Buffer.from('{"keyword":"alpha"}'),
+  });
+
+  assert.equal(hit.hit, true);
+  assert.equal(hit.reason, 'HIT');
+  assert.equal(hit.entry?.hitCount, 0);
+  assert.deepEqual(hit.reasons, []);
+
+  const miss = await engine.match({
+    method: 'POST',
+    url: 'https://api.example.com/search?_t=2',
+    requestBody: Buffer.from('{"keyword":"beta"}'),
+  });
+
+  assert.equal(miss.hit, false);
+  assert.equal(miss.reason, 'request body hash mismatch');
+  assert.equal(miss.reasons[0].type, 'BODY_HASH_MISMATCH');
+  assert.equal(miss.candidates.length, 1);
+
+  assert.equal((await store.listEntries())[0].hitCount, 0);
+});
+
+test('explains ambiguous POST matches when request body is unavailable', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-match-ambiguous-'));
+  const engine = new CacheEngine(new FileCacheStore(root), profile);
+
+  await engine.record({
+    method: 'POST',
+    url: 'https://api.example.com/search',
+    requestHeaders: {},
+    requestBody: Buffer.from('{"keyword":"alpha"}'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"result":"alpha"}'),
+  });
+  await engine.record({
+    method: 'POST',
+    url: 'https://api.example.com/search',
+    requestHeaders: {},
+    requestBody: Buffer.from('{"keyword":"beta"}'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"result":"beta"}'),
+  });
+
+  const result = await engine.match({
+    method: 'POST',
+    url: 'https://api.example.com/search',
+  });
+
+  assert.equal(result.hit, false);
+  assert.equal(result.reason, 'ambiguous POST candidates: 2');
+  assert.equal(result.reasons[0].type, 'AMBIGUOUS_POST_CANDIDATES');
+  assert.equal(result.candidates.length, 2);
+});

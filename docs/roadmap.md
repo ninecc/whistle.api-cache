@@ -48,17 +48,28 @@
 
 缓存列表已增加“最近命中”列，用于判断缓存是否仍在被使用。
 
-## 第一优先级
-
 ### 命中测试工具
 
-在 UI 中提供“测试匹配”能力：
+UI 已提供“测试匹配”能力：
 
-- 输入请求 URL、method 和可选 request body。
-- 显示会命中的缓存条目。
-- 未命中时给出原因，例如过期、body hash 不一致、URL 不一致、多候选冲突。
+- 可输入请求 URL、method 和可选 request body。
+- 命中时显示对应缓存条目、状态码、过期时间和 request body hash。
+- 未命中时返回结构化原因，包括无缓存、method 不一致、URL 不一致、过期、禁用、body hash 不一致、多候选冲突。
+- 测试匹配只做 dry-run，不读取响应 body，也不会增加缓存命中次数。
 
 该能力适合排查 POST、多签名 query、动态参数等场景。
+
+## 第一优先级
+
+### POST 多候选提示和 miss 原因增强
+
+当 request body 不可得且同 URL 存在多条候选时，诊断应明确显示：
+
+```txt
+MISS: ambiguous POST candidates: 3
+```
+
+避免用户误以为缓存不存在。
 
 ## 缓存管理增强
 
@@ -99,16 +110,6 @@
 - normalized URL
 - 是否包含 request body hash
 - 当前忽略的 query 参数
-
-### POST 多候选提示
-
-当 request body 不可得且同 URL 存在多条候选时，诊断应明确显示：
-
-```txt
-MISS: ambiguous POST candidates: 3
-```
-
-避免用户误以为缓存不存在。
 
 ### 响应头策略展示
 
@@ -168,9 +169,8 @@ MISS: ambiguous POST candidates: 3
 
 ## 建议实施顺序
 
-1. 命中测试工具。
-2. POST 多候选提示和 miss 原因增强。
-3. 缓存批量删除和启用/禁用。
-4. 当前规则模式提示和自动高亮说明。
-5. 响应头策略展示。
-6. 端到端回放验证脚本。
+1. POST 多候选提示和 miss 原因增强。
+2. 缓存批量删除和启用/禁用。
+3. 当前规则模式提示和自动高亮说明。
+4. 响应头策略展示。
+5. 端到端回放验证脚本。

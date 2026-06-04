@@ -105,6 +105,31 @@
 
       <section class="panel">
         <div class="panelHeader">
+          <h2>测试匹配</h2>
+          <button id="matchTestBtn" type="button">测试</button>
+        </div>
+        <div class="matchTester">
+          <label>
+            <span class="label">Method</span>
+            <select id="matchMethodSelect" aria-label="测试 Method">
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+            </select>
+          </label>
+          <label>
+            <span class="label">请求 URL</span>
+            <input id="matchUrlInput" type="url" placeholder="https://api.example.com/users?_t=1" spellcheck="false">
+          </label>
+          <label class="matchBodyField">
+            <span class="label">Request Body</span>
+            <textarea id="matchBodyInput" rows="3" spellcheck="false" placeholder='{"keyword":"alpha"}'></textarea>
+          </label>
+        </div>
+        <div id="matchResult" class="matchResult" hidden></div>
+      </section>
+
+      <section class="panel">
+        <div class="panelHeader">
           <h2>缓存列表</h2>
           <span id="loadingText" class="loadingText" hidden>正在刷新缓存数据...</span>
           <div class="tableActions">
