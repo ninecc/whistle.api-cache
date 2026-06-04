@@ -519,6 +519,9 @@ rtk npm test test/shared/requestBody.test.ts test/server.test.ts test/rulesServe
 rtk npm run test:body-regression
 ```
 
+该命令内部使用 `node --test -t body dist/test/**/*.test.js` 的过滤语法：
+仅运行标题中包含 `body` 的测试用例，适用于快速回归新增的请求体边界场景。
+
 说明：统一脚本用于快速覆盖同一类 body 语义回归点；若只验证少数用例，可按文件执行。
 
 构建基线说明：`npm run build` 在当前分支上已知存在两个 TypeScript 类型问题：
