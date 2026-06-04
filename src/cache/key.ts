@@ -7,6 +7,20 @@ export interface CacheKeyInput {
   requestBody?: Buffer;
 }
 
+export interface CacheKeyDescriptionInput {
+  method: string;
+  normalizedUrl: string;
+  requestBodyHash?: string;
+  ignoredQueryNames?: string[];
+}
+
+export interface CacheKeyDescription {
+  method: string;
+  normalizedUrl: string;
+  includesRequestBodyHash: boolean;
+  ignoredQueryNames: string[];
+}
+
 export function normalizeUrl(rawUrl: string, ignoredQueryNames: string[] = []): string {
   const ignored = new Set(ignoredQueryNames);
   const url = new URL(rawUrl);
@@ -34,4 +48,13 @@ export function createCacheKey(input: CacheKeyInput): string {
 
 export function hashRequestBody(body: Buffer): string {
   return createHash('sha256').update(body).digest('hex');
+}
+
+export function describeCacheKey(input: CacheKeyDescriptionInput): CacheKeyDescription {
+  return {
+    method: input.method.toUpperCase(),
+    normalizedUrl: input.normalizedUrl,
+    includesRequestBodyHash: Boolean(input.requestBodyHash),
+    ignoredQueryNames: input.ignoredQueryNames || [],
+  };
 }

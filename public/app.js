@@ -605,6 +605,7 @@ function renderEntryDetails(entry) {
   const headers = Object.entries(entry.headers || {}).map(([name, value]) => (
     `<div><dt>${escapeHtml(name)}</dt><dd>${escapeHtml(value)}</dd></div>`
   )).join('');
+  const strategy = getEntryKeyStrategy(entry);
   const fields = [
     ['Cache Key', entry.key],
     ['Normalized URL', entry.normalizedUrl],
@@ -623,11 +624,29 @@ function renderEntryDetails(entry) {
         ${fields.map(([name, value]) => `<div><dt>${escapeHtml(name)}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}
       </dl>
       <div class="headersBlock">
+        <strong>命中策略</strong>
+        <dl>
+          <div><dt>Method</dt><dd>${escapeHtml(strategy.method)}</dd></div>
+          <div><dt>Normalized URL</dt><dd>${escapeHtml(strategy.normalizedUrl)}</dd></div>
+          <div><dt>Request Body Hash</dt><dd>${escapeHtml(strategy.includesRequestBodyHash ? '参与匹配' : '不参与匹配')}</dd></div>
+          <div><dt>忽略 Query</dt><dd>${escapeHtml(strategy.ignoredQueryNames.join(', ') || '-')}</dd></div>
+        </dl>
+      </div>
+      <div class="headersBlock">
         <strong>Response Headers</strong>
         <dl>${headers || '<div><dt>-</dt><dd>暂无响应头</dd></div>'}</dl>
       </div>
     </div>
   `;
+}
+
+function getEntryKeyStrategy(entry) {
+  return {
+    method: entry.method || '-',
+    normalizedUrl: entry.normalizedUrl || '-',
+    includesRequestBodyHash: Boolean(entry.requestBodyHash),
+    ignoredQueryNames: state.profile.ignoredQueryNames || [],
+  };
 }
 
 async function requestJson(url, options = {}) {

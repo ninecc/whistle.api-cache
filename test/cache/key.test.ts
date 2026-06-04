@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCacheKey, normalizeUrl } from '../../src/cache/key';
+import { createCacheKey, describeCacheKey, normalizeUrl } from '../../src/cache/key';
 
 test('normalizes URLs by removing ignored query names and sorting the rest', () => {
   const normalized = normalizeUrl('https://api.example.com/users?b=2&_t=9&a=1', ['_t']);
@@ -30,4 +30,18 @@ test('includes request body hash in POST cache keys', () => {
 
   assert.ok(firstKey !== secondKey);
   assert.ok(firstKey.startsWith('POST https://api.example.com/search body:'));
+});
+
+test('describes cache key composition', () => {
+  assert.deepEqual(describeCacheKey({
+    method: 'POST',
+    normalizedUrl: 'https://api.example.com/search?a=1',
+    requestBodyHash: 'body-hash',
+    ignoredQueryNames: ['_t', 'wsgsig'],
+  }), {
+    method: 'POST',
+    normalizedUrl: 'https://api.example.com/search?a=1',
+    includesRequestBodyHash: true,
+    ignoredQueryNames: ['_t', 'wsgsig'],
+  });
 });
