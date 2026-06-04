@@ -2,12 +2,12 @@ import { getEngine, markRecentReplayHit, recordEvent } from './shared/state';
 import { createReplayHitReason, createReplayMissReason } from './shared/replayReasons';
 import { shouldReplay } from './ruleMode';
 import { getBufferedRequestBody } from './shared/requestBody';
+import { parseRequestContext } from './shared/requestContext';
 
 export default function setupServer(server: any, options?: Record<string, unknown>) {
   server.on('request', async (req: any, res: any) => {
     const originalReq = req.originalReq || req;
-    const method = originalReq.method || req.method || 'GET';
-    const fullUrl = originalReq.fullUrl || req.fullUrl || req.url;
+    const { method, url: fullUrl } = parseRequestContext(req, originalReq);
 
     if (!shouldReplay(originalReq.ruleValue)) {
       return passThrough(req, res);

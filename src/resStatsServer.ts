@@ -3,6 +3,7 @@ import { toBuffer } from './shared/requestBody';
 import { normalizeHeaderMap } from './shared/headers';
 import { HeaderMap } from './cache/types';
 import { shouldRecord } from './ruleMode';
+import { parseRequestContext } from './shared/requestContext';
 
 export default function setupResStatsServer(server: any, options?: Record<string, unknown>) {
   server.on('request', (req: any) => {
@@ -17,8 +18,7 @@ export default function setupResStatsServer(server: any, options?: Record<string
         if (!shouldRecord(originalReq.ruleValue)) return;
 
         const originalRes = req.originalRes || session?.res || {};
-        const method = originalReq.method || session?.req?.method || 'GET';
-        const url = originalReq.fullUrl || session?.url || session?.req?.url;
+        const { method, url } = parseRequestContext(req, { ...originalReq, ...session });
         const requestId = getRequestId(originalReq, session?.req, req);
         const statusCode = Number(originalRes.statusCode || session?.res?.statusCode || 0);
         const requestBody = toBuffer(originalReq.body ?? session?.req?.body);

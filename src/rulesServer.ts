@@ -2,13 +2,13 @@ import { shouldReplay } from './ruleMode';
 import { createPluginRulesPayload } from './replayRules';
 import { getEngine, getRequestId, markRecentReplayHit, recordEvent } from './shared/state';
 import { getBufferedRequestBody } from './shared/requestBody';
+import { parseRequestContext } from './shared/requestContext';
 import { createReplayHitReason, createReplayMissReason } from './shared/replayReasons';
 
 export default function setupRulesServer(server: any, options?: Record<string, unknown>) {
   server.on('request', async (req: any, res: any) => {
     const originalReq = req.originalReq || req;
-    const method = originalReq.method || req.method || 'GET';
-    const fullUrl = originalReq.fullUrl || req.fullUrl || req.url;
+    const { method, url: fullUrl } = parseRequestContext(req, originalReq);
     const requestId = getRequestId(originalReq, req);
 
     if (!fullUrl) {
