@@ -38,6 +38,10 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
         return sendJson(res, { entries: await getEngine(options).list() });
       }
 
+      if (method === 'GET' && pathname === '/cgi-bin/cache/export') {
+        return sendJson(res, await getEngine(options).exportBundle());
+      }
+
       if (method === 'POST' && pathname === '/cgi-bin/cache/clear-expired') {
         return sendJson(res, { removed: await getEngine(options).clearExpired() });
       }
@@ -66,6 +70,11 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
       if (method === 'POST' && pathname === '/cgi-bin/cache/ttl') {
         const body = await readJsonBody(req);
         return sendJson(res, { updated: await getEngine(options).updateTtl(parseUpdateTtlBody(body)) });
+      }
+
+      if (method === 'POST' && pathname === '/cgi-bin/cache/import') {
+        const body = await readJsonBody(req);
+        return sendJson(res, { imported: await getEngine(options).importBundle(body.bundle as any) });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/match') {

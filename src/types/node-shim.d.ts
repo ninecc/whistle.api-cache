@@ -13,7 +13,7 @@ declare module 'node:assert/strict' {
 }
 
 declare class Buffer extends Uint8Array {
-  static from(input: string | ArrayBuffer | Uint8Array): Buffer;
+  static from(input: string | ArrayBuffer | Uint8Array, encoding?: string): Buffer;
   static byteLength(input: string): number;
   toString(encoding?: string): string;
 }

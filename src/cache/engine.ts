@@ -56,6 +56,16 @@ export type UpdateTtlInput = DeleteBatchInput & {
   now?: Date;
 };
 
+export interface CacheExportEntry extends CacheEntry {
+  bodyBase64: string;
+}
+
+export interface CacheExportBundle {
+  version: 1;
+  exportedAt: string;
+  entries: CacheExportEntry[];
+}
+
 export class CacheEngine {
   constructor(
     private readonly store: FileCacheStore,
@@ -269,6 +279,33 @@ export class CacheEngine {
     const entries = await this.store.listEntries();
     const ids = getBatchDeleteIds(input, entries);
     return this.store.updateExpiresAt(ids, getExpiresAtForOperation(input.operation, this.profile.ttlSeconds, now));
+  }
+
+  async exportBundle(now: Date = new Date()): Promise<CacheExportBundle> {
+    const entries = await this.store.listEntries();
+    const exportEntries: CacheExportEntry[] = [];
+    for (const entry of entries) {
+      if (entry.profileId !== this.profile.id) continue;
+      const body = await this.store.readBody(entry);
+      exportEntries.push({ ...entry, bodyBase64: body.toString('base64') });
+    }
+    return {
+      version: 1,
+      exportedAt: now.toISOString(),
+      entries: exportEntries,
+    };
+  }
+
+  async importBundle(bundle: CacheExportBundle): Promise<number> {
+    if (bundle.version !== 1 || !Array.isArray(bundle.entries)) return 0;
+    let imported = 0;
+    for (const entry of bundle.entries) {
+      const { bodyBase64, ...cacheEntry } = entry;
+      if (!bodyBase64) continue;
+      await this.store.putEntry({ ...cacheEntry, profileId: this.profile.id }, Buffer.from(bodyBase64, 'base64'));
+      imported += 1;
+    }
+    return imported;
   }
 
   async clearExpired(): Promise<number> {

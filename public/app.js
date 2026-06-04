@@ -52,6 +52,9 @@ const elements = {
   refreshBtn: document.querySelector('#refreshBtn'),
   openDataDirBtn: document.querySelector('#openDataDirBtn'),
   saveIgnoredQueryBtn: document.querySelector('#saveIgnoredQueryBtn'),
+  exportCacheBtn: document.querySelector('#exportCacheBtn'),
+  importCacheBtn: document.querySelector('#importCacheBtn'),
+  importCacheInput: document.querySelector('#importCacheInput'),
   deleteSelectedBtn: document.querySelector('#deleteSelectedBtn'),
   ttlSelectedSelect: document.querySelector('#ttlSelectedSelect'),
   clearExpiredBtn: document.querySelector('#clearExpiredBtn'),
@@ -64,6 +67,9 @@ const elements = {
 elements.refreshBtn.addEventListener('click', refresh);
 elements.openDataDirBtn.addEventListener('click', openDataDir);
 elements.saveIgnoredQueryBtn.addEventListener('click', saveIgnoredQueryNames);
+elements.exportCacheBtn.addEventListener('click', exportCache);
+elements.importCacheBtn.addEventListener('click', () => elements.importCacheInput.click());
+elements.importCacheInput.addEventListener('change', importCache);
 elements.deleteSelectedBtn.addEventListener('click', () => deleteBatch({ scope: 'ids', ids: Array.from(state.selectedEntryIds) }));
 elements.ttlSelectedSelect.addEventListener('change', () => updateSelectedTtl(elements.ttlSelectedSelect.value));
 elements.clearExpiredBtn.addEventListener('click', clearExpired);
@@ -388,6 +394,48 @@ async function deleteBatch(input) {
     await refresh();
   } catch (error) {
     showError(error);
+  }
+}
+
+async function exportCache() {
+  try {
+    hideError();
+    elements.exportCacheBtn.disabled = true;
+    const bundle = await requestJson('cgi-bin/cache/export');
+    const blob = new Blob([`${JSON.stringify(bundle, null, 2)}\n`], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `whistle-api-cache-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast(`已导出缓存：${(bundle.entries || []).length} 条`);
+  } catch (error) {
+    showError(error);
+  } finally {
+    elements.exportCacheBtn.disabled = false;
+  }
+}
+
+async function importCache() {
+  const [file] = elements.importCacheInput.files || [];
+  elements.importCacheInput.value = '';
+  if (!file) return;
+
+  try {
+    hideError();
+    elements.importCacheBtn.disabled = true;
+    const bundle = JSON.parse(await file.text());
+    const data = await requestJson('cgi-bin/cache/import', {
+      method: 'POST',
+      body: JSON.stringify({ bundle }),
+    });
+    showToast(`已导入缓存：${data.imported || 0} 条`);
+    await refresh();
+  } catch (error) {
+    showError(error);
+  } finally {
+    elements.importCacheBtn.disabled = false;
   }
 }
 

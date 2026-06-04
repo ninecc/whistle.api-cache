@@ -225,6 +225,40 @@ test('ui server updates cache entry TTL', async () => {
   assert.equal((await getEngine(options).list())[0].expiresAt, '9999-12-31T23:59:59.999Z');
 });
 
+test('ui server exports and imports cache bundles', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-import-export-'));
+  const options = { baseDir: root };
+  await getEngine(options).clearAll();
+  await getEngine(options).record({
+    method: 'GET',
+    url: 'https://api.example.com/users',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupUiServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const exportResponse = createJsonResponse();
+  await handler?.({ method: 'GET', url: '/cgi-bin/cache/export' }, exportResponse);
+  const bundle = exportResponse.body as { version: 1; entries: Array<{ bodyBase64: string }> };
+  assert.equal(bundle.version, 1);
+  assert.equal(bundle.entries.length, 1);
+
+  await getEngine(options).clearAll();
+  const importResponse = createJsonResponse();
+  await handler?.(createJsonRequest('/cgi-bin/cache/import', { bundle }), importResponse);
+
+  assert.deepEqual(importResponse.body, { imported: 1 });
+  assert.equal((await getEngine(options).list()).length, 1);
+});
+
 function createJsonResponse() {
   return {
     statusCode: 200,

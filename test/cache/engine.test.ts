@@ -393,3 +393,33 @@ test('updates cache entry TTL by operation', async () => {
   assert.equal(await engine.updateTtl({ scope: 'ids', ids: [entry.id], operation: 'never-expire', now }), 1);
   assert.equal((await engine.list())[0].expiresAt, '9999-12-31T23:59:59.999Z');
 });
+
+test('exports and imports cache entries with response bodies', async () => {
+  const sourceRoot = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-export-'));
+  const targetRoot = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-import-'));
+  const source = new CacheEngine(new FileCacheStore(sourceRoot), profile);
+  const target = new CacheEngine(new FileCacheStore(targetRoot), profile);
+
+  await source.record({
+    method: 'GET',
+    url: 'https://api.example.com/users',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"users":[1]}'),
+  });
+
+  const bundle = await source.exportBundle();
+  assert.equal(bundle.version, 1);
+  assert.equal(bundle.entries.length, 1);
+  assert.equal(bundle.entries[0].bodyBase64, Buffer.from('{"users":[1]}').toString('base64'));
+
+  const imported = await target.importBundle(bundle);
+  const replay = await target.replay({ method: 'GET', url: 'https://api.example.com/users' });
+
+  assert.equal(imported, 1);
+  assert.equal(replay.hit, true);
+  if (replay.hit) {
+    assert.equal(replay.body.toString(), '{"users":[1]}');
+  }
+});

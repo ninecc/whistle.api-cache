@@ -138,6 +138,9 @@
           <h2>缓存列表</h2>
           <span id="loadingText" class="loadingText" hidden>正在刷新缓存数据...</span>
           <div class="tableActions">
+            <button id="exportCacheBtn" type="button">导出</button>
+            <button id="importCacheBtn" type="button">导入</button>
+            <input id="importCacheInput" type="file" accept="application/json,.json" hidden>
             <button id="deleteSelectedBtn" class="danger" type="button" disabled>删除选中</button>
             <select id="ttlSelectedSelect" aria-label="批量 TTL 操作" disabled>
               <option value="">TTL</option>
