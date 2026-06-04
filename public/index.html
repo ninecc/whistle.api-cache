@@ -86,7 +86,10 @@
       <section class="panel">
         <div class="panelHeader">
           <h2>最近诊断</h2>
-          <span class="muted">实时同步 · 最近 20 条</span>
+          <div class="inlineActions">
+            <span class="muted">实时同步 · 最近 20 条</span>
+            <button id="clearEventsBtn" type="button">清理诊断</button>
+          </div>
         </div>
         <div id="eventsList" class="eventsList"></div>
       </section>

@@ -86,6 +86,12 @@ export function getRecentEvents(): CacheEvent[] {
   return recentEvents.map((event) => ({ ...event }));
 }
 
+export function clearRecentEvents(): number {
+  const removed = recentEvents.length;
+  recentEvents.length = 0;
+  return removed;
+}
+
 export function updateIgnoredQueryNames(names: string[]): string[] {
   const normalized = Array.from(new Set(names.map((name) => name.trim()).filter(Boolean)));
   defaultProfile.ignoredQueryNames = normalized;

@@ -7,6 +7,7 @@ import {
   getEngine,
   getRecentEvents,
   getState,
+  clearRecentEvents,
   updateIgnoredQueryNames,
 } from '../shared/state';
 
@@ -26,6 +27,10 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
 
       if (method === 'GET' && pathname === '/cgi-bin/events') {
         return sendJson(res, { events: getEventsAfter(url.searchParams.get('after')) });
+      }
+
+      if (method === 'POST' && pathname === '/cgi-bin/events/clear') {
+        return sendJson(res, { removed: clearRecentEvents() });
       }
 
       if (method === 'GET' && pathname === '/cgi-bin/cache') {

@@ -40,6 +40,7 @@ const elements = {
   saveIgnoredQueryBtn: document.querySelector('#saveIgnoredQueryBtn'),
   clearExpiredBtn: document.querySelector('#clearExpiredBtn'),
   clearAllBtn: document.querySelector('#clearAllBtn'),
+  clearEventsBtn: document.querySelector('#clearEventsBtn'),
   copyRulesBtn: document.querySelector('#copyRulesBtn'),
 };
 
@@ -48,6 +49,7 @@ elements.openDataDirBtn.addEventListener('click', openDataDir);
 elements.saveIgnoredQueryBtn.addEventListener('click', saveIgnoredQueryNames);
 elements.clearExpiredBtn.addEventListener('click', clearExpired);
 elements.clearAllBtn.addEventListener('click', clearAll);
+elements.clearEventsBtn.addEventListener('click', clearEvents);
 elements.copyRulesBtn.addEventListener('click', copyRules);
 elements.matchInput.addEventListener('input', updateRule);
 elements.searchInput.addEventListener('input', renderEntries);
@@ -295,6 +297,22 @@ async function clearAll() {
     showError(error);
   } finally {
     elements.clearAllBtn.disabled = false;
+  }
+}
+
+async function clearEvents() {
+  try {
+    hideError();
+    elements.clearEventsBtn.disabled = true;
+    const data = await requestJson('cgi-bin/events/clear', { method: 'POST' });
+    state.events = [];
+    state.lastEventId = 0;
+    renderEvents();
+    showToast(`已清理最近诊断：${data.removed || 0} 条`);
+  } catch (error) {
+    showError(error);
+  } finally {
+    elements.clearEventsBtn.disabled = false;
   }
 }
 

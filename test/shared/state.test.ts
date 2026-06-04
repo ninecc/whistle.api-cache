@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getRecentEvents, recordEvent, updateIgnoredQueryNames, defaultProfile } from '../../src/shared/state';
+import { clearRecentEvents, getRecentEvents, recordEvent, updateIgnoredQueryNames, defaultProfile } from '../../src/shared/state';
 
 test('recordEvent keeps the newest cache diagnostic events first', () => {
+  clearRecentEvents();
   for (let index = 0; index < 25; index += 1) {
     recordEvent({
       type: 'BYPASS',
@@ -22,7 +23,24 @@ test('recordEvent keeps the newest cache diagnostic events first', () => {
   assert.ok(events[0].timestamp);
 });
 
+test('clearRecentEvents removes diagnostic events', () => {
+  clearRecentEvents();
+  recordEvent({
+    type: 'HIT',
+    method: 'GET',
+    url: 'https://example.test/api',
+  });
+
+  assert.equal(getRecentEvents().length, 1);
+
+  const removed = clearRecentEvents();
+
+  assert.equal(removed, 1);
+  assert.deepEqual(getRecentEvents(), []);
+});
+
 test('updateIgnoredQueryNames normalizes and stores query names', () => {
+  clearRecentEvents();
   const original = [...defaultProfile.ignoredQueryNames];
 
   try {
