@@ -8,6 +8,7 @@ export type CacheEventType = 'STORE' | 'BYPASS' | 'HIT' | 'MISS' | 'ERROR' | 'CO
 
 export interface CacheEvent {
   id: number;
+  requestId?: string;
   type: CacheEventType;
   timestamp: string;
   method?: string;
@@ -28,6 +29,7 @@ export const defaultProfile: CacheProfile = {
 let engine: CacheEngine | undefined;
 let store: FileCacheStore | undefined;
 let nextEventId = 1;
+let nextRequestId = 1;
 const recentEvents: CacheEvent[] = [];
 const maxRecentEvents = 20;
 const recentReplayHits = new Set<string>();
@@ -85,6 +87,17 @@ export function recordEvent(event: Omit<CacheEvent, 'id' | 'timestamp'>): CacheE
   return nextEvent;
 }
 
+export function getRequestId(...candidates: unknown[]): string {
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== 'object') continue;
+    const value = readRequestId(candidate as Record<string, unknown>);
+    if (value) return value;
+  }
+  const requestId = `local-${nextRequestId}`;
+  nextRequestId += 1;
+  return requestId;
+}
+
 export function getRecentEvents(): CacheEvent[] {
   return recentEvents.map((event) => ({ ...event }));
 }
@@ -110,6 +123,15 @@ function replayHitKey(method: string, url: string): string {
   return `${method.toUpperCase()} ${url}`;
 }
 
+function readRequestId(source: Record<string, unknown>): string | undefined {
+  for (const name of ['requestId', 'id', 'reqId']) {
+    const value = source[name];
+    if (typeof value === 'string' && value) return value;
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return undefined;
+}
+
 export function updateIgnoredQueryNames(names: string[]): string[] {
   const normalized = Array.from(new Set(names.map((name) => name.trim()).filter(Boolean)));
   defaultProfile.ignoredQueryNames = normalized;
@@ -124,6 +146,7 @@ export function resetStateForTests(): void {
   engine = undefined;
   store = undefined;
   nextEventId = 1;
+  nextRequestId = 1;
   recentEvents.length = 0;
   recentReplayHits.clear();
   defaultProfile.recordEnabled = true;

@@ -1,4 +1,4 @@
-import { consumeRecentReplayHit, getEngine, recordEvent } from './shared/state';
+import { consumeRecentReplayHit, getEngine, getRequestId, recordEvent } from './shared/state';
 import { HeaderMap } from './cache/types';
 import { shouldRecord } from './ruleMode';
 
@@ -17,6 +17,7 @@ export default function setupResStatsServer(server: any, options?: Record<string
         const originalRes = req.originalRes || session?.res || {};
         const method = originalReq.method || session?.req?.method || 'GET';
         const url = originalReq.fullUrl || session?.url || session?.req?.url;
+        const requestId = getRequestId(originalReq, session?.req, req);
         const statusCode = Number(originalRes.statusCode || session?.res?.statusCode || 0);
         const requestBody = toBuffer(originalReq.body ?? session?.req?.body);
         const responseBody = toBuffer(session?.res?.body);
@@ -27,6 +28,7 @@ export default function setupResStatsServer(server: any, options?: Record<string
           console.warn('[whistle.cache] BYPASS missing url or response body');
           recordEvent({
             type: 'BYPASS',
+            requestId,
             method,
             url,
             reason: 'missing url or response body',
@@ -46,11 +48,12 @@ export default function setupResStatsServer(server: any, options?: Record<string
 
         if (result.stored) {
           console.log(`[whistle.cache] STORE ${method} ${url}`);
-          recordEvent({ type: 'STORE', method, url });
+          recordEvent({ type: 'STORE', requestId, method, url });
         } else {
           console.log(`[whistle.cache] BYPASS ${method} ${url}: ${result.reason || 'not cacheable'}`);
           recordEvent({
             type: 'BYPASS',
+            requestId,
             method,
             url,
             reason: result.reason || 'not cacheable',
@@ -60,6 +63,7 @@ export default function setupResStatsServer(server: any, options?: Record<string
         console.error('[whistle.cache] record failed:', error);
         recordEvent({
           type: 'ERROR',
+          requestId: getRequestId(req),
           reason: error instanceof Error ? error.message : String(error),
         });
       }

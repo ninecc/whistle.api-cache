@@ -80,6 +80,7 @@ test('rules server reports ambiguous POST candidates in miss diagnostics', async
     method: 'POST',
     url: 'https://api.example.com/search',
     originalReq: {
+      id: 'req-ambiguous-1',
       method: 'POST',
       fullUrl: 'https://api.example.com/search',
       ruleValue: 'replay',
@@ -88,6 +89,7 @@ test('rules server reports ambiguous POST candidates in miss diagnostics', async
 
   const [event] = getRecentEvents();
   assert.equal(event.type, 'MISS');
+  assert.equal(event.requestId, 'req-ambiguous-1');
   assert.equal(event.reason, 'REPLAY MISS -> PASS THROUGH: ambiguous POST candidates: 2');
   clearRecentEvents();
 });

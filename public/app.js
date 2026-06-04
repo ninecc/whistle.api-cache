@@ -272,6 +272,7 @@ function renderEvents() {
           <div class="eventTitle">
             <strong>${escapeHtml(event.method || '-')}</strong>
             <span>${escapeHtml(url.host || '-')}</span>
+            ${event.requestId ? `<code>${escapeHtml(event.requestId)}</code>` : ''}
           </div>
           <div class="eventPath">${escapeHtml(url.path || '-')}</div>
           ${url.query ? `<div class="eventQuery">${escapeHtml(url.query)}</div>` : ''}

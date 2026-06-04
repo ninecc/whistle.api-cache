@@ -1,12 +1,13 @@
 import { shouldRecord, shouldReplay } from './ruleMode';
 import { createPluginRulesPayload } from './replayRules';
-import { getEngine, markRecentReplayHit, recordEvent } from './shared/state';
+import { getEngine, getRequestId, markRecentReplayHit, recordEvent } from './shared/state';
 
 export default function setupRulesServer(server: any, options?: Record<string, unknown>) {
   server.on('request', async (req: any, res: any) => {
     const originalReq = req.originalReq || req;
     const method = originalReq.method || req.method || 'GET';
     const fullUrl = originalReq.fullUrl || req.fullUrl || req.url;
+    const requestId = getRequestId(originalReq, req);
 
     if (!fullUrl) {
       return res.end('');
@@ -21,16 +22,17 @@ export default function setupRulesServer(server: any, options?: Record<string, u
       const replay = await getEngine(options).replay({ method, url: fullUrl, requestBody });
       if (!replay.hit) {
         const match = await getEngine(options).match({ method, url: fullUrl, requestBody });
-        recordEvent({ type: 'MISS', method, url: fullUrl, reason: replayMissReason(originalReq.ruleValue, match.reason) });
+        recordEvent({ type: 'MISS', requestId, method, url: fullUrl, reason: replayMissReason(originalReq.ruleValue, match.reason) });
         return res.end(createPluginRulesPayload(originalReq.ruleValue, replay));
       }
 
-      recordEvent({ type: 'HIT', method, url: fullUrl, reason: replayHitReason(originalReq.ruleValue) });
+      recordEvent({ type: 'HIT', requestId, method, url: fullUrl, reason: replayHitReason(originalReq.ruleValue) });
       markRecentReplayHit(method, fullUrl);
       return res.end(createPluginRulesPayload(originalReq.ruleValue, replay));
     } catch (error) {
       recordEvent({
         type: 'ERROR',
+        requestId,
         method,
         url: fullUrl,
         reason: error instanceof Error ? error.message : String(error),

@@ -4,6 +4,7 @@ import {
   clearRecentEvents,
   consumeRecentReplayHit,
   getRecentEvents,
+  getRequestId,
   markRecentReplayHit,
   recordEvent,
   updateIgnoredQueryNames,
@@ -67,4 +68,11 @@ test('updateIgnoredQueryNames normalizes and stores query names', () => {
   } finally {
     updateIgnoredQueryNames(original);
   }
+});
+
+test('getRequestId reads request identifiers and falls back locally', () => {
+  assert.equal(getRequestId({ requestId: 'request-1' }), 'request-1');
+  assert.equal(getRequestId({ id: 42 }), '42');
+  assert.equal(getRequestId({}), 'local-1');
+  assert.equal(getRequestId({}), 'local-2');
 });
