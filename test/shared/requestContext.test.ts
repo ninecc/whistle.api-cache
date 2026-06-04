@@ -86,6 +86,19 @@ test('prefers fallback fullUrl before fallback.url', () => {
   assert.equal(context.url, 'https://example.test/api/fallback-full');
 });
 
+test('falls back to fallback.req.url when fallback.fullUrl and fallback.url are empty', () => {
+  const context = parseRequestContext(
+    {},
+    {
+      fullUrl: '',
+      url: '',
+      req: { url: 'https://example.test/api/fallback-req' },
+    },
+  );
+
+  assert.equal(context.url, 'https://example.test/api/fallback-req');
+});
+
 test('keeps originalReq.method when it is number-like value 0', () => {
   const context = parseRequestContext(
     {

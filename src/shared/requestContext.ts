@@ -14,6 +14,7 @@ export function parseRequestContext(req: unknown, fallback?: unknown): ParsedReq
   const alt = toRecord(fallback);
   const requestLike = getRequestLikeSource(root);
   const method = normalizeMethod(selectFirstValue(requestLike.method, root.method, alt.method), 'GET');
+  // URL 回退时统一按：原始上下文(fullUrl/url) -> 当前 req(fullUrl/url) -> fallback(fullUrl/url) -> fallback.req.url。
   const url = selectFirstValue(
     requestLike.fullUrl,
     requestLike.url,
