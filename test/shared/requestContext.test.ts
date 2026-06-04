@@ -157,6 +157,27 @@ test('keeps originalReq.method when it is number-like value 0', () => {
   assert.equal(context.url, '/api/from-req');
 });
 
+test('keeps numeric method while falling back to fallback req.url when originalReq url fields are empty', () => {
+  const context = parseRequestContext(
+    {
+      method: 0,
+      originalReq: {
+        method: 0,
+        fullUrl: '',
+        url: '',
+      },
+    },
+    {
+      req: {
+        url: '/api/fallback-req',
+      },
+    },
+  );
+
+  assert.equal(context.method, '0');
+  assert.equal(context.url, '/api/fallback-req');
+});
+
 test('uses originalReq.fullUrl before req.url when method missing', () => {
   const context = parseRequestContext(
     {
