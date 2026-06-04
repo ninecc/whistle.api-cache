@@ -248,6 +248,45 @@ test('rules server can hit replay even when originalReq.body is missing for empt
   assert.equal(event.url, 'https://api.example.com/body-miss-candidate');
 });
 
+test('rules server treats empty-string req.body as missing request body', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-empty-body-'));
+  const options = { baseDir: root };
+  clearRecentEvents();
+
+  await getEngine(options).record({
+    method: 'POST',
+    url: 'https://api.example.com/empty-body',
+    requestHeaders: {},
+    requestBody: Buffer.from('x=1'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupRulesServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = createTextResponse();
+  await handler?.({
+    method: 'post',
+    url: 'https://api.example.com/empty-body',
+    body: '',
+    originalReq: {
+      ruleValue: 'replay',
+    },
+  }, response);
+
+  const parsed = JSON.parse(response.body);
+  assert.ok(parsed.rules.includes('* style://bgColor=@1d4ed8') || parsed.rules.includes('statusCode://200'));
+  const [event] = getRecentEvents();
+  assert.equal(event.type, 'MISS');
+  assert.equal(event.url, 'https://api.example.com/empty-body');
+});
+
 function createTextResponse() {
   return {
     body: '',

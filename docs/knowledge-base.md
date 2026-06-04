@@ -71,6 +71,7 @@
 
 `test/rulesServer.test.ts` 覆盖了 `originalReq` 为空壳对象但携带 `ruleValue` 的场景：回放时仍应使用当前 `req` 的 `method/url`。
 `test/rulesServer.test.ts` 还覆盖了 `POST` 场景下 `originalReq.body` 缺失时，应从 `req.body` 回退获取请求体，保证 body 匹配可命中。
+`test/rulesServer.test.ts` 同时覆盖了 `req.body` 为空字符串时应按“无 body”处理，避免把空字符串误当作可匹配 body。
 
 这个 hook 适合 Whistle 原生规则链路。维护时如果发现回放响应没有走 `server.ts`，也要检查 `rulesServer.ts` 是否已经生成了回放规则。
 
