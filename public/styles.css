@@ -163,6 +163,71 @@ textarea {
   gap: 14px;
 }
 
+.statusPanel .panelHeader {
+  margin-bottom: 10px;
+}
+
+.statusOverview {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(220px, 0.8fr) minmax(280px, 1.3fr);
+  gap: 10px;
+}
+
+.statusItem {
+  min-width: 0;
+  border-radius: 7px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.statusValueLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.statusValue {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  max-width: 100%;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 13px;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusValue.ok {
+  background: #ecfdf3;
+  color: #027a48;
+}
+
+.statusValue.info {
+  background: #eff6ff;
+  color: #175cd3;
+}
+
+.statusValue.muted,
+.statusValue.neutral {
+  background: #eef2f6;
+  color: #475467;
+}
+
+.statusItem p {
+  margin-top: 8px;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.statusItem button {
+  flex: 0 0 auto;
+}
+
 .chips,
 .segmented,
 .tableActions,
@@ -713,6 +778,7 @@ ul {
 
 @media (max-width: 900px) {
   .summary,
+  .statusOverview,
   .dashboard,
   .policyList,
   .ruleBuilder,
@@ -781,8 +847,20 @@ ul {
   }
 
   .summary,
+  .statusOverview,
   .healthGrid {
     grid-template-columns: 1fr;
+  }
+
+  .statusValueLine {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .statusValue,
+  .statusItem button {
+    width: 100%;
+    justify-content: center;
   }
 
   .chips .chip,

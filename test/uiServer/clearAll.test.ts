@@ -1,10 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import setupUiServer from '../../src/uiServer';
 import { getEngine, getRecentEvents, recordEvent, clearRecentEvents } from '../../src/shared/state';
+
+test('ui status panel presents proxy state as a readable overview', async () => {
+  const html = await readFile(join(__dirname, '../../../public/index.html'), 'utf8');
+  const app = await readFile(join(__dirname, '../../../public/app.js'), 'utf8');
+
+  assert.ok(/<h2>状态总览<\/h2>/.test(html));
+  assert.ok(/id="statusOverview"/.test(html));
+  assert.ok(/当前处理/.test(app));
+  assert.ok(/缓存边界/.test(app));
+  assert.ok(/数据目录/.test(app));
+  assert.ok(/录制与回放都已开启/.test(app));
+});
 
 test('ui server clears all cache entries', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-clear-all-'));

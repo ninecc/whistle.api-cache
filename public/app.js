@@ -4,6 +4,7 @@ const state = {
   contentTypePolicy: {},
   profile: {},
   replayHeaderPolicy: {},
+  dataDir: '',
   ruleMode: 'record',
   expandedEntryId: undefined,
   eventFilter: 'all',
@@ -21,8 +22,7 @@ const elements = {
   profileId: document.querySelector('#profileId'),
   entryCount: document.querySelector('#entryCount'),
   totalSize: document.querySelector('#totalSize'),
-  dataDir: document.querySelector('#dataDir'),
-  statusChips: document.querySelector('#statusChips'),
+  statusOverview: document.querySelector('#statusOverview'),
   matchInput: document.querySelector('#matchInput'),
   currentRuleMode: document.querySelector('#currentRuleMode'),
   freshCount: document.querySelector('#freshCount'),
@@ -50,7 +50,7 @@ const elements = {
   loadingText: document.querySelector('#loadingText'),
   rulesBlock: document.querySelector('#rulesBlock'),
   refreshBtn: document.querySelector('#refreshBtn'),
-  openDataDirBtn: document.querySelector('#openDataDirBtn'),
+  openDataDirBtn: undefined,
   saveIgnoredQueryBtn: document.querySelector('#saveIgnoredQueryBtn'),
   exportCacheBtn: document.querySelector('#exportCacheBtn'),
   importCacheBtn: document.querySelector('#importCacheBtn'),
@@ -65,7 +65,6 @@ const elements = {
 };
 
 elements.refreshBtn.addEventListener('click', refresh);
-elements.openDataDirBtn.addEventListener('click', openDataDir);
 elements.saveIgnoredQueryBtn.addEventListener('click', saveIgnoredQueryNames);
 elements.exportCacheBtn.addEventListener('click', exportCache);
 elements.importCacheBtn.addEventListener('click', () => elements.importCacheInput.click());
@@ -129,7 +128,7 @@ function applyState(data, options = {}) {
   elements.profileId.textContent = state.profile.id || 'default';
   elements.entryCount.textContent = String(data.entryCount || 0);
   elements.totalSize.textContent = formatBytes(data.totalSize || 0);
-  elements.dataDir.textContent = data.dataDir || '';
+  state.dataDir = data.dataDir || '';
   if (!options.preserveSettingsInput && document.activeElement !== elements.ignoredQueryInput) {
     elements.ignoredQueryInput.value = (state.profile.ignoredQueryNames || []).join(', ');
   }
@@ -245,15 +244,69 @@ function renderEntries() {
 
 function renderStatus() {
   const profile = state.profile;
-  const chips = [
-    { label: `录制 ${profile.recordEnabled ? '开启' : '关闭'}`, tone: profile.recordEnabled ? 'ok' : 'muted' },
-    { label: `回放 ${profile.replayEnabled ? '开启' : '关闭'}`, tone: profile.replayEnabled ? 'ok' : 'muted' },
-    { label: `TTL ${formatDuration(profile.ttlSeconds || 0)}`, tone: 'info' },
-    { label: `最大 Body ${formatBytes(profile.maxBodySize || 0)}`, tone: 'info' },
+  const mode = describeProxyMode(profile);
+  const rows = [
+    {
+      title: '当前处理',
+      value: mode.title,
+      tone: mode.tone,
+      detail: mode.detail,
+    },
+    {
+      title: '缓存边界',
+      value: `${formatDuration(profile.ttlSeconds || 0)} / ${formatBytes(profile.maxBodySize || 0)}`,
+      tone: 'info',
+      detail: '命中缓存前会检查有效期；超过 Body 限制的响应会跳过录制。',
+    },
+    {
+      title: '数据目录',
+      value: state.dataDir || '-',
+      tone: 'neutral',
+      detail: '录制的响应和索引保存在这里，排查缓存文件时可直接打开。',
+      action: '<button id="openDataDirBtn" type="button">打开目录</button>',
+    },
   ];
-  elements.statusChips.innerHTML = chips.map((chip) => (
-    `<span class="chip ${chip.tone}">${escapeHtml(chip.label)}</span>`
-  )).join('');
+  elements.statusOverview.innerHTML = rows.map((row) => `
+    <div class="statusItem">
+      <span class="label">${escapeHtml(row.title)}</span>
+      <div class="statusValueLine">
+        <strong class="statusValue ${row.tone}">${escapeHtml(row.value)}</strong>
+        ${row.action || ''}
+      </div>
+      <p>${escapeHtml(row.detail)}</p>
+    </div>
+  `).join('');
+  elements.openDataDirBtn = document.querySelector('#openDataDirBtn');
+  elements.openDataDirBtn.addEventListener('click', openDataDir);
+}
+
+function describeProxyMode(profile) {
+  if (profile.recordEnabled && profile.replayEnabled) {
+    return {
+      title: '录制与回放都已开启',
+      tone: 'ok',
+      detail: '有缓存时优先回放，未命中且响应符合策略时会写入本地缓存。',
+    };
+  }
+  if (profile.recordEnabled) {
+    return {
+      title: '仅录制',
+      tone: 'ok',
+      detail: '请求会继续访问真实服务，符合策略的响应会写入本地缓存。',
+    };
+  }
+  if (profile.replayEnabled) {
+    return {
+      title: '仅回放',
+      tone: 'info',
+      detail: '命中缓存时返回本地响应；未命中时会继续走真实请求。',
+    };
+  }
+  return {
+    title: '未接管',
+    tone: 'muted',
+    detail: '当前规则没有启用录制或回放，插件只会显示诊断信息。',
+  };
 }
 
 function renderHealth() {
@@ -499,6 +552,7 @@ async function clearEvents() {
 }
 
 async function openDataDir() {
+  if (!elements.openDataDirBtn) return;
   try {
     hideError();
     elements.openDataDirBtn.disabled = true;
