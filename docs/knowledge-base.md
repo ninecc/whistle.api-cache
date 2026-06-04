@@ -93,6 +93,7 @@
 `server.ts`、`rulesServer.ts`、`resStatsServer.ts`、`uiServer/index.ts` 的 `method/url` 取值统一到 `src/shared/requestContext.ts`，其中 `method` 也被统一为大写，规避重复分支下的边界差异与大小写不一致问题。
 `parseRequestContext` 的回退链条与大小写行为均已有测试覆盖，位于 `test/shared/requestContext.test.ts`。
 文档说明中补充了回退优先级细节，并新增边界测试覆盖了 `req.url` 回退场景，确保 `parseRequestContext` 在缺少 `fullUrl` 时仍可从 `url` 提取上下文。
+当 `req.fullUrl` 为空字符串时，回退链会继续取 `req.url`，不会被空值 `fullUrl` 冒充为有效来源。
 `parseRequestContext` 同样会在 `originalReq` 仅携带 `fullUrl`（但不带 `method`）时优先采用其绝对 URL，避免将 `req.url` 的相对路径误当作请求 URL 继续下游匹配。
 当 `originalReq` 仅是占位对象且无 `fullUrl/url/method` 时，会回退到当前 `req` 的上下文，避免空壳 `originalReq` 覆盖有效取值。
 当 `originalReq.fullUrl` 或 `fallback.fullUrl` 为 `''` 时，会继续沿链条向 `url` 回退，减少空值导致的错误 URL 进入回放路径。

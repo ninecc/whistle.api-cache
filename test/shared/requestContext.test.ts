@@ -36,6 +36,21 @@ test('prioritizes req.url over fallback.fullUrl when fullUrl missing', () => {
   assert.equal(context.url, '/api/from-req');
 });
 
+test('prefers req.url when req.fullUrl is empty', () => {
+  const context = parseRequestContext(
+    {
+      fullUrl: '',
+      url: '/api/from-req',
+    },
+    {
+      fullUrl: 'https://example.test/api/fallback',
+      url: 'https://example.test/api/fallback-url',
+    },
+  );
+
+  assert.equal(context.url, '/api/from-req');
+});
+
 test('falls back to req and fallback values when original missing', () => {
   const context = parseRequestContext(
     { method: 'GET', fullUrl: 'https://example.test/api/root' },
