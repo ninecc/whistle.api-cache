@@ -97,6 +97,7 @@
 当 `originalReq` 仅是占位对象且无 `fullUrl/url/method` 时，会回退到当前 `req` 的上下文，避免空壳 `originalReq` 覆盖有效取值。
 当 `originalReq.fullUrl` 或 `fallback.fullUrl` 为 `''` 时，会继续沿链条向 `url` 回退，减少空值导致的错误 URL 进入回放路径。
 当 `fallback.fullUrl` 与 `fallback.url` 均为空字符串时，回退会继续落到 `fallback.req.url`。
+当 `originalReq.method` 为空字符串时，该值会被视作无效，仍保留根上下文中的方法值。
 `resStatsServer` 在构建回放上下文时，会把 `session` 与 `session.req` 一并并入 fallback，确保在 `originalReq` 不完整时可以从会话读取 `method` 与 `url`。
 `parseRequestContext` 在方法回退时已改为显式跳过 `undefined/null/空字符串`，避免 `0` 等非字符串有效值被错误当作缺省回退。
 另外，`parseRequestContext` 的 `url` 回退顺序修复为 `requestLike.fullUrl > requestLike.url > root.fullUrl > root.url > fallback.fullUrl > fallback.url > fallback.req.url`，避免 `fallback.fullUrl` 被错误落在 `fallback.url` 之后。
