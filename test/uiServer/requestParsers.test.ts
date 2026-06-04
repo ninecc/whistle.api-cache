@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCacheMatchBody, parseDeleteBatchBody, parseEnabledBody, parseEventsAfter, parseIgnoredQueryNames, parseUpdateTtlBody } from '../../src/uiServer/requestParsers';
+import {
+  parseCacheMatchBody,
+  parseDeleteBody,
+  parseDeleteBatchBody,
+  parseEnabledBody,
+  parseEventsAfter,
+  parseIgnoredQueryNames,
+  parseUpdateTtlBody,
+} from '../../src/uiServer/requestParsers';
 
 test('defaults unknown delete scope to empty id list scope', () => {
   assert.deepEqual(parseDeleteBatchBody({ scope: 'unknown' }), {
@@ -78,5 +86,15 @@ test('parses enabled request body with defaults', () => {
   assert.deepEqual(parseEnabledBody({ id: 12, enabled: '1' }), {
     id: '12',
     enabled: true,
+  });
+});
+
+test('normalizes delete body with fallback default', () => {
+  assert.deepEqual(parseDeleteBody({}), {
+    id: '',
+  });
+
+  assert.deepEqual(parseDeleteBody({ id: 123 }), {
+    id: '123',
   });
 });

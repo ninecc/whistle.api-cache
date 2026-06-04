@@ -13,6 +13,7 @@ import {
 import {
   parseCacheMatchBody,
   parseDeleteBatchBody,
+  parseDeleteBody,
   parseEventsAfter,
   parseIgnoredQueryNames,
   parseEnabledBody,
@@ -60,7 +61,8 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/delete') {
         const body = await readJsonBody(req);
-        return sendJson(res, { deleted: await getEngine(options).delete(String(body.id || '')) });
+        const deleteBody = parseDeleteBody(body);
+        return sendJson(res, { deleted: await getEngine(options).delete(deleteBody.id) });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/delete-batch') {

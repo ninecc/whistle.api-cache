@@ -245,6 +245,7 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 - `scope` 非法时默认回退到 `{ scope: 'ids', ids: [] }`。
 - `ids` 全部转为字符串。
 - `same-host/same-path` 解析并返回 `entryId` 字符串。
+- `/cgi-bin/cache/delete` 也统一使用 `parseDeleteBody`，只返回 `{ id: string }`，并将缺省 id 处理为 `''`，保证前后端行为一致。
 - TTL 操作仅接受 `extend-30m`、`never-expire`、`default-ttl`、`expire-now`，非法值回退为 `default-ttl`。
 
 对应验证用例见 `test/uiServer/requestParsers.test.ts`。

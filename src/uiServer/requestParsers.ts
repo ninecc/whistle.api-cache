@@ -1,6 +1,13 @@
 import { DeleteBatchInput, TtlOperation, UpdateTtlInput } from '../cache/engine';
 
 /**
+ * 规范化单条缓存删除接口参数，缺省 id 为空字符串。
+ */
+export function parseDeleteBody(body: Record<string, unknown>): { id: string } {
+  return { id: String(body.id || '') };
+}
+
+/**
  * 规范化 getEvents 查询参数。
  */
 export function parseEventsAfter(after: string | null): number {
