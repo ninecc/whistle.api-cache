@@ -83,6 +83,9 @@ export class CacheEngine {
       return this.createReplayHit(entry);
     }
 
+    const legacyEntry = await this.findCompatibleEntry(method, input.url, input.requestBody);
+    if (legacyEntry) return this.createReplayHit(legacyEntry);
+
     if (method === 'POST' && !input.requestBody?.byteLength) {
       const normalizedUrl = normalizeUrl(input.url, this.profile.ignoredQueryNames);
       const candidates = (await this.store.listEntries()).filter((item) => (
@@ -96,6 +99,21 @@ export class CacheEngine {
     }
 
     return { hit: false };
+  }
+
+  private async findCompatibleEntry(method: string, url: string, requestBody?: Buffer): Promise<CacheEntry | undefined> {
+    const normalizedUrl = normalizeUrl(url, this.profile.ignoredQueryNames);
+    const requestBodyHash = requestBody?.byteLength ? hashRequestBody(requestBody) : undefined;
+    const candidates = (await this.store.listEntries()).filter((item) => (
+      item.profileId === this.profile.id &&
+      item.enabled &&
+      item.method === method &&
+      normalizeUrl(item.url, this.profile.ignoredQueryNames) === normalizedUrl &&
+      new Date(item.expiresAt).getTime() > Date.now() &&
+      (!requestBodyHash || item.requestBodyHash === requestBodyHash)
+    ));
+    if (candidates.length === 1) return candidates[0];
+    return undefined;
   }
 
   private async createReplayHit(entry: CacheEntry): Promise<ReplayResult> {

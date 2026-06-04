@@ -185,3 +185,55 @@ test('replays entries when ignored query names change between requests', async (
 
   assert.equal(replay.hit, true);
 });
+
+test('default profile ignores signed ticket query names for replay', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-default-signed-query-'));
+  const { defaultProfile } = await import('../../src/shared/state');
+  const engine = new CacheEngine(new FileCacheStore(root), defaultProfile);
+
+  await engine.record({
+    method: 'POST',
+    url: 'https://energy.example.com/station-api/user/homePageExtInfo?source=1&ttid=driver&ticket=record-ticket&wsgsig=record-signature',
+    requestHeaders: {},
+    requestBody: Buffer.from('{"source":"1","token":"same-token"}'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  const replay = await engine.replay({
+    method: 'POST',
+    url: 'https://energy.example.com/station-api/user/homePageExtInfo?source=1&ttid=driver&ticket=replay-ticket&wsgsig=replay-signature',
+    requestBody: Buffer.from('{"source":"1","token":"same-token"}'),
+  });
+
+  assert.equal(replay.hit, true);
+});
+
+test('replays entries recorded before default signed query names were ignored', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-legacy-signed-query-'));
+  const store = new FileCacheStore(root);
+  const requestBody = Buffer.from('{"source":"1","token":"same-token"}');
+
+  await new CacheEngine(store, profile).record({
+    method: 'POST',
+    url: 'https://energy.example.com/station-api/user/homePageExtInfo?source=1&ttid=driver&ticket=record-ticket&wsgsig=record-signature',
+    requestHeaders: {},
+    requestBody,
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"legacy":true}'),
+  });
+
+  const { defaultProfile } = await import('../../src/shared/state');
+  const replay = await new CacheEngine(store, defaultProfile).replay({
+    method: 'POST',
+    url: 'https://energy.example.com/station-api/user/homePageExtInfo?source=1&ttid=driver&ticket=replay-ticket&wsgsig=replay-signature',
+    requestBody,
+  });
+
+  assert.equal(replay.hit, true);
+  if (replay.hit) {
+    assert.equal(replay.body.toString(), '{"legacy":true}');
+  }
+});

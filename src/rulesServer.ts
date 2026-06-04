@@ -1,18 +1,15 @@
 import { getEngine, recordEvent } from './shared/state';
 import { shouldReplay } from './ruleMode';
+import { createReplayRulesPayload } from './replayRules';
 
-export default function setupServer(server: any, options?: Record<string, unknown>) {
+export default function setupRulesServer(server: any, options?: Record<string, unknown>) {
   server.on('request', async (req: any, res: any) => {
     const originalReq = req.originalReq || req;
     const method = originalReq.method || req.method || 'GET';
     const fullUrl = originalReq.fullUrl || req.fullUrl || req.url;
 
-    if (!shouldReplay(originalReq.ruleValue)) {
-      return passThrough(req, res);
-    }
-
-    if (!fullUrl) {
-      return passThrough(req, res);
+    if (!shouldReplay(originalReq.ruleValue) || !fullUrl) {
+      return res.end('');
     }
 
     try {
@@ -20,38 +17,21 @@ export default function setupServer(server: any, options?: Record<string, unknow
       const replay = await getEngine(options).replay({ method, url: fullUrl, requestBody });
       if (!replay.hit) {
         recordEvent({ type: 'MISS', method, url: fullUrl, reason: 'cache miss or expired' });
-        return passThrough(req, res);
+        return res.end('');
       }
 
       recordEvent({ type: 'HIT', method, url: fullUrl });
-      res.statusCode = replay.statusCode;
-      for (const [name, value] of Object.entries(replay.headers)) {
-        res.setHeader(name, value);
-      }
-      res.end(replay.body);
+      res.end(createReplayRulesPayload(replay));
     } catch (error) {
-      console.error('[whistle.cache] replay failed:', error);
       recordEvent({
         type: 'ERROR',
         method,
         url: fullUrl,
         reason: error instanceof Error ? error.message : String(error),
       });
-      passThrough(req, res);
+      res.end('');
     }
   });
-}
-
-function passThrough(req: any, res: any) {
-  if (typeof req.passThrough === 'function') {
-    req.passThrough();
-    return;
-  }
-
-  res.statusCode = 502;
-  res.setHeader('content-type', 'text/plain; charset=utf-8');
-  res.setHeader('x-whistle-cache', 'MISS');
-  res.end('whistle.cache miss and passThrough is unavailable');
 }
 
 async function getBufferedRequestBody(req: any, originalReq: any): Promise<Buffer | undefined> {

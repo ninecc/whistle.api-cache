@@ -19,7 +19,7 @@ export const defaultProfile: CacheProfile = {
   recordEnabled: true,
   replayEnabled: true,
   ttlSeconds: 1800,
-  ignoredQueryNames: ['_t', 't', 'timestamp'],
+  ignoredQueryNames: ['_t', 't', 'timestamp', 'ticket', 'wsgsig'],
   maxBodySize: 1024 * 1024,
   cacheableContentTypes: ['application/json', 'text/'],
 };

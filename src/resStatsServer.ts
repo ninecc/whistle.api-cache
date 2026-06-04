@@ -1,5 +1,6 @@
 import { getEngine, recordEvent } from './shared/state';
 import { HeaderMap } from './cache/types';
+import { shouldRecord } from './ruleMode';
 
 export default function setupResStatsServer(server: any, options?: Record<string, unknown>) {
   server.on('request', (req: any) => {
@@ -11,6 +12,8 @@ export default function setupResStatsServer(server: any, options?: Record<string
     req.getSession(async (session: any) => {
       try {
         const originalReq = req.originalReq || session?.req || {};
+        if (!shouldRecord(originalReq.ruleValue)) return;
+
         const originalRes = req.originalRes || session?.res || {};
         const method = originalReq.method || session?.req?.method || 'GET';
         const url = originalReq.fullUrl || session?.url || session?.req?.url;
