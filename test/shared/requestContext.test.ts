@@ -42,3 +42,9 @@ test('returns undefined url when unavailable', () => {
   assert.equal(context.method, 'GET');
   assert.equal(context.url, undefined);
 });
+
+test('normalizes method to uppercase', () => {
+  const context = parseRequestContext({ method: 'post' }, {});
+
+  assert.equal(context.method, 'POST');
+});

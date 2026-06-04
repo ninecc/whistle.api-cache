@@ -12,7 +12,8 @@ export function parseRequestContext(req: unknown, fallback?: unknown): ParsedReq
   const root = toRecord(req);
   const alt = toRecord(fallback);
   const requestLike = root.originalReq && toRecord(root.originalReq).method ? toRecord(root.originalReq) : root;
-  const method = requestLike.method || root.method || alt.method || 'GET';
+  const rawMethod = requestLike.method || root.method || alt.method || 'GET';
+  const method = String(rawMethod).toUpperCase();
   const url = requestLike.fullUrl || root.fullUrl || alt.url || alt.fullUrl || alt.req?.url;
 
   return { method, url };
