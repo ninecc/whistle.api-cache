@@ -237,6 +237,7 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 - 若请求对象仅提供 `getSession()`（`resStatsServer` 场景），则使用同样 fallback 规则读取 `session.req.body`。
 - `originalReq.body = 0` 或 `false` 这类非空占位值会优先于 session body 使用（例如 `0` 对应 `Buffer.from('0')`）。
 - 空字符串 `''` 被视作“无 body”，会触发会话回退获取，避免把长度 0 的字符串误当作可匹配 body。
+- `null`/`undefined` 会视为缺失，仍会回退到会话 body（若存在）。
 - `toBuffer('')` 实际返回长度为 0 的 `Buffer`，由调用侧的 truthy 判定决定是否进入会话回退。
 - 其余非空非 Buffer/字符串/二进制类型会按 `String(value)` 转为字符串再转 Buffer，例如数值 `0`。
 - 布尔值等非空占位值会按 `String(value)` 转换后参与回放匹配（例如 `false` -> `Buffer.from('false')`），不会被误回退为缺失。
