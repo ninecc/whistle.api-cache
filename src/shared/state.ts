@@ -122,6 +122,7 @@ export function consumeRecentReplayHit(method: string, url: string): boolean {
 }
 
 function replayHitKey(method: string, url: string): string {
+  // 统一使用 normalizeMethod，防止同一请求在大小写不同 method 下误判重复命中标记。
   return `${normalizeMethod(method)} ${url}`;
 }
 

@@ -62,6 +62,12 @@ test('recent replay hit markers are method-case insensitive', () => {
   assert.equal(consumeRecentReplayHit('POST', 'https://example.test/api'), true);
 });
 
+test('recent replay hit markers handle non-string methods consistently', () => {
+  markRecentReplayHit(12 as unknown as string, 'https://example.test/api');
+
+  assert.equal(consumeRecentReplayHit('12', 'https://example.test/api'), true);
+});
+
 test('updateIgnoredQueryNames normalizes and stores query names', () => {
   clearRecentEvents();
   const original = [...defaultProfile.ignoredQueryNames];

@@ -87,6 +87,7 @@
 `src/cache/engine.ts` 中 `record/replay/match` 输入方法也改为走 `normalizeMethod`，确保记录与回放路径在方法大小写规则上完全一致，避免因输入大小写导致的分支漂移。
 `cache/key.ts` 与 `cache/policy.ts`、`shared/state.ts` 也加入统一的 `normalizeMethod`，
 使 Cache key、可缓存性判断与回放命中标记在任意场景下都采用统一的 `method` 规范化策略。
+`shared/state.ts` 的 `markRecentReplayHit/consumeRecentReplayHit` 同样走同一规范化策略，确保大小写或类型异常输入不会导致同一请求的命中标记错过。
 
 ## 规则模式
 
