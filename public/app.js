@@ -3,7 +3,14 @@ const state = {
   events: [],
   profile: {},
   ruleMode: 'record',
+  fallbackTimer: undefined,
+  lastEventId: 0,
+  syncTimer: undefined,
 };
+
+const diagnosticsRefreshInterval = 1000;
+const fallbackRefreshInterval = 30000;
+const eventSyncDelay = 250;
 
 const elements = {
   profileId: document.querySelector('#profileId'),
@@ -61,31 +68,83 @@ for (const button of document.querySelectorAll('[data-query-name]')) {
 }
 
 refresh();
+startDiagnosticsSync();
+startFallbackRefresh();
 updateRule();
 
-async function refresh() {
-  setLoading(true);
+async function refresh(options = {}) {
+  const silent = Boolean(options.silent);
+  if (!silent) setLoading(true);
   try {
     hideError();
-    const data = await requestJson('cgi-bin/state');
-    state.entries = data.entries || [];
-    state.events = data.events || [];
-    state.profile = data.profile || {};
-    elements.profileId.textContent = state.profile.id || 'default';
-    elements.entryCount.textContent = String(data.entryCount || 0);
-    elements.totalSize.textContent = formatBytes(data.totalSize || 0);
-    elements.dataDir.textContent = data.dataDir || '';
-    elements.ignoredQueryInput.value = (state.profile.ignoredQueryNames || []).join(', ');
-    renderStatus();
-    renderHealth();
-    renderEvents();
-    renderPolicy();
-    renderEntries();
+    applyState(await requestJson('cgi-bin/state'), { preserveSettingsInput: silent });
   } catch (error) {
-    showError(error);
+    if (!silent) showError(error);
   } finally {
-    setLoading(false);
+    if (!silent) setLoading(false);
   }
+}
+
+function applyState(data, options = {}) {
+  state.entries = data.entries || [];
+  state.events = data.events || [];
+  state.lastEventId = getMaxEventId(state.events, state.lastEventId);
+  state.profile = data.profile || {};
+  elements.profileId.textContent = state.profile.id || 'default';
+  elements.entryCount.textContent = String(data.entryCount || 0);
+  elements.totalSize.textContent = formatBytes(data.totalSize || 0);
+  elements.dataDir.textContent = data.dataDir || '';
+  if (!options.preserveSettingsInput && document.activeElement !== elements.ignoredQueryInput) {
+    elements.ignoredQueryInput.value = (state.profile.ignoredQueryNames || []).join(', ');
+  }
+  renderStatus();
+  renderHealth();
+  renderEvents();
+  renderPolicy();
+  renderEntries();
+}
+
+function startDiagnosticsSync() {
+  setInterval(async () => {
+    if (document.hidden) return;
+    try {
+      const data = await requestJson(`cgi-bin/events?after=${encodeURIComponent(state.lastEventId)}`);
+      const events = data.events || [];
+      for (const event of events.slice().reverse()) {
+        appendEvent(event);
+      }
+      if (events.length) scheduleSilentRefresh();
+    } catch {
+      scheduleSilentRefresh();
+    }
+  }, diagnosticsRefreshInterval);
+}
+
+function startFallbackRefresh() {
+  state.fallbackTimer = setInterval(() => {
+    if (document.hidden) return;
+    refresh({ silent: true });
+  }, fallbackRefreshInterval);
+}
+
+function scheduleSilentRefresh() {
+  clearTimeout(state.syncTimer);
+  state.syncTimer = setTimeout(() => {
+    if (document.hidden) return;
+    refresh({ silent: true });
+  }, eventSyncDelay);
+}
+
+function appendEvent(event) {
+  if (!event || state.events.some((item) => item.id === event.id)) return;
+  state.events.unshift(event);
+  state.events = state.events.slice(0, 20);
+  state.lastEventId = getMaxEventId([event], state.lastEventId);
+  renderEvents();
+}
+
+function getMaxEventId(events, fallback = 0) {
+  return events.reduce((maxId, event) => Math.max(maxId, Number(event.id || 0)), fallback);
 }
 
 function renderEntries() {
