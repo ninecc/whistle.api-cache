@@ -67,3 +67,48 @@ test('server replays by fallback context when originalReq is empty shell', async
   assert.equal(event.url, url);
 });
 
+test('server passes through when resolved url is empty', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-server-empty-url-'));
+  const options = { baseDir: root };
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  let passThroughCalled = false;
+  setupServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = {
+    headers: {} as Record<string, string>,
+    body: '',
+    statusCode: 0,
+    setHeader(name: string, value: string | number | string[]) {
+      this.headers[name] = String(Array.isArray(value) ? value.join(',') : value);
+    },
+    end(data?: string | Buffer) {
+      this.body = data?.toString() || '';
+    },
+    passThrough() {
+      passThroughCalled = true;
+    },
+  };
+
+  clearRecentEvents();
+  await handler?.({
+    ruleValue: 'replay',
+    originalReq: {
+      method: 'GET',
+      fullUrl: '',
+    },
+    method: 'GET',
+    url: '',
+    passThrough() {
+      passThroughCalled = true;
+    },
+  }, response);
+
+  assert.equal(passThroughCalled, true);
+  assert.equal(response.statusCode, 0);
+  assert.equal(response.body, '');
+});
