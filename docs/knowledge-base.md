@@ -249,6 +249,16 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 
 对应验证用例见 `test/uiServer/requestParsers.test.ts`。
 
+### UI CGI 统一 JSON 解析
+
+`uiServer` 的 POST 接口统一使用 `src/uiServer/bodyParsers.ts` 的 `readJsonBody` 读取并解析请求体。
+
+- 空 body：返回 `{}`。
+- 非法 JSON：抛错由上层统一错误处理（返回 500 错误响应）。
+- 常规对象：按 JSON 解析后供下游逻辑使用。
+
+对应验证用例见 `test/uiServer/bodyParsers.test.ts`。
+
 主要 API：
 
 | 方法 | 路径 | 功能 |

@@ -11,6 +11,7 @@ import {
   updateIgnoredQueryNames,
 } from '../shared/state';
 import { parseDeleteBatchBody, parseUpdateTtlBody } from './requestParsers';
+import { readJsonBody } from './bodyParsers';
 
 const publicDir = join(__dirname, '../../../public');
 const pluginBasePath = '/whistle.api-cache';
@@ -178,20 +179,4 @@ function contentType(filePath: string): string {
   if (filePath.endsWith('.css')) return 'text/css; charset=utf-8';
   if (filePath.endsWith('.js')) return 'application/javascript; charset=utf-8';
   return 'application/octet-stream';
-}
-
-function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
-  return new Promise((resolveBody, rejectBody) => {
-    const chunks: Buffer[] = [];
-    req.on('data', (chunk) => chunks.push(chunk));
-    req.on('end', () => {
-      try {
-        const raw = chunks.map((chunk) => chunk.toString()).join('');
-        resolveBody(raw ? JSON.parse(raw) : {});
-      } catch (error) {
-        rejectBody(error);
-      }
-    });
-    req.on('error', rejectBody);
-  });
 }
