@@ -30,6 +30,19 @@ test('reads request body from request session when body is not preloaded', async
   assert.equal(body?.toString(), 'session-body');
 });
 
+test('reads request body from response session when req.getSession exists', async () => {
+  const body = await getBufferedRequestBody(
+    {
+      getSession: (cb: (session: any) => void) => {
+        cb({ req: { body: 'getSession-body' } });
+      },
+    },
+    {},
+  );
+
+  assert.equal(body?.toString(), 'getSession-body');
+});
+
 test('treats empty string as missing and reads session body', async () => {
   const body = await getBufferedRequestBody(
     {

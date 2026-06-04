@@ -7,10 +7,16 @@ export async function getBufferedRequestBody(req: any, originalReq: any): Promis
   const directBody = toBuffer(originalReq?.body ?? req?.body);
   if (directBody) return directBody;
 
-  if (typeof req.getReqSession !== 'function') return undefined;
+  const getSession =
+    typeof req.getReqSession === 'function'
+      ? req.getReqSession.bind(req)
+      : typeof req.getSession === 'function'
+        ? req.getSession.bind(req)
+        : undefined;
+  if (!getSession) return undefined;
 
   return new Promise((resolveBody) => {
-    req.getReqSession((session: any) => {
+    getSession((session: any) => {
       resolveBody(toBuffer(session?.req?.body));
     });
   });

@@ -1,5 +1,5 @@
 import { consumeRecentReplayHit, getEngine, getRequestId, recordEvent } from './shared/state';
-import { toBuffer } from './shared/requestBody';
+import { getBufferedRequestBody, toBuffer } from './shared/requestBody';
 import { normalizeHeaderMap } from './shared/headers';
 import { HeaderMap } from './cache/types';
 import { shouldRecord } from './ruleMode';
@@ -22,9 +22,9 @@ export default function setupResStatsServer(server: any, options?: Record<string
         const { method, url } = parseRequestContext(req, { ...originalReq, ...session, ...session?.req });
         const requestId = getRequestId(originalReq, session?.req, req);
         const statusCode = Number(originalRes.statusCode || session?.res?.statusCode || 0);
-        // 空字符串应视作“无 body”，因此优先尝试 originalReq.body 之后不应直接截断；
-        // 当 direct 结果为空时回退到 session.req.body，保持与 replay 路径一致。
-        const requestBody = toBuffer(originalReq.body) || toBuffer(session?.req?.body);
+        // 使用共享的请求体读取逻辑：若 originalReq 直接 body 命中则优先使用，
+        // 否则回退 session.req.body，保持与 server/rulesServer 一致语义。
+        const requestBody = await getBufferedRequestBody(req, originalReq);
         const responseBody = toBuffer(session?.res?.body);
 
         if (url && consumeRecentReplayHit(method, url)) return;
