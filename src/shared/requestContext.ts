@@ -1,5 +1,3 @@
-import { IncomingMessage } from 'node:http';
-
 export interface ParsedRequestContext {
   method: string;
   url: string | undefined;

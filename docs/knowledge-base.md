@@ -81,6 +81,7 @@
 `resStatsServer` 使用 `src/shared/requestBody.ts` 的 `toBuffer` 统一请求/响应 body 转 Buffer，和服务端回放阶段共享同一边界行为。
 `resStatsServer` 及 `cache/engine`、`cache/policy` 的 headers 处理统一使用 `src/shared/headers.ts`，包括：统一 header key 为小写、忽略空值、按大小写不敏感读取 header 值。
 `server.ts`、`rulesServer.ts`、`resStatsServer.ts`、`uiServer/index.ts` 的 `method/url` 取值统一到 `src/shared/requestContext.ts`，其中 `method` 也被统一为大写，规避重复分支下的边界差异与大小写不一致问题。
+`parseRequestContext` 的回退链条与大小写行为均已有测试覆盖，位于 `test/shared/requestContext.test.ts`。
 
 ## 规则模式
 

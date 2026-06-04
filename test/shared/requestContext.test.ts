@@ -26,6 +26,15 @@ test('falls back to req and fallback values when original missing', () => {
   assert.equal(context.url, 'https://example.test/api/root');
 });
 
+test('falls back to fallback.req method when root method missing', () => {
+  const context = parseRequestContext(
+    {},
+    { req: { method: 'patch', url: 'https://example.test/api/fallback' } },
+  );
+
+  assert.equal(context.method, 'PATCH');
+});
+
 test('prefers fallback fullUrl before fallback.req.url', () => {
   const context = parseRequestContext({}, {
     fullUrl: 'https://example.test/api/fallback-full',
