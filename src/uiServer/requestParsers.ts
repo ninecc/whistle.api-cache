@@ -43,6 +43,21 @@ export interface MatchRequestBody {
   requestBody?: Buffer;
 }
 
+export interface EnabledRequestBody {
+  id: string;
+  enabled: boolean;
+}
+
+/**
+ * 规范化缓存启用状态切换参数。
+ */
+export function parseEnabledBody(body: Record<string, unknown>): EnabledRequestBody {
+  return {
+    id: String(body.id || ''),
+    enabled: Boolean(body.enabled),
+  };
+}
+
 /**
  * 规范化 ignored query names 配置。
  */

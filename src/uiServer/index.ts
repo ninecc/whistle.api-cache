@@ -15,6 +15,7 @@ import {
   parseDeleteBatchBody,
   parseEventsAfter,
   parseIgnoredQueryNames,
+  parseEnabledBody,
   parseUpdateTtlBody,
 } from './requestParsers';
 import { readJsonBody } from './bodyParsers';
@@ -69,9 +70,8 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/enabled') {
         const body = await readJsonBody(req);
-        return sendJson(res, {
-          updated: await getEngine(options).setEnabled(String(body.id || ''), Boolean(body.enabled)),
-        });
+        const enabledBody = parseEnabledBody(body);
+        return sendJson(res, { updated: await getEngine(options).setEnabled(enabledBody.id, enabledBody.enabled) });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/ttl') {

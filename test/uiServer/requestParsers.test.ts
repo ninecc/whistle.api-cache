@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCacheMatchBody, parseDeleteBatchBody, parseEventsAfter, parseIgnoredQueryNames, parseUpdateTtlBody } from '../../src/uiServer/requestParsers';
+import { parseCacheMatchBody, parseDeleteBatchBody, parseEnabledBody, parseEventsAfter, parseIgnoredQueryNames, parseUpdateTtlBody } from '../../src/uiServer/requestParsers';
 
 test('defaults unknown delete scope to empty id list scope', () => {
   assert.deepEqual(parseDeleteBatchBody({ scope: 'unknown' }), {
@@ -62,4 +62,21 @@ test('normalizes ignored query names input', () => {
   assert.deepEqual(parseIgnoredQueryNames({ names: ['a', 1, 'b'] }), ['a', '1', 'b']);
   assert.deepEqual(parseIgnoredQueryNames({}), []);
   assert.deepEqual(parseIgnoredQueryNames({ names: 'not-array' as unknown as string[] }), []);
+});
+
+test('parses enabled request body with defaults', () => {
+  assert.deepEqual(parseEnabledBody({ id: 'entry-1', enabled: true }), {
+    id: 'entry-1',
+    enabled: true,
+  });
+
+  assert.deepEqual(parseEnabledBody({}), {
+    id: '',
+    enabled: false,
+  });
+
+  assert.deepEqual(parseEnabledBody({ id: 12, enabled: '1' }), {
+    id: '12',
+    enabled: true,
+  });
 });

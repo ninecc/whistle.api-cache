@@ -288,6 +288,15 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 
 对应验证用例见 `test/uiServer/requestParsers.test.ts`。
 
+### enabled 参数解析统一
+
+`/cgi-bin/cache/enabled` 的参数解析已抽到 `src/uiServer/requestParsers.ts` 的 `parseEnabledBody`。
+
+- `id` 按字符串返回，缺失时返回空字符串。
+- `enabled` 使用 `Boolean` 转换为布尔值。
+
+对应验证用例见 `test/uiServer/requestParsers.test.ts`。
+
 主要 API：
 
 | 方法 | 路径 | 功能 |
