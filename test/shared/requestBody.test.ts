@@ -44,16 +44,21 @@ test('reads request body from response session when req.getSession exists', asyn
 });
 
 test('prefers non-empty direct body over getSession body', async () => {
-  const body = await getBufferedRequestBody(
-    {
-      getSession: (cb: (session: any) => void) => {
-        cb({ req: { body: 'session-body' } });
+  for (const [bodyValue, expected] of [
+    [false, 'false'],
+    [0, '0'],
+  ] as const) {
+    const body = await getBufferedRequestBody(
+      {
+        getSession: (cb: (session: any) => void) => {
+          cb({ req: { body: 'session-body' } });
+        },
       },
-    },
-    { body: false },
-  );
+      { body: bodyValue },
+    );
 
-  assert.equal(body?.toString(), 'false');
+    assert.equal(body?.toString(), expected);
+  }
 });
 
 test('treats empty string as missing and reads session body', async () => {
