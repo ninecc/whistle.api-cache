@@ -1,5 +1,6 @@
 import { CacheProfile, HeaderMap } from './types';
 import { getHeaderValue } from '../shared/headers';
+import { normalizeMethod } from '../shared/requestContext';
 
 const HOP_BY_HOP_HEADERS = new Set([
   'connection',
@@ -38,7 +39,8 @@ export interface ContentTypePolicy {
 
 export function isCacheableResponse(input: CacheabilityInput): CacheabilityResult {
   if (!input.profile.recordEnabled) return { cacheable: false, reason: 'recording disabled' };
-  if (!['GET', 'POST'].includes(input.method.toUpperCase())) return { cacheable: false, reason: 'method not supported' };
+  const method = normalizeMethod(input.method);
+  if (!['GET', 'POST'].includes(method)) return { cacheable: false, reason: 'method not supported' };
   if (input.statusCode < 200 || input.statusCode > 299) return { cacheable: false, reason: 'status not cacheable' };
   if (input.bodySize > input.profile.maxBodySize) return { cacheable: false, reason: 'body too large' };
 

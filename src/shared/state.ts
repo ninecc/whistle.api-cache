@@ -3,6 +3,7 @@ import { CacheEngine } from '../cache/engine';
 import { getContentTypePolicy, getReplayHeaderPolicy } from '../cache/policy';
 import { FileCacheStore } from '../cache/store';
 import { CacheProfile } from '../cache/types';
+import { normalizeMethod } from './requestContext';
 
 export type CacheEventType = 'STORE' | 'BYPASS' | 'HIT' | 'MISS' | 'ERROR' | 'CONFIG';
 
@@ -121,7 +122,7 @@ export function consumeRecentReplayHit(method: string, url: string): boolean {
 }
 
 function replayHitKey(method: string, url: string): string {
-  return `${method.toUpperCase()} ${url}`;
+  return `${normalizeMethod(method)} ${url}`;
 }
 
 function readRequestId(source: Record<string, unknown>): string | undefined {

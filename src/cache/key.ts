@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { normalizeMethod } from '../shared/requestContext';
 
 export interface CacheKeyInput {
   method: string;
@@ -41,7 +42,7 @@ export function normalizeUrl(rawUrl: string, ignoredQueryNames: string[] = []): 
 }
 
 export function createCacheKey(input: CacheKeyInput): string {
-  const baseKey = `${input.method.toUpperCase()} ${normalizeUrl(input.url, input.ignoredQueryNames)}`;
+  const baseKey = `${normalizeMethod(input.method)} ${normalizeUrl(input.url, input.ignoredQueryNames)}`;
   if (!input.requestBody || !input.requestBody.byteLength) return baseKey;
   return `${baseKey} body:${hashRequestBody(input.requestBody)}`;
 }
@@ -52,7 +53,7 @@ export function hashRequestBody(body: Buffer): string {
 
 export function describeCacheKey(input: CacheKeyDescriptionInput): CacheKeyDescription {
   return {
-    method: input.method.toUpperCase(),
+    method: normalizeMethod(input.method),
     normalizedUrl: input.normalizedUrl,
     includesRequestBodyHash: Boolean(input.requestBodyHash),
     ignoredQueryNames: input.ignoredQueryNames || [],

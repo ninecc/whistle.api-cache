@@ -37,6 +37,19 @@ test('accepts safe POST JSON 2xx responses', () => {
   assert.equal(result.cacheable, true);
 });
 
+test('accepts lowercase method names for cacheability', () => {
+  const result = isCacheableResponse({
+    method: 'post',
+    statusCode: 200,
+    requestHeaders: {},
+    responseHeaders: { 'content-type': 'application/json; charset=utf-8' },
+    bodySize: 42,
+    profile,
+  });
+
+  assert.equal(result.cacheable, true);
+});
+
 test('rejects authenticated requests and set-cookie responses', () => {
   assert.equal(isCacheableResponse({
     method: 'GET',
