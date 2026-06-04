@@ -344,6 +344,59 @@ test('res stats falls back when req.body is empty string', async () => {
   assert.equal(replay.hit, true);
 });
 
+test('res stats falls back when req.body is undefined', async () => {
+  clearRecentEvents();
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-res-stats-req-undefined-body-'));
+  const options = { baseDir: root };
+
+  let handler: ((req: any) => void) | undefined;
+  setupResStatsServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const url = 'https://api.example.com/post-with-undefined-req-body';
+
+  handler?.({
+    originalReq: {
+      ruleValue: 'auto',
+      method: 'POST',
+      fullUrl: url,
+      body: undefined,
+    },
+    originalRes: {
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+    },
+    getSession(callback: (session: any) => void) {
+      callback({
+        req: {
+          method: 'POST',
+          url,
+          body: Buffer.from('action=save'),
+          headers: {},
+        },
+        res: {
+          statusCode: 200,
+          headers: { 'content-type': 'application/json' },
+          body: Buffer.from('{"ok":true}'),
+        },
+      });
+    },
+  });
+
+  const storeEvent = await waitForEvent('STORE');
+  assert.equal(storeEvent.type, 'STORE');
+
+  const replay = await getEngine(options).replay({
+    method: 'POST',
+    url,
+    requestBody: Buffer.from('action=save'),
+  });
+  assert.equal(replay.hit, true);
+});
+
 test('res stats falls back to session body when originalReq.body is null', async () => {
   clearRecentEvents();
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-res-stats-null-body-session-'));
