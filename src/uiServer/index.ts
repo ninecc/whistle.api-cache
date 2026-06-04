@@ -10,6 +10,7 @@ import {
   clearRecentEvents,
   updateIgnoredQueryNames,
 } from '../shared/state';
+import { DeleteBatchInput } from '../cache/engine';
 
 const publicDir = join(__dirname, '../../../public');
 const pluginBasePath = '/whistle.api-cache';
@@ -48,6 +49,11 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
       if (method === 'POST' && pathname === '/cgi-bin/cache/delete') {
         const body = await readJsonBody(req);
         return sendJson(res, { deleted: await getEngine(options).delete(String(body.id || '')) });
+      }
+
+      if (method === 'POST' && pathname === '/cgi-bin/cache/delete-batch') {
+        const body = await readJsonBody(req);
+        return sendJson(res, { removed: await getEngine(options).deleteBatch(parseDeleteBatchBody(body)) });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/match') {
@@ -151,6 +157,21 @@ function contentType(filePath: string): string {
   if (filePath.endsWith('.css')) return 'text/css; charset=utf-8';
   if (filePath.endsWith('.js')) return 'application/javascript; charset=utf-8';
   return 'application/octet-stream';
+}
+
+function parseDeleteBatchBody(body: Record<string, unknown>): DeleteBatchInput {
+  const scope = String(body.scope || '');
+  if (scope === 'ids') {
+    const ids = Array.isArray(body.ids) ? body.ids.map(String) : [];
+    return { scope, ids };
+  }
+  if (scope === 'same-host' || scope === 'same-path') {
+    return { scope, entryId: String(body.entryId || '') };
+  }
+  if (scope === 'expired' || scope === 'never-hit') {
+    return { scope };
+  }
+  return { scope: 'ids' as const, ids: [] };
 }
 
 function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {

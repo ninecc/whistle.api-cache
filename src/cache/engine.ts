@@ -44,6 +44,11 @@ export interface MatchResult {
   reasons: MatchReason[];
 }
 
+export type DeleteBatchInput =
+  | { scope: 'ids'; ids: string[] }
+  | { scope: 'same-host' | 'same-path'; entryId: string }
+  | { scope: 'expired' | 'never-hit' };
+
 export class CacheEngine {
   constructor(
     private readonly store: FileCacheStore,
@@ -238,6 +243,16 @@ export class CacheEngine {
     return this.store.deleteEntry(id);
   }
 
+  async deleteBatch(input: DeleteBatchInput): Promise<number> {
+    const entries = await this.store.listEntries();
+    const ids = new Set(getBatchDeleteIds(input, entries));
+    let removed = 0;
+    for (const id of ids) {
+      if (await this.store.deleteEntry(id)) removed += 1;
+    }
+    return removed;
+  }
+
   async clearExpired(): Promise<number> {
     return this.store.clearExpired();
   }
@@ -254,6 +269,39 @@ function createMatchMiss(reason: string, candidates: CacheEntry[], reasons: Matc
     candidates,
     reasons,
   };
+}
+
+function getBatchDeleteIds(input: DeleteBatchInput, entries: CacheEntry[]): string[] {
+  if (input.scope === 'ids') return input.ids;
+  if (input.scope === 'expired') {
+    const now = Date.now();
+    return entries
+      .filter((entry) => new Date(entry.expiresAt).getTime() <= now)
+      .map((entry) => entry.id);
+  }
+  if (input.scope === 'never-hit') {
+    return entries.filter((entry) => (entry.hitCount || 0) === 0).map((entry) => entry.id);
+  }
+
+  if (input.scope !== 'same-host' && input.scope !== 'same-path') return [];
+
+  const reference = entries.find((entry) => entry.id === input.entryId);
+  if (!reference) return [];
+  const referenceUrl = parseEntryUrl(reference);
+  return entries.filter((entry) => {
+    const url = parseEntryUrl(entry);
+    if (!url || !referenceUrl) return false;
+    if (input.scope === 'same-host') return url.host === referenceUrl.host;
+    return url.host === referenceUrl.host && url.pathname === referenceUrl.pathname;
+  }).map((entry) => entry.id);
+}
+
+function parseEntryUrl(entry: CacheEntry): URL | undefined {
+  try {
+    return new URL(entry.url);
+  } catch {
+    return undefined;
+  }
 }
 
 function normalizeHeaders(headers: Record<string, string | string[] | undefined>): Record<string, string> {

@@ -75,17 +75,19 @@ REPLAY MISS -> PASS THROUGH: ambiguous POST candidates: 3
 AUTO MISS -> STORE: request body hash mismatch
 ```
 
-## 缓存管理增强
-
 ### 批量删除
 
-支持按范围批量清理：
+缓存列表已支持按范围批量清理：
 
 - 同 host
 - 同 path
 - 已过期
 - 从未命中过
 - 用户选中项
+
+其中“已过期”沿用缓存健康区的清理入口；“同 host”“同 path”和“用户选中项”在缓存列表中操作。
+
+## 缓存管理增强
 
 ### 启用和禁用缓存条目
 
@@ -173,7 +175,7 @@ AUTO MISS -> STORE: request body hash mismatch
 
 ## 建议实施顺序
 
-1. 缓存批量删除和启用/禁用。
+1. 启用和禁用缓存条目。
 2. 当前规则模式提示和自动高亮说明。
 3. 响应头策略展示。
 4. 端到端回放验证脚本。

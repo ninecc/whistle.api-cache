@@ -71,6 +71,7 @@
             <h2>缓存健康</h2>
             <div class="inlineActions">
               <button id="clearExpiredBtn" type="button">清理过期</button>
+              <button id="deleteNeverHitBtn" type="button">清理未命中</button>
               <button id="clearAllBtn" class="danger" type="button">清理全部</button>
             </div>
           </div>
@@ -133,6 +134,7 @@
           <h2>缓存列表</h2>
           <span id="loadingText" class="loadingText" hidden>正在刷新缓存数据...</span>
           <div class="tableActions">
+            <button id="deleteSelectedBtn" class="danger" type="button" disabled>删除选中</button>
             <input id="searchInput" type="search" placeholder="搜索 URL / 类型 / Method">
             <select id="filterSelect" aria-label="缓存过滤">
               <option value="all">全部</option>
@@ -154,6 +156,7 @@
         <table id="cacheTable" hidden>
           <thead>
             <tr>
+              <th>选择</th>
               <th>Method</th>
               <th>URL</th>
               <th>状态</th>

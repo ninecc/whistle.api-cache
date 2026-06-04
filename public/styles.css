@@ -352,6 +352,11 @@ td {
   margin-left: 6px;
 }
 
+.entryCheck {
+  width: auto;
+  margin: 0;
+}
+
 th {
   color: #667085;
   font-weight: 600;

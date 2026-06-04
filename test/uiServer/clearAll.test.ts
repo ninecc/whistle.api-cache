@@ -123,6 +123,45 @@ test('ui server tests cache matches from request input', async () => {
   assert.equal(body.entry.url, 'https://api.example.com/search?_t=1');
 });
 
+test('ui server deletes cache entries by batch scope', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-delete-batch-'));
+  const options = { baseDir: root };
+  await getEngine(options).clearAll();
+  await getEngine(options).record({
+    method: 'GET',
+    url: 'https://api.example.com/users/1',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"id":1}'),
+  });
+  await getEngine(options).record({
+    method: 'GET',
+    url: 'https://api.example.com/users/2',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"id":2}'),
+  });
+
+  const [entry] = await getEngine(options).list();
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupUiServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = createJsonResponse();
+  await handler?.(createJsonRequest('/cgi-bin/cache/delete-batch', {
+    scope: 'same-host',
+    entryId: entry.id,
+  }), response);
+
+  assert.deepEqual(response.body, { removed: 2 });
+  assert.equal((await getEngine(options).list()).length, 0);
+});
+
 function createJsonResponse() {
   return {
     statusCode: 200,

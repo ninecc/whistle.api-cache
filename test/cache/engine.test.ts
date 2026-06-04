@@ -311,3 +311,38 @@ test('explains ambiguous POST matches when request body is unavailable', async (
   assert.equal(result.reasons[0].type, 'AMBIGUOUS_POST_CANDIDATES');
   assert.equal(result.candidates.length, 2);
 });
+
+test('deletes cache entries by batch scope', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-delete-batch-'));
+  const engine = new CacheEngine(new FileCacheStore(root), profile);
+  await engine.record({
+    method: 'GET',
+    url: 'https://api.example.com/users/1',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"id":1}'),
+  });
+  await engine.record({
+    method: 'GET',
+    url: 'https://api.example.com/users/2',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"id":2}'),
+  });
+  await engine.record({
+    method: 'GET',
+    url: 'https://other.example.com/users/1',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"id":3}'),
+  });
+
+  const [reference] = await engine.list();
+  const removed = await engine.deleteBatch({ scope: 'same-host', entryId: reference.id });
+
+  assert.equal(removed, 2);
+  assert.deepEqual((await engine.list()).map((entry) => entry.url), ['https://other.example.com/users/1']);
+});

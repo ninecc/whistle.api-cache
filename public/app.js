@@ -7,6 +7,7 @@ const state = {
   eventFilter: 'all',
   fallbackTimer: undefined,
   lastEventId: 0,
+  selectedEntryIds: new Set(),
   syncTimer: undefined,
 };
 
@@ -46,7 +47,9 @@ const elements = {
   refreshBtn: document.querySelector('#refreshBtn'),
   openDataDirBtn: document.querySelector('#openDataDirBtn'),
   saveIgnoredQueryBtn: document.querySelector('#saveIgnoredQueryBtn'),
+  deleteSelectedBtn: document.querySelector('#deleteSelectedBtn'),
   clearExpiredBtn: document.querySelector('#clearExpiredBtn'),
+  deleteNeverHitBtn: document.querySelector('#deleteNeverHitBtn'),
   clearAllBtn: document.querySelector('#clearAllBtn'),
   clearEventsBtn: document.querySelector('#clearEventsBtn'),
   copyRulesBtn: document.querySelector('#copyRulesBtn'),
@@ -55,7 +58,9 @@ const elements = {
 elements.refreshBtn.addEventListener('click', refresh);
 elements.openDataDirBtn.addEventListener('click', openDataDir);
 elements.saveIgnoredQueryBtn.addEventListener('click', saveIgnoredQueryNames);
+elements.deleteSelectedBtn.addEventListener('click', () => deleteBatch({ scope: 'ids', ids: Array.from(state.selectedEntryIds) }));
 elements.clearExpiredBtn.addEventListener('click', clearExpired);
+elements.deleteNeverHitBtn.addEventListener('click', () => deleteBatch({ scope: 'never-hit' }));
 elements.clearAllBtn.addEventListener('click', clearAll);
 elements.clearEventsBtn.addEventListener('click', clearEvents);
 elements.copyRulesBtn.addEventListener('click', copyRules);
@@ -102,6 +107,7 @@ async function refresh(options = {}) {
 
 function applyState(data, options = {}) {
   state.entries = data.entries || [];
+  state.selectedEntryIds = new Set(Array.from(state.selectedEntryIds).filter((id) => state.entries.some((entry) => entry.id === id)));
   state.events = data.events || [];
   state.lastEventId = getMaxEventId(state.events, state.lastEventId);
   state.profile = data.profile || {};
@@ -167,12 +173,14 @@ function renderEntries() {
   const entries = getFilteredEntries();
   elements.empty.hidden = entries.length > 0;
   elements.cacheTable.hidden = entries.length === 0;
+  elements.deleteSelectedBtn.disabled = state.selectedEntryIds.size === 0;
 
   for (const entry of entries) {
     const expiry = getExpiryState(entry);
     const parsed = parseUrl(entry.url);
     const row = document.createElement('tr');
     row.innerHTML = `
+      <td><input class="entryCheck" type="checkbox" data-action="select" data-id="${escapeHtml(entry.id)}" ${state.selectedEntryIds.has(entry.id) ? 'checked' : ''} aria-label="选择缓存"></td>
       <td>${escapeHtml(entry.method)}</td>
       <td class="url" title="${escapeHtml(entry.url)}">
         <strong>${escapeHtml(parsed.host)}</strong>
@@ -187,16 +195,21 @@ function renderEntries() {
       <td><span class="badge ${expiry.className}">${escapeHtml(expiry.label)}</span></td>
       <td class="rowActions">
         <button type="button" data-action="details" data-id="${escapeHtml(entry.id)}">${state.expandedEntryId === entry.id ? '收起' : '详情'}</button>
+        <button type="button" data-action="same-host" data-id="${escapeHtml(entry.id)}">同 Host</button>
+        <button type="button" data-action="same-path" data-id="${escapeHtml(entry.id)}">同 Path</button>
         <button type="button" class="danger" data-action="delete" data-id="${escapeHtml(entry.id)}">删除</button>
       </td>
     `;
+    row.querySelector('[data-action="select"]').addEventListener('change', (event) => toggleEntrySelection(entry.id, event.target.checked));
     row.querySelector('[data-action="details"]').addEventListener('click', () => toggleEntryDetails(entry.id));
+    row.querySelector('[data-action="same-host"]').addEventListener('click', () => deleteBatch({ scope: 'same-host', entryId: entry.id }));
+    row.querySelector('[data-action="same-path"]').addEventListener('click', () => deleteBatch({ scope: 'same-path', entryId: entry.id }));
     row.querySelector('[data-action="delete"]').addEventListener('click', () => deleteEntry(entry.id));
     elements.cacheRows.appendChild(row);
     if (state.expandedEntryId === entry.id) {
       const detailRow = document.createElement('tr');
       detailRow.className = 'detailRow';
-      detailRow.innerHTML = `<td colspan="9">${renderEntryDetails(entry)}</td>`;
+      detailRow.innerHTML = `<td colspan="10">${renderEntryDetails(entry)}</td>`;
       elements.cacheRows.appendChild(detailRow);
     }
   }
@@ -311,6 +324,31 @@ async function clearExpired() {
     showError(error);
   } finally {
     elements.clearExpiredBtn.disabled = false;
+  }
+}
+
+async function deleteBatch(input) {
+  const labels = {
+    ids: `选中的 ${input.ids.length} 条缓存`,
+    'same-host': '同 Host 缓存',
+    'same-path': '同 Path 缓存',
+    expired: '已过期缓存',
+    'never-hit': '从未命中过的缓存',
+  };
+  if (input.scope === 'ids' && !input.ids.length) return;
+  if (!confirm(`确定删除${labels[input.scope] || '这些缓存'}吗？此操作不可恢复。`)) return;
+
+  try {
+    hideError();
+    const data = await requestJson('cgi-bin/cache/delete-batch', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    if (input.scope === 'ids') state.selectedEntryIds.clear();
+    showToast(`已删除缓存：${data.removed || 0} 条`);
+    await refresh();
+  } catch (error) {
+    showError(error);
   }
 }
 
@@ -451,6 +489,15 @@ function updateRule() {
 function toggleEntryDetails(id) {
   state.expandedEntryId = state.expandedEntryId === id ? undefined : id;
   renderEntries();
+}
+
+function toggleEntrySelection(id, selected) {
+  if (selected) {
+    state.selectedEntryIds.add(id);
+  } else {
+    state.selectedEntryIds.delete(id);
+  }
+  elements.deleteSelectedBtn.disabled = state.selectedEntryIds.size === 0;
 }
 
 function getFilteredEntries() {
