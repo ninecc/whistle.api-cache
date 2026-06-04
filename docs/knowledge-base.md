@@ -270,6 +270,15 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 
 这样可以保证 `match` 接口在不同入口下的行为一致。
 
+### 事件增量参数解析统一
+
+`/cgi-bin/events` 的 `after` 参数解析已抽到 `src/uiServer/requestParsers.ts` 的 `parseEventsAfter`。
+
+- `null` 时返回 `0`。
+- 非法值保留为 `NaN`，上层保持“返回全部事件”语义。
+
+对应验证用例见 `test/uiServer/requestParsers.test.ts`。
+
 主要 API：
 
 | 方法 | 路径 | 功能 |

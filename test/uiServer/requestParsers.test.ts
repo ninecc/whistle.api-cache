@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseCacheMatchBody, parseDeleteBatchBody, parseUpdateTtlBody } from '../../src/uiServer/requestParsers';
+import { parseCacheMatchBody, parseDeleteBatchBody, parseEventsAfter, parseUpdateTtlBody } from '../../src/uiServer/requestParsers';
 
 test('defaults unknown delete scope to empty id list scope', () => {
   assert.deepEqual(parseDeleteBatchBody({ scope: 'unknown' }), {
@@ -32,6 +32,12 @@ test('parses ids and host/path scopes for delete batch input', () => {
 test('defaults invalid ttl operations to default-ttl', () => {
   assert.equal(parseUpdateTtlBody({ scope: 'ids', ids: [], operation: 'never-expire' }).operation, 'never-expire');
   assert.equal(parseUpdateTtlBody({ scope: 'ids', ids: [], operation: 'bad-op' }).operation, 'default-ttl');
+});
+
+test('parses events after query parameter with defaults and invalid values', () => {
+  assert.equal(parseEventsAfter(null), 0);
+  assert.equal(parseEventsAfter('12'), 12);
+  assert.equal(Number.isNaN(parseEventsAfter('bad')), true);
 });
 
 test('parses cache match request body with defaults and non-empty request payload', () => {

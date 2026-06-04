@@ -1,5 +1,12 @@
 import { DeleteBatchInput, TtlOperation, UpdateTtlInput } from '../cache/engine';
 
+/**
+ * 规范化 getEvents 查询参数。
+ */
+export function parseEventsAfter(after: string | null): number {
+  return Number(after || 0);
+}
+
 const TTL_OPERATIONS = ['extend-30m', 'never-expire', 'default-ttl', 'expire-now'] as const;
 
 /**

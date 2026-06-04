@@ -10,7 +10,12 @@ import {
   clearRecentEvents,
   updateIgnoredQueryNames,
 } from '../shared/state';
-import { parseCacheMatchBody, parseDeleteBatchBody, parseUpdateTtlBody } from './requestParsers';
+import {
+  parseCacheMatchBody,
+  parseDeleteBatchBody,
+  parseEventsAfter,
+  parseUpdateTtlBody,
+} from './requestParsers';
 import { readJsonBody } from './bodyParsers';
 
 const publicDir = join(__dirname, '../../../public');
@@ -28,7 +33,7 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
       }
 
       if (method === 'GET' && pathname === '/cgi-bin/events') {
-        return sendJson(res, { events: getEventsAfter(url.searchParams.get('after')) });
+        return sendJson(res, { events: getEventsAfter(parseEventsAfter(url.searchParams.get('after'))) });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/events/clear') {
