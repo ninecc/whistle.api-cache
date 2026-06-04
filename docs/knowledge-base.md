@@ -498,7 +498,7 @@ rtk npm run e2e:auto-replay
 rtk npm run test:body-regression
 ```
 
-请求体读取语义回归命令（可选）：
+请求体读取语义回归命令（推荐统一使用）:
 
 ```bash
 rtk npm test test/shared/requestBody.test.ts
@@ -518,6 +518,8 @@ rtk npm test test/shared/requestBody.test.ts test/server.test.ts test/rulesServe
 ```bash
 rtk npm run test:body-regression
 ```
+
+说明：统一脚本用于快速覆盖同一类 body 语义回归点；若只验证少数用例，可按文件执行。
 
 构建基线说明：`npm run build` 在当前分支上已知存在两个 TypeScript 类型问题：
 
