@@ -1,4 +1,3 @@
-import { ReplayResult } from './cache/engine';
 import { parseRuleModes } from './ruleMode';
 
 type RulesPayload = {
@@ -12,10 +11,9 @@ const MODE_STYLES = {
   combined: 'style://bgColor=@7c2d12 style://color=@ffedd5 style://fontStyle=bold',
 };
 
-export function createPluginRulesPayload(ruleValue: unknown, replay?: ReplayResult): string {
+export function createPluginRulesPayload(ruleValue: unknown): string {
   const payloads = [
     createStyleRulesPayload(ruleValue),
-    parseReplayRulesPayload(replay),
   ].filter((payload): payload is RulesPayload => Boolean(payload));
 
   if (!payloads.length) return '';
@@ -28,24 +26,6 @@ export function createPluginRulesPayload(ruleValue: unknown, replay?: ReplayResu
   return JSON.stringify(result);
 }
 
-export function createReplayRulesPayload(replay: ReplayResult): string {
-  if (!replay.hit) return '';
-
-  const safeId = replay.entry.id.replace(/[^a-zA-Z0-9]/g, '');
-  const bodyKey = `whistleApiCache${safeId}Body`;
-  const headersKey = `whistleApiCache${safeId}Headers`;
-  const headers = { ...replay.headers };
-  delete headers['content-length'];
-
-  return JSON.stringify({
-    values: {
-      [bodyKey]: replay.body.toString(),
-      [headersKey]: headers,
-    },
-    rules: `* statusCode://${replay.statusCode} resHeaders://{${headersKey}} resBody://{${bodyKey}}`,
-  });
-}
-
 function createStyleRulesPayload(ruleValue: unknown): RulesPayload {
   const modes = parseRuleModes(ruleValue);
   const style = modes.has('record') && modes.has('replay')
@@ -55,9 +35,4 @@ function createStyleRulesPayload(ruleValue: unknown): RulesPayload {
       : MODE_STYLES.record;
 
   return { rules: `* ${style}` };
-}
-
-function parseReplayRulesPayload(replay?: ReplayResult): RulesPayload | undefined {
-  if (!replay?.hit) return undefined;
-  return JSON.parse(createReplayRulesPayload(replay)) as RulesPayload;
 }
