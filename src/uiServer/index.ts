@@ -14,6 +14,7 @@ import {
   parseCacheMatchBody,
   parseDeleteBatchBody,
   parseDeleteBody,
+  parseImportBody,
   parseEventsAfter,
   parseIgnoredQueryNames,
   parseEnabledBody,
@@ -83,7 +84,7 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/import') {
         const body = await readJsonBody(req);
-        return sendJson(res, { imported: await getEngine(options).importBundle(body.bundle as any) });
+        return sendJson(res, { imported: await getEngine(options).importBundle(parseImportBody(body)) });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/match') {

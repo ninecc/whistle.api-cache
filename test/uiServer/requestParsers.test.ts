@@ -4,6 +4,7 @@ import {
   parseCacheMatchBody,
   parseDeleteBody,
   parseDeleteBatchBody,
+  parseImportBody,
   parseEnabledBody,
   parseEventsAfter,
   parseIgnoredQueryNames,
@@ -97,4 +98,21 @@ test('normalizes delete body with fallback default', () => {
   assert.deepEqual(parseDeleteBody({ id: 123 }), {
     id: '123',
   });
+});
+
+test('normalizes import body with default values and fallback for invalid input', () => {
+  const fallback = parseImportBody({});
+  assert.equal(fallback.version, 1);
+  assert.equal(fallback.entries.length, 0);
+
+  const withEntries = parseImportBody({
+    bundle: {
+      version: 2,
+      exportedAt: 't',
+      entries: [1, 2, 3],
+    },
+  });
+  assert.equal(withEntries.version, 2);
+  assert.equal(withEntries.exportedAt, 't');
+  assert.deepEqual(withEntries.entries, [1, 2, 3]);
 });

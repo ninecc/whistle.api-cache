@@ -1,10 +1,24 @@
-import { DeleteBatchInput, TtlOperation, UpdateTtlInput } from '../cache/engine';
+import { CacheExportBundle, DeleteBatchInput, TtlOperation, UpdateTtlInput } from '../cache/engine';
 
 /**
  * 规范化单条缓存删除接口参数，缺省 id 为空字符串。
  */
 export function parseDeleteBody(body: Record<string, unknown>): { id: string } {
   return { id: String(body.id || '') };
+}
+
+export function parseImportBody(body: Record<string, unknown>): CacheExportBundle {
+  const bundle = body.bundle;
+  if (!bundle || typeof bundle !== 'object') {
+    return { version: 1, exportedAt: new Date().toISOString(), entries: [] };
+  }
+
+  const candidate = bundle as Partial<CacheExportBundle>;
+  return {
+    version: typeof candidate.version === 'number' ? candidate.version : 1,
+    exportedAt: String(candidate.exportedAt || ''),
+    entries: Array.isArray(candidate.entries) ? candidate.entries : [],
+  };
 }
 
 /**

@@ -246,6 +246,7 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 - `ids` 全部转为字符串。
 - `same-host/same-path` 解析并返回 `entryId` 字符串。
 - `/cgi-bin/cache/delete` 也统一使用 `parseDeleteBody`，只返回 `{ id: string }`，并将缺省 id 处理为 `''`，保证前后端行为一致。
+- `/cgi-bin/cache/import` 的请求体解析统一到 `parseImportBody`。该解析会在非法 `bundle` 时回退到空 bundle（`version: 1`、`entries: []`），避免因类型不一致导致请求异常，提高接口稳定性。
 - TTL 操作仅接受 `extend-30m`、`never-expire`、`default-ttl`、`expire-now`，非法值回退为 `default-ttl`。
 
 对应验证用例见 `test/uiServer/requestParsers.test.ts`。
