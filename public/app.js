@@ -1,6 +1,7 @@
 const state = {
   entries: [],
   events: [],
+  contentTypePolicy: {},
   profile: {},
   replayHeaderPolicy: {},
   ruleMode: 'record',
@@ -38,6 +39,7 @@ const elements = {
   filterSelect: document.querySelector('#filterSelect'),
   ignoredQueryInput: document.querySelector('#ignoredQueryInput'),
   policyList: document.querySelector('#policyList'),
+  contentTypePolicyList: document.querySelector('#contentTypePolicyList'),
   replayHeaderPolicyList: document.querySelector('#replayHeaderPolicyList'),
   toast: document.querySelector('#toast'),
   appMain: document.querySelector('#appMain'),
@@ -114,6 +116,7 @@ function applyState(data, options = {}) {
   state.entries = data.entries || [];
   state.selectedEntryIds = new Set(Array.from(state.selectedEntryIds).filter((id) => state.entries.some((entry) => entry.id === id)));
   state.events = data.events || [];
+  state.contentTypePolicy = data.contentTypePolicy || {};
   state.replayHeaderPolicy = data.replayHeaderPolicy || {};
   state.lastEventId = getMaxEventId(state.events, state.lastEventId);
   state.profile = data.profile || {};
@@ -299,6 +302,14 @@ function renderPolicy() {
     ['最大 Body', formatBytes(profile.maxBodySize || 0)],
   ];
   elements.policyList.innerHTML = rows.map(([name, value]) => `
+    <div><dt>${escapeHtml(name)}</dt><dd>${escapeHtml(value)}</dd></div>
+  `).join('');
+
+  const contentTypeRows = [
+    ['会缓存 Content-Type', (state.contentTypePolicy.cacheableContentTypes || []).join(', ') || '-'],
+    ['会跳过 Content-Type', (state.contentTypePolicy.skippedContentTypes || []).join(', ') || '-'],
+  ];
+  elements.contentTypePolicyList.innerHTML = contentTypeRows.map(([name, value]) => `
     <div><dt>${escapeHtml(name)}</dt><dd>${escapeHtml(value)}</dd></div>
   `).join('');
 

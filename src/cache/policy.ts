@@ -30,6 +30,11 @@ export interface ReplayHeaderPolicy {
   injectedHeaders: string[];
 }
 
+export interface ContentTypePolicy {
+  cacheableContentTypes: string[];
+  skippedContentTypes: string[];
+}
+
 export function isCacheableResponse(input: CacheabilityInput): CacheabilityResult {
   if (!input.profile.recordEnabled) return { cacheable: false, reason: 'recording disabled' };
   if (!['GET', 'POST'].includes(input.method.toUpperCase())) return { cacheable: false, reason: 'method not supported' };
@@ -70,6 +75,19 @@ export function getReplayHeaderPolicy(): ReplayHeaderPolicy {
       'set-cookie',
     ])).sort(),
     injectedHeaders: ['content-length', 'x-whistle-cache'],
+  };
+}
+
+export function getContentTypePolicy(profile: CacheProfile): ContentTypePolicy {
+  return {
+    cacheableContentTypes: [...profile.cacheableContentTypes],
+    skippedContentTypes: [
+      'application/octet-stream',
+      'image/*',
+      'audio/*',
+      'video/*',
+      'application/pdf',
+    ],
   };
 }
 

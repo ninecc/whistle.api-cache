@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getReplayHeaderPolicy, isCacheableResponse, sanitizeReplayHeaders } from '../../src/cache/policy';
+import { getContentTypePolicy, getReplayHeaderPolicy, isCacheableResponse, sanitizeReplayHeaders } from '../../src/cache/policy';
 import { CacheProfile } from '../../src/cache/types';
 
 const profile: CacheProfile = {
@@ -89,5 +89,12 @@ test('describes replay header policy for the UI', () => {
       'upgrade',
     ],
     injectedHeaders: ['content-length', 'x-whistle-cache'],
+  });
+});
+
+test('describes content type cache policy for the UI', () => {
+  assert.deepEqual(getContentTypePolicy(profile), {
+    cacheableContentTypes: ['application/json', 'text/'],
+    skippedContentTypes: ['application/octet-stream', 'image/*', 'audio/*', 'video/*', 'application/pdf'],
   });
 });
