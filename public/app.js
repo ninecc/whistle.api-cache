@@ -48,6 +48,7 @@ const elements = {
   openDataDirBtn: document.querySelector('#openDataDirBtn'),
   saveIgnoredQueryBtn: document.querySelector('#saveIgnoredQueryBtn'),
   deleteSelectedBtn: document.querySelector('#deleteSelectedBtn'),
+  ttlSelectedSelect: document.querySelector('#ttlSelectedSelect'),
   clearExpiredBtn: document.querySelector('#clearExpiredBtn'),
   deleteNeverHitBtn: document.querySelector('#deleteNeverHitBtn'),
   clearAllBtn: document.querySelector('#clearAllBtn'),
@@ -59,6 +60,7 @@ elements.refreshBtn.addEventListener('click', refresh);
 elements.openDataDirBtn.addEventListener('click', openDataDir);
 elements.saveIgnoredQueryBtn.addEventListener('click', saveIgnoredQueryNames);
 elements.deleteSelectedBtn.addEventListener('click', () => deleteBatch({ scope: 'ids', ids: Array.from(state.selectedEntryIds) }));
+elements.ttlSelectedSelect.addEventListener('change', () => updateSelectedTtl(elements.ttlSelectedSelect.value));
 elements.clearExpiredBtn.addEventListener('click', clearExpired);
 elements.deleteNeverHitBtn.addEventListener('click', () => deleteBatch({ scope: 'never-hit' }));
 elements.clearAllBtn.addEventListener('click', clearAll);
@@ -174,6 +176,7 @@ function renderEntries() {
   elements.empty.hidden = entries.length > 0;
   elements.cacheTable.hidden = entries.length === 0;
   elements.deleteSelectedBtn.disabled = state.selectedEntryIds.size === 0;
+  elements.ttlSelectedSelect.disabled = state.selectedEntryIds.size === 0;
 
   for (const entry of entries) {
     const expiry = getExpiryState(entry);
@@ -198,6 +201,13 @@ function renderEntries() {
       <td class="rowActions">
         <button type="button" data-action="details" data-id="${escapeHtml(entry.id)}">${state.expandedEntryId === entry.id ? '收起' : '详情'}</button>
         <button type="button" data-action="enabled" data-id="${escapeHtml(entry.id)}">${entry.enabled ? '禁用' : '启用'}</button>
+        <select data-action="ttl" data-id="${escapeHtml(entry.id)}" aria-label="TTL 操作">
+          <option value="">TTL</option>
+          <option value="extend-30m">延长 30 分钟</option>
+          <option value="never-expire">固定不过期</option>
+          <option value="default-ttl">恢复默认 TTL</option>
+          <option value="expire-now">立即设为过期</option>
+        </select>
         <button type="button" data-action="same-host" data-id="${escapeHtml(entry.id)}">同 Host</button>
         <button type="button" data-action="same-path" data-id="${escapeHtml(entry.id)}">同 Path</button>
         <button type="button" class="danger" data-action="delete" data-id="${escapeHtml(entry.id)}">删除</button>
@@ -206,6 +216,7 @@ function renderEntries() {
     row.querySelector('[data-action="select"]').addEventListener('change', (event) => toggleEntrySelection(entry.id, event.target.checked));
     row.querySelector('[data-action="details"]').addEventListener('click', () => toggleEntryDetails(entry.id));
     row.querySelector('[data-action="enabled"]').addEventListener('click', () => setEntryEnabled(entry.id, !entry.enabled));
+    row.querySelector('[data-action="ttl"]').addEventListener('change', (event) => updateEntryTtl(entry.id, event.target.value, event.target));
     row.querySelector('[data-action="same-host"]').addEventListener('click', () => deleteBatch({ scope: 'same-host', entryId: entry.id }));
     row.querySelector('[data-action="same-path"]').addEventListener('click', () => deleteBatch({ scope: 'same-path', entryId: entry.id }));
     row.querySelector('[data-action="delete"]').addEventListener('click', () => deleteEntry(entry.id));
@@ -350,6 +361,33 @@ async function deleteBatch(input) {
     });
     if (input.scope === 'ids') state.selectedEntryIds.clear();
     showToast(`已删除缓存：${data.removed || 0} 条`);
+    await refresh();
+  } catch (error) {
+    showError(error);
+  }
+}
+
+async function updateSelectedTtl(operation) {
+  const ids = Array.from(state.selectedEntryIds);
+  elements.ttlSelectedSelect.value = '';
+  if (!operation || !ids.length) return;
+  await updateTtl({ scope: 'ids', ids, operation });
+}
+
+async function updateEntryTtl(id, operation, control) {
+  if (control) control.value = '';
+  if (!operation) return;
+  await updateTtl({ scope: 'ids', ids: [id], operation });
+}
+
+async function updateTtl(input) {
+  try {
+    hideError();
+    const data = await requestJson('cgi-bin/cache/ttl', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    showToast(`已更新 TTL：${data.updated || 0} 条`);
     await refresh();
   } catch (error) {
     showError(error);
@@ -516,6 +554,7 @@ function toggleEntrySelection(id, selected) {
     state.selectedEntryIds.delete(id);
   }
   elements.deleteSelectedBtn.disabled = state.selectedEntryIds.size === 0;
+  elements.ttlSelectedSelect.disabled = state.selectedEntryIds.size === 0;
 }
 
 function getFilteredEntries() {

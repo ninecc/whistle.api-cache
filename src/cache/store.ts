@@ -71,6 +71,24 @@ export class FileCacheStore {
     });
   }
 
+  async updateExpiresAt(ids: string[], expiresAt: string): Promise<number> {
+    const targetIds = new Set(ids);
+    if (!targetIds.size) return 0;
+
+    return this.withWriteLock(async () => {
+      const index = await this.readIndex();
+      let updated = 0;
+      const entries = index.entries.map((entry) => {
+        if (!targetIds.has(entry.id)) return entry;
+        updated += 1;
+        return { ...entry, expiresAt };
+      });
+      if (!updated) return 0;
+      await this.writeIndex({ entries });
+      return updated;
+    });
+  }
+
   async clearExpired(now: Date = new Date()): Promise<number> {
     const expired = await this.withWriteLock(async () => {
       const index = await this.readIndex();

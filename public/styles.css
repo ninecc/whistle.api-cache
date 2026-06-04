@@ -352,6 +352,12 @@ td {
   margin-left: 6px;
 }
 
+.rowActions select {
+  width: 118px;
+  margin-left: 6px;
+  padding: 5px 7px;
+}
+
 .entryCheck {
   width: auto;
   margin: 0;
@@ -546,6 +552,10 @@ ul {
 
 .tableActions select {
   width: 110px;
+}
+
+#ttlSelectedSelect {
+  width: 132px;
 }
 
 .policyList {

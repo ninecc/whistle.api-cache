@@ -49,6 +49,13 @@ export type DeleteBatchInput =
   | { scope: 'same-host' | 'same-path'; entryId: string }
   | { scope: 'expired' | 'never-hit' };
 
+export type TtlOperation = 'extend-30m' | 'never-expire' | 'default-ttl' | 'expire-now';
+
+export type UpdateTtlInput = DeleteBatchInput & {
+  operation: TtlOperation;
+  now?: Date;
+};
+
 export class CacheEngine {
   constructor(
     private readonly store: FileCacheStore,
@@ -257,6 +264,13 @@ export class CacheEngine {
     return removed;
   }
 
+  async updateTtl(input: UpdateTtlInput): Promise<number> {
+    const now = input.now || new Date();
+    const entries = await this.store.listEntries();
+    const ids = getBatchDeleteIds(input, entries);
+    return this.store.updateExpiresAt(ids, getExpiresAtForOperation(input.operation, this.profile.ttlSeconds, now));
+  }
+
   async clearExpired(): Promise<number> {
     return this.store.clearExpired();
   }
@@ -306,6 +320,13 @@ function parseEntryUrl(entry: CacheEntry): URL | undefined {
   } catch {
     return undefined;
   }
+}
+
+function getExpiresAtForOperation(operation: TtlOperation, defaultTtlSeconds: number, now: Date): string {
+  if (operation === 'never-expire') return '9999-12-31T23:59:59.999Z';
+  if (operation === 'expire-now') return now.toISOString();
+  const seconds = operation === 'extend-30m' ? 30 * 60 : defaultTtlSeconds;
+  return new Date(now.getTime() + seconds * 1000).toISOString();
 }
 
 function normalizeHeaders(headers: Record<string, string | string[] | undefined>): Record<string, string> {

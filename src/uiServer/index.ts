@@ -10,7 +10,7 @@ import {
   clearRecentEvents,
   updateIgnoredQueryNames,
 } from '../shared/state';
-import { DeleteBatchInput } from '../cache/engine';
+import { DeleteBatchInput, TtlOperation, UpdateTtlInput } from '../cache/engine';
 
 const publicDir = join(__dirname, '../../../public');
 const pluginBasePath = '/whistle.api-cache';
@@ -61,6 +61,11 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
         return sendJson(res, {
           updated: await getEngine(options).setEnabled(String(body.id || ''), Boolean(body.enabled)),
         });
+      }
+
+      if (method === 'POST' && pathname === '/cgi-bin/cache/ttl') {
+        const body = await readJsonBody(req);
+        return sendJson(res, { updated: await getEngine(options).updateTtl(parseUpdateTtlBody(body)) });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/match') {
@@ -179,6 +184,26 @@ function parseDeleteBatchBody(body: Record<string, unknown>): DeleteBatchInput {
     return { scope };
   }
   return { scope: 'ids' as const, ids: [] };
+}
+
+function parseUpdateTtlBody(body: Record<string, unknown>): UpdateTtlInput {
+  return {
+    ...parseDeleteBatchBody(body),
+    operation: parseTtlOperation(body.operation),
+  };
+}
+
+function parseTtlOperation(value: unknown): TtlOperation {
+  const operation = String(value || '');
+  if (
+    operation === 'extend-30m' ||
+    operation === 'never-expire' ||
+    operation === 'default-ttl' ||
+    operation === 'expire-now'
+  ) {
+    return operation;
+  }
+  return 'default-ttl';
 }
 
 function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {

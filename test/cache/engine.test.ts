@@ -366,3 +366,30 @@ test('disables and enables cache entries for replay', async () => {
   assert.equal(await engine.setEnabled(entry.id, true), true);
   assert.equal((await engine.replay({ method: 'GET', url: entry.url })).hit, true);
 });
+
+test('updates cache entry TTL by operation', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-ttl-'));
+  const now = new Date('2026-06-05T08:00:00.000Z');
+  const engine = new CacheEngine(new FileCacheStore(root), profile);
+  await engine.record({
+    method: 'GET',
+    url: 'https://api.example.com/users',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  const [entry] = await engine.list();
+  assert.equal(await engine.updateTtl({ scope: 'ids', ids: [entry.id], operation: 'extend-30m', now }), 1);
+  assert.equal((await engine.list())[0].expiresAt, '2026-06-05T08:30:00.000Z');
+
+  assert.equal(await engine.updateTtl({ scope: 'ids', ids: [entry.id], operation: 'default-ttl', now }), 1);
+  assert.equal((await engine.list())[0].expiresAt, '2026-06-05T08:30:00.000Z');
+
+  assert.equal(await engine.updateTtl({ scope: 'ids', ids: [entry.id], operation: 'expire-now', now }), 1);
+  assert.equal((await engine.list())[0].expiresAt, '2026-06-05T08:00:00.000Z');
+
+  assert.equal(await engine.updateTtl({ scope: 'ids', ids: [entry.id], operation: 'never-expire', now }), 1);
+  assert.equal((await engine.list())[0].expiresAt, '9999-12-31T23:59:59.999Z');
+});

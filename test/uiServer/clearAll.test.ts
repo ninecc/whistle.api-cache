@@ -193,6 +193,38 @@ test('ui server toggles cache entry enabled state', async () => {
   assert.equal((await getEngine(options).list())[0].enabled, false);
 });
 
+test('ui server updates cache entry TTL', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-ttl-'));
+  const options = { baseDir: root };
+  await getEngine(options).clearAll();
+  await getEngine(options).record({
+    method: 'GET',
+    url: 'https://api.example.com/users',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  const [entry] = await getEngine(options).list();
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupUiServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = createJsonResponse();
+  await handler?.(createJsonRequest('/cgi-bin/cache/ttl', {
+    scope: 'ids',
+    ids: [entry.id],
+    operation: 'never-expire',
+  }), response);
+
+  assert.deepEqual(response.body, { updated: 1 });
+  assert.equal((await getEngine(options).list())[0].expiresAt, '9999-12-31T23:59:59.999Z');
+});
+
 function createJsonResponse() {
   return {
     statusCode: 200,

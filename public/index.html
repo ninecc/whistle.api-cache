@@ -135,6 +135,13 @@
           <span id="loadingText" class="loadingText" hidden>正在刷新缓存数据...</span>
           <div class="tableActions">
             <button id="deleteSelectedBtn" class="danger" type="button" disabled>删除选中</button>
+            <select id="ttlSelectedSelect" aria-label="批量 TTL 操作" disabled>
+              <option value="">TTL</option>
+              <option value="extend-30m">延长 30 分钟</option>
+              <option value="never-expire">固定不过期</option>
+              <option value="default-ttl">恢复默认 TTL</option>
+              <option value="expire-now">立即设为过期</option>
+            </select>
             <input id="searchInput" type="search" placeholder="搜索 URL / 类型 / Method">
             <select id="filterSelect" aria-label="缓存过滤">
               <option value="all">全部</option>
