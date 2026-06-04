@@ -235,6 +235,7 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 - 空字符串 `''` 被视作“无 body”，会触发会话回退获取，避免把长度 0 的字符串误当作可匹配 body。
 - `toBuffer('')` 实际返回长度为 0 的 `Buffer`，由调用侧的 truthy 判定决定是否进入会话回退。
 - 其余非空非 Buffer/字符串/二进制类型会按 `String(value)` 转为字符串再转 Buffer，例如数值 `0`。
+- 布尔值等非空占位值会按 `String(value)` 转换后参与回放匹配（例如 `false` -> `Buffer.from('false')`），不会被误回退为缺失。
 - 如果直接 body 与 session body 都为空（未定义/空值），则返回 `undefined`，回放/录制端会继续 MISS / BYPASS 分支。
 - 支持 `Buffer`、`string`、`Uint8Array`，其余值按 `String(value)` 转为缓冲区。
 

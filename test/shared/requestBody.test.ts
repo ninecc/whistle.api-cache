@@ -8,6 +8,7 @@ test('converts known body types to Buffer', () => {
   assert.deepEqual(toBuffer(''), Buffer.from(''));
   assert.deepEqual(toBuffer(Uint8Array.from([104, 105])), Buffer.from('hi'));
   assert.deepEqual(toBuffer(0), Buffer.from('0'));
+  assert.deepEqual(toBuffer(false), Buffer.from('false'));
   assert.deepEqual(toBuffer({ a: 1 }), Buffer.from('[object Object]'));
 });
 
@@ -66,6 +67,19 @@ test('prefers numeric direct body over session body', async () => {
   );
 
   assert.equal(body?.toString(), '0');
+});
+
+test('prefers boolean direct body over session body', async () => {
+  const body = await getBufferedRequestBody(
+    {
+      getReqSession: (cb: (session: any) => void) => {
+        cb({ req: { body: 'session-body' } });
+      },
+    },
+    { body: false },
+  );
+
+  assert.equal(body?.toString(), 'false');
 });
 
 test('returns undefined when request body and req session body are both missing', async () => {
