@@ -279,3 +279,58 @@ test('server prefers numeric originalReq.body over session body', async () => {
   assert.equal(event.method, 'POST');
   assert.equal(event.url, 'https://api.example.com/number-body-priority');
 });
+
+test('server prefers req.body when originalReq.body is undefined', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-server-undefined-body-preferred-'));
+  const options = { baseDir: root };
+
+  await getEngine(options).record({
+    method: 'POST',
+    url: 'https://api.example.com/undefined-body-preferred',
+    requestHeaders: {},
+    requestBody: Buffer.from('direct-body'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  const response = {
+    headers: {} as Record<string, string>,
+    statusCode: 0,
+    body: '',
+    setHeader(name: string, value: string | number | string[]) {
+      this.headers[name] = String(Array.isArray(value) ? value.join(',') : value);
+    },
+    end(data?: string | Buffer) {
+      this.body = data?.toString() || '';
+    },
+    getReqSession(cb: (session: any) => void) {
+      cb({ req: { body: 'session-body' } });
+    },
+    passThrough() {},
+  };
+
+  clearRecentEvents();
+  await setupServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  await handler?.({
+    ruleValue: 'replay',
+    method: 'POST',
+    url: 'https://api.example.com/undefined-body-preferred',
+    body: Buffer.from('direct-body'),
+    originalReq: {
+      ruleValue: 'replay',
+      body: undefined,
+    },
+  }, response);
+
+  const [event] = getRecentEvents();
+  assert.equal(event.type, 'HIT');
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.body, '{"ok":true}');
+});

@@ -409,6 +409,50 @@ test('rules server prefers numeric originalReq.body over session body', async ()
   assert.equal(event.url, 'https://api.example.com/number-body-priority');
 });
 
+test('rules server prefers req.body when originalReq.body is undefined', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-undefined-body-preferred-'));
+  const options = { baseDir: root };
+  clearRecentEvents();
+
+  await getEngine(options).record({
+    method: 'POST',
+    url: 'https://api.example.com/undefined-body-preferred',
+    requestHeaders: {},
+    requestBody: Buffer.from('direct-body'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupRulesServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = createTextResponse();
+  await handler?.({
+    method: 'POST',
+    url: 'https://api.example.com/undefined-body-preferred',
+    body: Buffer.from('direct-body'),
+    originalReq: {
+      ruleValue: 'replay',
+      body: undefined,
+    },
+    getReqSession(cb: (session: any) => void) {
+      cb({ req: { body: 'session-body' } });
+    },
+  }, response);
+
+  const parsed = JSON.parse(response.body);
+  assert.ok(parsed.rules.includes('resBody://{whistleApiCache'));
+  const [event] = getRecentEvents();
+  assert.equal(event.type, 'HIT');
+  assert.equal(event.method, 'POST');
+  assert.equal(event.url, 'https://api.example.com/undefined-body-preferred');
+});
+
 function createTextResponse() {
   return {
     body: '',
