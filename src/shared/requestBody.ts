@@ -21,6 +21,7 @@ export async function getBufferedRequestBody(req: any, originalReq: any): Promis
  */
 export function toBuffer(body: unknown): Buffer | undefined {
   // 空字符串会转为长度 0 的 Buffer；调用方用 truthy 判定时可识别为“空体”。
+  // 仅 undefined/null 与空字符串会被视为空值，false/0 会转为字符串缓冲区保留参与匹配。
   if (body === undefined || body === null) return undefined;
   if (body instanceof Buffer) return body;
   if (typeof body === 'string') return Buffer.from(body);
