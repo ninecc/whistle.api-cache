@@ -84,6 +84,7 @@
 5. 根据结果记录 `STORE` 或 `BYPASS` 诊断事件。
 
 `test/resStatsServer.test.ts` 覆盖了 `parseRequestContext` 解析不到 URL 时的兜底分支：应记录 `BYPASS`（原因 `missing url or response body`）而非入库。
+`test/resStatsServer.test.ts` 还覆盖了 `originalReq.body` 缺失时从 `session.req.body` 回退记录请求体的场景，确保 POST 录制可被同样 body 重放命中。
 
 `resStatsServer` 使用 `src/shared/requestBody.ts` 的 `toBuffer` 统一请求/响应 body 转 Buffer，和服务端回放阶段共享同一边界行为。
 `resStatsServer` 及 `cache/engine`、`cache/policy` 的 headers 处理统一使用 `src/shared/headers.ts`，包括：统一 header key 为小写、忽略空值、按大小写不敏感读取 header 值。
