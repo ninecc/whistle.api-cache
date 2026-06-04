@@ -12,11 +12,14 @@ export function parseRequestContext(req: unknown, fallback?: unknown): ParsedReq
   const root = toRecord(req);
   const alt = toRecord(fallback);
   const requestLike = root.originalReq && toRecord(root.originalReq).method ? toRecord(root.originalReq) : root;
-  const rawMethod = requestLike.method || root.method || alt.method || 'GET';
-  const method = String(rawMethod).toUpperCase();
+  const method = normalizeMethod(requestLike.method || root.method || alt.method, 'GET');
   const url = requestLike.fullUrl || root.fullUrl || root.url || alt.url || alt.fullUrl || alt.req?.url;
 
   return { method, url };
+}
+
+export function normalizeMethod(value: unknown, fallback = 'GET'): string {
+  return String(value || fallback).toUpperCase();
 }
 
 function toRecord(value: unknown): Record<string, unknown> {

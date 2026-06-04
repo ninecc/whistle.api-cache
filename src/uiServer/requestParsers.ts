@@ -1,5 +1,6 @@
 import { CacheExportBundle, CacheExportEntry, DeleteBatchInput, TtlOperation, UpdateTtlInput } from '../cache/engine';
 import { CacheEvent } from '../shared/state';
+import { normalizeMethod } from '../shared/requestContext';
 
 /**
  * 规范化单条缓存删除接口参数，缺省 id 为空字符串。
@@ -101,7 +102,7 @@ export function parseIgnoredQueryNames(body: Record<string, unknown>): string[] 
  */
 export function parseCacheMatchBody(body: Record<string, unknown>): MatchRequestBody {
   return {
-    method: String(body.method || 'GET').toUpperCase(),
+    method: normalizeMethod(body.method),
     url: String(body.url || ''),
     requestBody: typeof body.requestBody === 'string' && body.requestBody.length
       ? Buffer.from(body.requestBody)

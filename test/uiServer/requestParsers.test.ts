@@ -67,6 +67,11 @@ test('parses cache match request body with defaults and non-empty request payloa
     method: 'POST',
     url: '',
   });
+
+  assert.deepEqual(parseCacheMatchBody({ method: 12 }), {
+    method: '12',
+    url: '',
+  });
 });
 
 test('normalizes ignored query names input', () => {
