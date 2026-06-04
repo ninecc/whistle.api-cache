@@ -240,6 +240,57 @@ test('res stats falls back requestBody from session.req.body when originalReq.bo
   assert.equal(replay.hit, true);
 });
 
+test('res stats treats empty-string originalReq.body as missing and falls back to session req body', async () => {
+  clearRecentEvents();
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-res-stats-session-empty-body-'));
+  const options = { baseDir: root };
+
+  let handler: ((req: any) => void) | undefined;
+  setupResStatsServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const url = 'https://api.example.com/post-with-empty-body';
+
+  handler?.({
+    originalReq: {
+      ruleValue: 'auto',
+      body: '',
+    },
+    originalRes: {
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+    },
+    getSession(callback: (session: any) => void) {
+      callback({
+        req: {
+          method: 'POST',
+          url,
+          body: Buffer.from('action=save'),
+          headers: {},
+        },
+        res: {
+          statusCode: 200,
+          headers: { 'content-type': 'application/json' },
+          body: Buffer.from('{"ok":true}'),
+        },
+      });
+    },
+  });
+
+  const storeEvent = await waitForEvent('STORE');
+  assert.equal(storeEvent.type, 'STORE');
+
+  const replay = await getEngine(options).replay({
+    method: 'POST',
+    url,
+    requestBody: Buffer.from('action=save'),
+  });
+  assert.equal(replay.hit, true);
+});
+
 async function waitForEvent(type: string) {
   const deadline = Date.now() + 1000;
   while (Date.now() < deadline) {

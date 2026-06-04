@@ -22,7 +22,9 @@ export default function setupResStatsServer(server: any, options?: Record<string
         const { method, url } = parseRequestContext(req, { ...originalReq, ...session, ...session?.req });
         const requestId = getRequestId(originalReq, session?.req, req);
         const statusCode = Number(originalRes.statusCode || session?.res?.statusCode || 0);
-        const requestBody = toBuffer(originalReq.body ?? session?.req?.body);
+        // 空字符串应视作“无 body”，因此优先尝试 originalReq.body 之后不应直接截断；
+        // 当 direct 结果为空时回退到 session.req.body，保持与 replay 路径一致。
+        const requestBody = toBuffer(originalReq.body) || toBuffer(session?.req?.body);
         const responseBody = toBuffer(session?.res?.body);
 
         if (url && consumeRecentReplayHit(method, url)) return;

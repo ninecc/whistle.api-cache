@@ -228,7 +228,7 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 
 ### 请求体读取统一策略
 
-`server.ts` 与 `rulesServer.ts` 在回放匹配时都需要读取 request body 来计算匹配 key。为避免重复实现差异，当前已抽离到 `src/shared/requestBody.ts`，并在两个服务内共享。
+`server.ts`、`rulesServer.ts` 与 `resStatsServer.ts` 在回放/录制路径都需要读取 request body 来计算匹配 key。为避免重复实现差异，当前已抽离到 `src/shared/requestBody.ts`，并在两个回放服务与录制侧兜底策略中统一语义（含空字符串回退）。
 
 该工具采用同一优先级：
 
