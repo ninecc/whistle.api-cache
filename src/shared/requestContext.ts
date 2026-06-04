@@ -6,16 +6,26 @@ export interface ParsedRequestContext {
 /**
  * 统一从 Whistle 请求上下文中提取 method 与 url。
  * method 优先级：requestContext.originalReq.method > requestContext.method > fallback.method > GET。
- * url 优先级：requestContext.fullUrl > requestContext.fullUrl > requestContext.url > fallback.url > fallback.fullUrl > fallback.req.url。
+ * url 优先级：requestContext.fullUrl > requestContext.url > fallback.fullUrl > fallback.url > fallback.req.url。
  */
 export function parseRequestContext(req: unknown, fallback?: unknown): ParsedRequestContext {
   const root = toRecord(req);
   const alt = toRecord(fallback);
-  const requestLike = root.originalReq && toRecord(root.originalReq).method ? toRecord(root.originalReq) : root;
+  const requestLike = getRequestLikeSource(root);
   const method = normalizeMethod(requestLike.method || root.method || alt.method, 'GET');
   const url = requestLike.fullUrl || root.fullUrl || root.url || alt.url || alt.fullUrl || alt.req?.url;
 
   return { method, url };
+}
+
+function getRequestLikeSource(root: Record<string, unknown>): Record<string, unknown> {
+  if (!root.originalReq) return root;
+  const originalReq = toRecord(root.originalReq);
+  return hasRequestContext(originalReq, ['fullUrl', 'url', 'method']) ? originalReq : root;
+}
+
+function hasRequestContext(source: Record<string, unknown>, fields: string[]): boolean {
+  return fields.some((field) => Boolean(source[field]));
 }
 
 export function normalizeMethod(value: unknown, fallback = 'GET'): string {

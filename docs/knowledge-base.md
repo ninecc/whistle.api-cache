@@ -83,6 +83,7 @@
 `server.ts`、`rulesServer.ts`、`resStatsServer.ts`、`uiServer/index.ts` 的 `method/url` 取值统一到 `src/shared/requestContext.ts`，其中 `method` 也被统一为大写，规避重复分支下的边界差异与大小写不一致问题。
 `parseRequestContext` 的回退链条与大小写行为均已有测试覆盖，位于 `test/shared/requestContext.test.ts`。
 文档说明中补充了回退优先级细节，并新增边界测试覆盖了 `req.url` 回退场景，确保 `parseRequestContext` 在缺少 `fullUrl` 时仍可从 `url` 提取上下文。
+`parseRequestContext` 同样会在 `originalReq` 仅携带 `fullUrl`（但不带 `method`）时优先采用其绝对 URL，避免将 `req.url` 的相对路径误当作请求 URL 继续下游匹配。
 新增 `normalizeMethod` 共享方法后，`uiServer/requestParsers.ts` 的 `parseCacheMatchBody` 也复用同一标准化逻辑（包括非字符串的 `toString` + `toUpperCase`），并同步补充对应测试。
 `src/cache/engine.ts` 中 `record/replay/match` 输入方法也改为走 `normalizeMethod`，确保记录与回放路径在方法大小写规则上完全一致，避免因输入大小写导致的分支漂移。
 `cache/key.ts` 与 `cache/policy.ts`、`shared/state.ts` 也加入统一的 `normalizeMethod`，

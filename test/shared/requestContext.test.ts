@@ -58,6 +58,18 @@ test('prefers fallback fullUrl before fallback.req.url', () => {
   assert.equal(context.url, 'https://example.test/api/fallback-full');
 });
 
+test('uses originalReq.fullUrl before req.url when method missing', () => {
+  const context = parseRequestContext(
+    {
+      method: 'GET',
+      url: '/api/from-req',
+      originalReq: { fullUrl: 'https://example.test/api/from-original' },
+    },
+  );
+
+  assert.equal(context.url, 'https://example.test/api/from-original');
+});
+
 test('returns undefined url when unavailable', () => {
   const context = parseRequestContext({}, {});
 
