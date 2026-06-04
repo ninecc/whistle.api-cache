@@ -94,6 +94,44 @@ test('rules server reports ambiguous POST candidates in miss diagnostics', async
   clearRecentEvents();
 });
 
+test('rules server falls back to req context when originalReq is empty shell', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-empty-original-'));
+  const options = { baseDir: root };
+  clearRecentEvents();
+  await getEngine(options).record({
+    method: 'GET',
+    url: 'https://api.example.com/empty-original',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupRulesServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = createTextResponse();
+  await handler?.({
+    method: 'GET',
+    url: 'https://api.example.com/empty-original',
+    originalReq: {
+      ruleValue: 'replay',
+    },
+    ruleValue: 'replay',
+  }, response);
+
+  const rules = JSON.parse(response.body).rules;
+  assert.ok(rules.includes('resBody://{whistleApiCache'));
+  const [event] = getRecentEvents();
+  assert.equal(event.type, 'HIT');
+  assert.equal(event.method, 'GET');
+  assert.equal(event.url, 'https://api.example.com/empty-original');
+});
+
 function createTextResponse() {
   return {
     body: '',
