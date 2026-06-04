@@ -86,6 +86,7 @@
 `parseRequestContext` 同样会在 `originalReq` 仅携带 `fullUrl`（但不带 `method`）时优先采用其绝对 URL，避免将 `req.url` 的相对路径误当作请求 URL 继续下游匹配。
 当 `originalReq` 仅是占位对象且无 `fullUrl/url/method` 时，会回退到当前 `req` 的上下文，避免空壳 `originalReq` 覆盖有效取值。
 当 `originalReq.fullUrl` 或 `fallback.fullUrl` 为 `''` 时，会继续沿链条向 `url` 回退，减少空值导致的错误 URL 进入回放路径。
+`parseRequestContext` 在方法回退时已改为显式跳过 `undefined/null/空字符串`，避免 `0` 等非字符串有效值被错误当作缺省回退。
 `normalizeMethod` 现在对 `null/undefined/空字符串` 使用兜底值，其他可转换类型（包括数字 `0`）会保留并转为字符串，防止把有效值误判为默认方法。
 新增 `normalizeMethod` 共享方法后，`uiServer/requestParsers.ts` 的 `parseCacheMatchBody` 也复用同一标准化逻辑（包括非字符串的 `toString` + `toUpperCase`），并同步补充对应测试。
 `src/cache/engine.ts` 中 `record/replay/match` 输入方法也改为走 `normalizeMethod`，确保记录与回放路径在方法大小写规则上完全一致，避免因输入大小写导致的分支漂移。

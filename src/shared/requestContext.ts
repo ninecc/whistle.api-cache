@@ -13,10 +13,19 @@ export function parseRequestContext(req: unknown, fallback?: unknown): ParsedReq
   const root = toRecord(req);
   const alt = toRecord(fallback);
   const requestLike = getRequestLikeSource(root);
-  const method = normalizeMethod(requestLike.method || root.method || alt.method, 'GET');
+  const method = normalizeMethod(selectFirstValue(requestLike.method, root.method, alt.method), 'GET');
   const url = requestLike.fullUrl || root.fullUrl || root.url || alt.url || alt.fullUrl || alt.req?.url;
 
   return { method, url };
+}
+
+function selectFirstValue(...values: unknown[]): unknown {
+  for (const value of values) {
+    if (value !== undefined && value !== null && !(typeof value === 'string' && value.length === 0)) {
+      return value;
+    }
+  }
+  return undefined;
 }
 
 function getRequestLikeSource(root: Record<string, unknown>): Record<string, unknown> {

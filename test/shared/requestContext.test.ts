@@ -42,6 +42,16 @@ test('falls back to fallback.req method when root method missing', () => {
   assert.equal(context.method, 'PATCH');
 });
 
+test('uses root method before fallback method', () => {
+  const context = parseRequestContext(
+    { method: 'get', fullUrl: 'https://example.test/api/root' },
+    { method: 'post', fullUrl: 'https://example.test/api/fallback' },
+  );
+
+  assert.equal(context.method, 'GET');
+  assert.equal(context.url, 'https://example.test/api/root');
+});
+
 test('stringifies non-string methods before uppercasing', () => {
   const context = parseRequestContext({ method: 123 }, {});
 
