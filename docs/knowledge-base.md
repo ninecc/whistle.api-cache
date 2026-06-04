@@ -495,6 +495,7 @@ TTL 操作：
 rtk npm run build
 rtk npm test
 rtk npm run e2e:auto-replay
+rtk npm run test:body-regression
 ```
 
 请求体读取语义回归命令（可选）：
