@@ -22,6 +22,7 @@ export function parseRequestContext(req: unknown, fallback?: unknown): ParsedReq
 function getRequestLikeSource(root: Record<string, unknown>): Record<string, unknown> {
   if (!root.originalReq) return root;
   const originalReq = toRecord(root.originalReq);
+  // 原始 req 可能是空壳对象：当其中无可用 method/url/fullUrl 时，避免覆盖当前请求上下文。
   return hasRequestContext(originalReq, ['fullUrl', 'url', 'method']) ? originalReq : root;
 }
 
