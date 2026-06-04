@@ -5,6 +5,8 @@ export interface ParsedRequestContext {
 
 /**
  * 统一从 Whistle 请求上下文中提取 method 与 url。
+ * method 优先级：requestContext.originalReq.method > requestContext.method > fallback.method > GET。
+ * url 优先级：requestContext.fullUrl > requestContext.fullUrl > fallback.url > fallback.fullUrl > fallback.req.url。
  */
 export function parseRequestContext(req: unknown, fallback?: unknown): ParsedRequestContext {
   const root = toRecord(req);
