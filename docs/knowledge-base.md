@@ -229,6 +229,7 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 - 先读取 `originalReq.body` / `req.body` 的直接 body。
 - 若缺失则调用 `req.getReqSession()` 读取 session 上的 body。
 - 空字符串 `''` 被视作“无 body”，会触发会话回退获取，避免把长度 0 的字符串误当作可匹配 body。
+- `toBuffer('')` 实际返回长度为 0 的 `Buffer`，由调用侧的 truthy 判定决定是否进入会话回退。
 - 支持 `Buffer`、`string`、`Uint8Array`，其余值按 `String(value)` 转为缓冲区。
 
 对应测试已补充到 `test/shared/requestBody.test.ts`。
