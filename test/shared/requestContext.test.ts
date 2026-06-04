@@ -16,6 +16,13 @@ test('parses context from originalReq priority and fallback method/url', () => {
   assert.equal(context.url, 'https://example.test/api/orig');
 });
 
+test('falls back to req.url when fullUrl fields are unavailable', () => {
+  const context = parseRequestContext({ url: '/api/from-req' }, {});
+
+  assert.equal(context.method, 'GET');
+  assert.equal(context.url, '/api/from-req');
+});
+
 test('falls back to req and fallback values when original missing', () => {
   const context = parseRequestContext(
     { method: 'GET', fullUrl: 'https://example.test/api/root' },

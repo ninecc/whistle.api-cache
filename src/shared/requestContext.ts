@@ -6,7 +6,7 @@ export interface ParsedRequestContext {
 /**
  * 统一从 Whistle 请求上下文中提取 method 与 url。
  * method 优先级：requestContext.originalReq.method > requestContext.method > fallback.method > GET。
- * url 优先级：requestContext.fullUrl > requestContext.fullUrl > fallback.url > fallback.fullUrl > fallback.req.url。
+ * url 优先级：requestContext.fullUrl > requestContext.fullUrl > requestContext.url > fallback.url > fallback.fullUrl > fallback.req.url。
  */
 export function parseRequestContext(req: unknown, fallback?: unknown): ParsedRequestContext {
   const root = toRecord(req);
@@ -14,7 +14,7 @@ export function parseRequestContext(req: unknown, fallback?: unknown): ParsedReq
   const requestLike = root.originalReq && toRecord(root.originalReq).method ? toRecord(root.originalReq) : root;
   const rawMethod = requestLike.method || root.method || alt.method || 'GET';
   const method = String(rawMethod).toUpperCase();
-  const url = requestLike.fullUrl || root.fullUrl || alt.url || alt.fullUrl || alt.req?.url;
+  const url = requestLike.fullUrl || root.fullUrl || root.url || alt.url || alt.fullUrl || alt.req?.url;
 
   return { method, url };
 }
