@@ -31,7 +31,9 @@ function hasRequestContext(source: Record<string, unknown>, fields: string[]): b
 }
 
 export function normalizeMethod(value: unknown, fallback = 'GET'): string {
-  return String(value || fallback).toUpperCase();
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === 'string' && value === '') return fallback;
+  return String(value).toUpperCase();
 }
 
 function toRecord(value: unknown): Record<string, unknown> {

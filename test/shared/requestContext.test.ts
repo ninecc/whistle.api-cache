@@ -48,6 +48,12 @@ test('stringifies non-string methods before uppercasing', () => {
   assert.equal(context.method, '123');
 });
 
+test('keeps zero as string method instead of falling back', () => {
+  const context = parseRequestContext({ method: 0 }, {});
+
+  assert.equal(context.method, '0');
+});
+
 test('prefers fallback fullUrl before fallback.req.url', () => {
   const context = parseRequestContext({}, {
     fullUrl: 'https://example.test/api/fallback-full',
