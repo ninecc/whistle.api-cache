@@ -103,6 +103,7 @@
 `parseRequestContext` 在方法回退时已改为显式跳过 `undefined/null/空字符串`，避免 `0` 等非字符串有效值被错误当作缺省回退。
 另外，`parseRequestContext` 的 `url` 回退顺序修复为 `requestLike.fullUrl > requestLike.url > root.fullUrl > root.url > fallback.fullUrl > fallback.url > fallback.req.url`，避免 `fallback.fullUrl` 被错误落在 `fallback.url` 之后。
 `hasRequestContext` 已同步使用同一“空值定义”（`undefined/null/空字符串`视为无效），因此 `originalReq` 中的合法 `0` 等值也会被正确识别为有效上下文，不会被误判为占位对象而被丢弃。
+当 `originalReq` 的 `fullUrl` 与 `url` 均为空字符串时，URL 回退会继续沿链条向根/请求上下文继续查找，不会错误地将空值当作有效命中来源。
 `normalizeMethod` 现在对 `null/undefined/空字符串` 使用兜底值，其他可转换类型（包括数字 `0`）会保留并转为字符串，防止把有效值误判为默认方法。
 新增 `normalizeMethod` 共享方法后，`uiServer/requestParsers.ts` 的 `parseCacheMatchBody` 也复用同一标准化逻辑（包括非字符串的 `toString` + `toUpperCase`），并同步补充对应测试。
 `src/cache/engine.ts` 中 `record/replay/match` 输入方法也改为走 `normalizeMethod`，确保记录与回放路径在方法大小写规则上完全一致，避免因输入大小写导致的分支漂移。
