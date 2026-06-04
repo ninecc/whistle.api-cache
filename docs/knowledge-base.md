@@ -49,6 +49,8 @@
 5. 未命中时调用 `req.passThrough()` 继续请求真实上游。
 6. MISS/HIT 诊断原因通过 `src/shared/replayReasons.ts` 统一生成，避免 server 与 rulesServer 在提示文案上的分歧。
 
+`test/server.test.ts` 覆盖了 `originalReq` 为空壳对象且携带非字符串 `method`（如 `0`）时的边界：会回退到当前 `req` 上下文（`method`、`url`）进行回放，避免误判。
+
 如果环境中没有 `passThrough()`，会返回 `502` 和 `x-whistle-cache: MISS`，这是测试或非标准 Whistle 环境下的兜底。
 
 ### `rulesServer`
