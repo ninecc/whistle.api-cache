@@ -1,0 +1,4 @@
+# whistle.api-cache 默认不全局生效，请在 Whistle UI 中添加类似规则：
+# www.example.com/api whistle.api-cache://record
+# www.example.com/api whistle.api-cache://replay
+# www.example.com/api whistle.api-cache://record,replay

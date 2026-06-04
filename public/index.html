@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>whistle.api-cache</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>whistle.api-cache</h1>
+        <p>录制接口响应，并在调试时从本地缓存回放。</p>
+      </div>
+      <button id="refreshBtn" type="button">刷新</button>
+    </header>
+
+    <main id="appMain" aria-busy="false">
+      <section class="summary">
+        <div>
+          <span class="label">Profile</span>
+          <strong id="profileId">default</strong>
+        </div>
+        <div>
+          <span class="label">缓存条目</span>
+          <strong id="entryCount">0</strong>
+        </div>
+        <div>
+          <span class="label">占用空间</span>
+          <strong id="totalSize">0 B</strong>
+        </div>
+      </section>
+
+      <section class="panel statusPanel">
+        <div class="panelHeader">
+          <h2>代理状态</h2>
+          <div class="pathActions">
+            <span id="dataDir" class="muted"></span>
+            <button id="openDataDirBtn" type="button">打开目录</button>
+          </div>
+        </div>
+        <div id="statusChips" class="chips"></div>
+      </section>
+
+      <section class="dashboard">
+        <section class="panel">
+          <div class="panelHeader">
+            <h2>快速规则</h2>
+            <button id="copyRulesBtn" type="button">复制规则</button>
+          </div>
+          <div class="ruleBuilder">
+            <label>
+              <span class="label">匹配地址</span>
+              <input id="matchInput" type="text" value="www.example.com/api" spellcheck="false">
+            </label>
+            <div>
+              <span class="label">代理模式</span>
+              <div class="segmented" role="group" aria-label="代理模式">
+                <button type="button" class="active" data-mode="record">录制</button>
+                <button type="button" data-mode="replay">回放</button>
+                <button type="button" data-mode="record,replay">录制+回放</button>
+              </div>
+            </div>
+          </div>
+          <pre id="rulesBlock">www.example.com/api whistle.api-cache://record</pre>
+          <p class="hint">复制后粘贴到 Whistle Rules。插件不会自动改写主规则，避免覆盖已有配置。</p>
+        </section>
+
+        <section class="panel">
+          <div class="panelHeader">
+            <h2>缓存健康</h2>
+            <div class="inlineActions">
+              <button id="clearExpiredBtn" type="button">清理过期</button>
+              <button id="clearAllBtn" class="danger" type="button">清理全部</button>
+            </div>
+          </div>
+          <div class="healthGrid">
+            <div><span class="label">可回放</span><strong id="freshCount">0</strong></div>
+            <div><span class="label">已过期</span><strong id="expiredCount">0</strong></div>
+            <div><span class="label">有命中</span><strong id="hitEntryCount">0</strong></div>
+          </div>
+          <p class="hint">最近诊断会记录 STORE、BYPASS、HIT、MISS，便于判断代理是否生效。</p>
+        </section>
+      </section>
+
+      <section class="panel">
+        <div class="panelHeader">
+          <h2>最近诊断</h2>
+          <span class="muted">最近 20 条</span>
+        </div>
+        <div id="eventsList" class="eventsList"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panelHeader">
+          <h2>缓存列表</h2>
+          <span id="loadingText" class="loadingText" hidden>正在刷新缓存数据...</span>
+          <div class="tableActions">
+            <input id="searchInput" type="search" placeholder="搜索 URL / 类型 / Method">
+            <select id="filterSelect" aria-label="缓存过滤">
+              <option value="all">全部</option>
+              <option value="fresh">可回放</option>
+              <option value="expired">已过期</option>
+              <option value="hit">有命中</option>
+            </select>
+          </div>
+        </div>
+        <div id="error" class="error" hidden></div>
+        <div id="empty" class="empty">
+          <strong>暂无匹配缓存</strong>
+          <ol>
+            <li>复制录制规则并粘贴到 Whistle Rules。</li>
+            <li>让目标接口流量经过 Whistle。</li>
+            <li>回到这里刷新缓存列表。</li>
+          </ol>
+        </div>
+        <table id="cacheTable" hidden>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>URL</th>
+              <th>状态</th>
+              <th>大小</th>
+              <th>命中</th>
+              <th>创建</th>
+              <th>过期</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="cacheRows"></tbody>
+        </table>
+      </section>
+
+      <section class="panel">
+        <div class="panelHeader">
+          <h2>当前策略</h2>
+          <button id="saveIgnoredQueryBtn" type="button">保存忽略参数</button>
+        </div>
+        <label class="settingField">
+          <span class="label">忽略 URL Query 参数</span>
+          <textarea id="ignoredQueryInput" rows="2" spellcheck="false" placeholder="_t, t, timestamp, wsgsig"></textarea>
+        </label>
+        <div class="quickTags">
+          <span class="muted">常见变化参数：</span>
+          <button type="button" data-query-name="wsgsig">wsgsig</button>
+          <button type="button" data-query-name="_t">_t</button>
+          <button type="button" data-query-name="timestamp">timestamp</button>
+        </div>
+        <dl id="policyList" class="policyList"></dl>
+        <p class="hint">带 Cookie、Authorization 或 Set-Cookie 的请求/响应会被跳过；HTTPS 接口需要 Whistle 能解密响应 body。</p>
+      </section>
+
+      <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
