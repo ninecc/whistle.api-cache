@@ -5,6 +5,7 @@ import { getBufferedRequestBody, toBuffer } from '../../src/shared/requestBody';
 test('converts known body types to Buffer', () => {
   assert.deepEqual(toBuffer(Buffer.from('hello')), Buffer.from('hello'));
   assert.deepEqual(toBuffer('hello'), Buffer.from('hello'));
+  assert.deepEqual(toBuffer(''), Buffer.from(''));
   assert.deepEqual(toBuffer(Uint8Array.from([104, 105])), Buffer.from('hi'));
   assert.deepEqual(toBuffer({ a: 1 }), Buffer.from('[object Object]'));
 });
