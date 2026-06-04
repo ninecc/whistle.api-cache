@@ -117,6 +117,23 @@ test('uses req.body when originalReq.body is missing', async () => {
   assert.equal(body?.toString(), 'req-body');
 });
 
+test('reads session body when req.body is empty string', async () => {
+  const body = await getBufferedRequestBody(
+    {
+      body: '',
+      getSession: (cb: (session: any) => void) => {
+        cb({ req: { body: 'session-body' } });
+      },
+      getReqSession: (cb: (session: any) => void) => {
+        cb({ req: { body: 'req-session-body' } });
+      },
+    },
+    {},
+  );
+
+  assert.equal(body?.toString(), 'session-body');
+});
+
 test('falls back to session body when direct body is null', async () => {
   const body = await getBufferedRequestBody(
     {
