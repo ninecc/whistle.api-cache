@@ -152,6 +152,11 @@ textarea {
   gap: 8px;
 }
 
+.inlineActions select {
+  width: auto;
+  min-width: 104px;
+}
+
 .pathActions {
   justify-content: flex-end;
   min-width: 0;
@@ -276,6 +281,14 @@ td {
   vertical-align: top;
 }
 
+.rowActions {
+  white-space: nowrap;
+}
+
+.rowActions button + button {
+  margin-left: 6px;
+}
+
 th {
   color: #667085;
   font-weight: 600;
@@ -289,6 +302,54 @@ th {
 .url span,
 .url small {
   display: block;
+}
+
+.detailRow td {
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.entryDetails {
+  display: grid;
+  gap: 12px;
+}
+
+.detailGrid,
+.headersBlock dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.detailGrid > div,
+.headersBlock dl > div {
+  min-width: 0;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 8px;
+}
+
+.detailGrid dt,
+.headersBlock dt {
+  color: #667085;
+  font-size: 11px;
+}
+
+.detailGrid dd,
+.headersBlock dd {
+  overflow: hidden;
+  margin: 4px 0 0;
+  color: #20242a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.headersBlock strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #344054;
 }
 
 .url span {
@@ -499,5 +560,10 @@ ul {
   .tableActions input,
   .tableActions select {
     width: 100%;
+  }
+
+  .detailGrid,
+  .headersBlock dl {
+    grid-template-columns: 1fr;
   }
 }

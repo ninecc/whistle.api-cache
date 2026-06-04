@@ -3,6 +3,8 @@ const state = {
   events: [],
   profile: {},
   ruleMode: 'record',
+  expandedEntryId: undefined,
+  eventFilter: 'all',
   fallbackTimer: undefined,
   lastEventId: 0,
   syncTimer: undefined,
@@ -23,6 +25,7 @@ const elements = {
   expiredCount: document.querySelector('#expiredCount'),
   hitEntryCount: document.querySelector('#hitEntryCount'),
   eventsList: document.querySelector('#eventsList'),
+  eventFilterSelect: document.querySelector('#eventFilterSelect'),
   searchInput: document.querySelector('#searchInput'),
   filterSelect: document.querySelector('#filterSelect'),
   ignoredQueryInput: document.querySelector('#ignoredQueryInput'),
@@ -54,6 +57,10 @@ elements.copyRulesBtn.addEventListener('click', copyRules);
 elements.matchInput.addEventListener('input', updateRule);
 elements.searchInput.addEventListener('input', renderEntries);
 elements.filterSelect.addEventListener('change', renderEntries);
+elements.eventFilterSelect.addEventListener('change', () => {
+  state.eventFilter = elements.eventFilterSelect.value;
+  renderEvents();
+});
 
 for (const button of document.querySelectorAll('[data-mode]')) {
   button.addEventListener('click', () => {
@@ -169,12 +176,23 @@ function renderEntries() {
       <td><span class="badge">${escapeHtml(String(entry.statusCode))}</span></td>
       <td>${formatBytes(entry.bodySize || 0)}</td>
       <td>${escapeHtml(String(entry.hitCount || 0))}</td>
+      <td>${formatRelativeDate(entry.lastHitAt)}</td>
       <td>${formatRelativeDate(entry.createdAt)}</td>
       <td><span class="badge ${expiry.className}">${escapeHtml(expiry.label)}</span></td>
-      <td><button type="button" class="danger" data-id="${escapeHtml(entry.id)}">删除</button></td>
+      <td class="rowActions">
+        <button type="button" data-action="details" data-id="${escapeHtml(entry.id)}">${state.expandedEntryId === entry.id ? '收起' : '详情'}</button>
+        <button type="button" class="danger" data-action="delete" data-id="${escapeHtml(entry.id)}">删除</button>
+      </td>
     `;
-    row.querySelector('button').addEventListener('click', () => deleteEntry(entry.id));
+    row.querySelector('[data-action="details"]').addEventListener('click', () => toggleEntryDetails(entry.id));
+    row.querySelector('[data-action="delete"]').addEventListener('click', () => deleteEntry(entry.id));
     elements.cacheRows.appendChild(row);
+    if (state.expandedEntryId === entry.id) {
+      const detailRow = document.createElement('tr');
+      detailRow.className = 'detailRow';
+      detailRow.innerHTML = `<td colspan="9">${renderEntryDetails(entry)}</td>`;
+      elements.cacheRows.appendChild(detailRow);
+    }
   }
 }
 
@@ -201,12 +219,13 @@ function renderHealth() {
 }
 
 function renderEvents() {
-  if (!state.events.length) {
+  const events = getFilteredEvents();
+  if (!events.length) {
     elements.eventsList.innerHTML = '<div class="empty compact">暂无诊断事件。发起录制或回放请求后会显示最近结果。</div>';
     return;
   }
 
-  elements.eventsList.innerHTML = state.events.map((event) => {
+  elements.eventsList.innerHTML = events.map((event) => {
     const url = parseUrlParts(event.url || '');
     return `
       <div class="eventItem" title="${escapeHtml(event.url || '')}">
@@ -223,6 +242,11 @@ function renderEvents() {
       </div>
     `;
   }).join('');
+}
+
+function getFilteredEvents() {
+  if (state.eventFilter === 'all') return state.events;
+  return state.events.filter((event) => event.type === state.eventFilter);
 }
 
 function renderPolicy() {
@@ -337,6 +361,7 @@ async function deleteEntry(id) {
       method: 'POST',
       body: JSON.stringify({ id }),
     });
+    if (state.expandedEntryId === id) state.expandedEntryId = undefined;
     await refresh();
   } catch (error) {
     showError(error);
@@ -351,6 +376,11 @@ async function copyRules() {
 function updateRule() {
   const match = elements.matchInput.value.trim() || 'www.example.com/api';
   elements.rulesBlock.textContent = `${match} whistle.api-cache://${state.ruleMode}`;
+}
+
+function toggleEntryDetails(id) {
+  state.expandedEntryId = state.expandedEntryId === id ? undefined : id;
+  renderEntries();
 }
 
 function getFilteredEntries() {
@@ -375,6 +405,34 @@ function getFilteredEntries() {
       (filter === 'hit' && (entry.hitCount || 0) > 0);
     return matchesKeyword && matchesFilter;
   });
+}
+
+function renderEntryDetails(entry) {
+  const headers = Object.entries(entry.headers || {}).map(([name, value]) => (
+    `<div><dt>${escapeHtml(name)}</dt><dd>${escapeHtml(value)}</dd></div>`
+  )).join('');
+  const fields = [
+    ['Cache Key', entry.key],
+    ['Normalized URL', entry.normalizedUrl],
+    ['Request Body Hash', entry.requestBodyHash || '-'],
+    ['Body Hash', entry.bodyHash],
+    ['Content Type', entry.contentType || '-'],
+    ['创建时间', formatAbsoluteDate(entry.createdAt)],
+    ['过期时间', formatAbsoluteDate(entry.expiresAt)],
+    ['最近命中', formatAbsoluteDate(entry.lastHitAt)],
+  ];
+
+  return `
+    <div class="entryDetails">
+      <dl class="detailGrid">
+        ${fields.map(([name, value]) => `<div><dt>${escapeHtml(name)}</dt><dd>${escapeHtml(value)}</dd></div>`).join('')}
+      </dl>
+      <div class="headersBlock">
+        <strong>Response Headers</strong>
+        <dl>${headers || '<div><dt>-</dt><dd>暂无响应头</dd></div>'}</dl>
+      </div>
+    </div>
+  `;
 }
 
 async function requestJson(url, options = {}) {
@@ -431,6 +489,10 @@ function formatRelativeDate(value) {
   if (absolute < 60 * 60 * 1000) return `${Math.round(absolute / 60 / 1000)} 分钟${suffix}`;
   if (absolute < 24 * 60 * 60 * 1000) return `${Math.round(absolute / 60 / 60 / 1000)} 小时${suffix}`;
   return new Date(value).toLocaleString();
+}
+
+function formatAbsoluteDate(value) {
+  return value ? new Date(value).toLocaleString() : '-';
 }
 
 function formatDuration(seconds) {
