@@ -1,5 +1,6 @@
 import { getEngine, markRecentReplayHit, recordEvent } from './shared/state';
-import { shouldRecord, shouldReplay } from './ruleMode';
+import { createReplayHitReason, createReplayMissReason } from './shared/replayReasons';
+import { shouldReplay } from './ruleMode';
 import { getBufferedRequestBody } from './shared/requestBody';
 
 export default function setupServer(server: any, options?: Record<string, unknown>) {
@@ -20,11 +21,11 @@ export default function setupServer(server: any, options?: Record<string, unknow
       const requestBody = await getBufferedRequestBody(req, originalReq);
       const replay = await getEngine(options).replay({ method, url: fullUrl, requestBody });
       if (!replay.hit) {
-        recordEvent({ type: 'MISS', method, url: fullUrl, reason: replayMissReason(originalReq.ruleValue) });
+        recordEvent({ type: 'MISS', method, url: fullUrl, reason: createReplayMissReason(originalReq.ruleValue) });
         return passThrough(req, res);
       }
 
-      recordEvent({ type: 'HIT', method, url: fullUrl, reason: replayHitReason(originalReq.ruleValue) });
+      recordEvent({ type: 'HIT', method, url: fullUrl, reason: createReplayHitReason(originalReq.ruleValue) });
       markRecentReplayHit(method, fullUrl);
       res.statusCode = replay.statusCode;
       for (const [name, value] of Object.entries(replay.headers)) {
@@ -42,18 +43,6 @@ export default function setupServer(server: any, options?: Record<string, unknow
       passThrough(req, res);
     }
   });
-}
-
-function isAutoMode(ruleValue: unknown): boolean {
-  return shouldRecord(ruleValue) && shouldReplay(ruleValue);
-}
-
-function replayMissReason(ruleValue: unknown): string {
-  return isAutoMode(ruleValue) ? 'AUTO MISS -> STORE' : 'REPLAY MISS -> PASS THROUGH';
-}
-
-function replayHitReason(ruleValue: unknown): string {
-  return isAutoMode(ruleValue) ? 'AUTO HIT -> SKIP STORE' : 'REPLAY HIT';
 }
 
 function passThrough(req: any, res: any) {

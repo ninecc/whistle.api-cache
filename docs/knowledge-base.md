@@ -47,6 +47,7 @@
 3. 调用 `CacheEngine.replay()`。
 4. 命中时写入状态码、响应头和 body。
 5. 未命中时调用 `req.passThrough()` 继续请求真实上游。
+6. MISS/HIT 诊断原因通过 `src/shared/replayReasons.ts` 统一生成，避免 server 与 rulesServer 在提示文案上的分歧。
 
 如果环境中没有 `passThrough()`，会返回 `502` 和 `x-whistle-cache: MISS`，这是测试或非标准 Whistle 环境下的兜底。
 
@@ -63,6 +64,7 @@
 ```
 
 4. 未命中时返回样式规则，并记录结构化 MISS 原因。
+5. MISS/HIT 原因字符串与 `server.ts` 采用同一共享规则，便于 e2e 与日志一致性验证。
 
 这个 hook 适合 Whistle 原生规则链路。维护时如果发现回放响应没有走 `server.ts`，也要检查 `rulesServer.ts` 是否已经生成了回放规则。
 
