@@ -66,3 +66,9 @@ test('returns undefined when request body and req session body are both missing'
 
   assert.equal(body, undefined);
 });
+
+test('returns undefined when req session reader is unavailable', async () => {
+  const body = await getBufferedRequestBody({}, {});
+
+  assert.equal(body, undefined);
+});
