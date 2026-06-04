@@ -6,6 +6,8 @@ import { tmpdir } from 'node:os';
 import setupRulesServer from '../src/rulesServer';
 import { clearRecentEvents, consumeRecentReplayHit, getEngine, getRecentEvents } from '../src/shared/state';
 
+// rulesServer 测试分组：先验证命中/未命中基础链路，再聚焦 request body 的回退与优先级。
+
 test('rules server injects replay rules for cache hits and marks them', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-'));
   const options = { baseDir: root };
@@ -247,6 +249,8 @@ test('rules server can hit replay even when originalReq.body is missing for empt
   assert.equal(event.method, 'POST');
   assert.equal(event.url, 'https://api.example.com/body-miss-candidate');
 });
+
+// body 读取语义覆盖：direct 与 session 来源、空值和类型边界都应稳定命中。
 
 test('rules server treats empty-string req.body as missing request body', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-empty-body-'));

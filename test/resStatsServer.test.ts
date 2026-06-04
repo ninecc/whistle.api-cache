@@ -11,6 +11,8 @@ import {
   markRecentReplayHit,
 } from '../src/shared/state';
 
+// resStatsServer 测试分组：先覆盖 replay 命中屏蔽与上下文回退，再覆盖 request body 录制语义。
+
 test('res stats skips recording responses served from replay hits', async () => {
   clearRecentEvents();
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-res-stats-replay-'));
@@ -148,6 +150,8 @@ test('res stats falls back to session.req.method and session.req.url when origin
   assert.equal(event.url, 'https://api.example.com/sessions');
   clearRecentEvents();
 });
+
+// 录制场景中的 request body：优先当前 body，其次回退 session，同时对 ''/null/undefined 做统一处理。
 
 test('res stats emits BYPASS when url cannot be resolved', async () => {
   clearRecentEvents();

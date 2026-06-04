@@ -6,6 +6,8 @@ import { tmpdir } from 'node:os';
 import { getEngine, clearRecentEvents, getRecentEvents } from '../src/shared/state';
 import setupServer from '../src/server';
 
+// server 测试分组：先覆盖请求上下文 fallback，再覆盖 body 回放匹配语义。
+
 test('server replays by fallback context when originalReq is empty shell', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-server-empty-original-'));
   const options = { baseDir: root };
@@ -113,6 +115,8 @@ test('server passes through when resolved url is empty', async () => {
   assert.equal(response.body, '');
   assert.equal(getRecentEvents(), []);
 });
+
+// body 取值与优先级：直接 body 优先，空值回退 session，最后由 cache key 共同驱动回放。
 
 test('server replays when originalReq.body is false', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-server-false-body-'));
