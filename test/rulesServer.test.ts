@@ -287,6 +287,46 @@ test('rules server treats empty-string req.body as missing request body', async 
   assert.equal(event.url, 'https://api.example.com/empty-body');
 });
 
+test('rules server replays with false body when it is provided directly', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-boolean-body-'));
+  const options = { baseDir: root };
+  clearRecentEvents();
+
+  await getEngine(options).record({
+    method: 'POST',
+    url: 'https://api.example.com/boolean-body',
+    requestHeaders: {},
+    requestBody: Buffer.from('false'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupRulesServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = createTextResponse();
+  await handler?.({
+    method: 'POST',
+    url: 'https://api.example.com/boolean-body',
+    originalReq: {
+      ruleValue: 'replay',
+      body: false,
+    },
+  }, response);
+
+  const parsed = JSON.parse(response.body);
+  assert.ok(parsed.rules.includes('resBody://{whistleApiCache'));
+  const [event] = getRecentEvents();
+  assert.equal(event.type, 'HIT');
+  assert.equal(event.method, 'POST');
+  assert.equal(event.url, 'https://api.example.com/boolean-body');
+});
+
 function createTextResponse() {
   return {
     body: '',
