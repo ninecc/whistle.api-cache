@@ -93,7 +93,7 @@ export class CacheEngine {
       ignoredQueryNames: this.profile.ignoredQueryNames,
       requestBody: input.requestBody,
     });
-    const requestBodyHash = input.requestBody?.byteLength ? hashRequestBody(input.requestBody) : undefined;
+    const requestBodyHash = input.requestBody === undefined ? undefined : hashRequestBody(input.requestBody);
     const entry: CacheEntry = {
       id: randomUUID(),
       profileId: this.profile.id,
@@ -152,7 +152,7 @@ export class CacheEngine {
   async match(input: { method: string; url: string; requestBody?: Buffer }): Promise<MatchResult> {
     const method = normalizeMethod(input.method);
     const normalizedUrl = normalizeUrl(input.url, this.profile.ignoredQueryNames);
-    const requestBodyHash = input.requestBody?.byteLength ? hashRequestBody(input.requestBody) : undefined;
+    const requestBodyHash = input.requestBody === undefined ? undefined : hashRequestBody(input.requestBody);
     const entries = (await this.store.listEntries()).filter((entry) => entry.profileId === this.profile.id);
 
     if (!entries.length) {
@@ -193,10 +193,10 @@ export class CacheEngine {
       })));
     }
 
-    const bodyCandidates = requestBodyHash
+    const bodyCandidates = requestBodyHash !== undefined
       ? fresh.filter((entry) => entry.requestBodyHash === requestBodyHash)
       : fresh;
-    if (requestBodyHash && !bodyCandidates.length) {
+    if (requestBodyHash !== undefined && !bodyCandidates.length) {
       return createMatchMiss('request body hash mismatch', fresh, fresh.map((entry) => ({
         type: 'BODY_HASH_MISMATCH',
         message: 'request body hash mismatch',
@@ -204,7 +204,7 @@ export class CacheEngine {
       })));
     }
 
-    if (method === 'POST' && !requestBodyHash && bodyCandidates.length > 1) {
+    if (method === 'POST' && requestBodyHash === undefined && bodyCandidates.length > 1) {
       return createMatchMiss(`ambiguous POST candidates: ${bodyCandidates.length}`, bodyCandidates, [{
         type: 'AMBIGUOUS_POST_CANDIDATES',
         message: `ambiguous POST candidates: ${bodyCandidates.length}`,
@@ -236,7 +236,7 @@ export class CacheEngine {
       item.method === method &&
       normalizeUrl(item.url, this.profile.ignoredQueryNames) === normalizedUrl &&
       new Date(item.expiresAt).getTime() > Date.now() &&
-      (!requestBodyHash || item.requestBodyHash === requestBodyHash)
+      (requestBodyHash === undefined || item.requestBodyHash === requestBodyHash)
     ));
     if (candidates.length === 1) return candidates[0];
     return undefined;

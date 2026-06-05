@@ -73,6 +73,7 @@
 5. MISS/HIT 原因字符串与 `server.ts` 采用同一共享规则，便于 e2e 与日志一致性验证。
 
 `test/rulesServer.test.ts` 覆盖了 `originalReq` 为空壳对象但携带 `ruleValue` 的场景：回放时仍应使用当前 `req` 的 `method/url`。
+`rulesServer.ts` 的模式判断需要使用 `originalReq.ruleValue ?? req.ruleValue`。真实 Whistle 链路中 `originalReq` 可能只是占位对象，如果只读 `originalReq.ruleValue`，`replay` 请求会退化成样式规则而不注入缓存响应。
 `test/rulesServer.test.ts` 还覆盖了 `POST` 场景下 `originalReq.body` 缺失时，应从 `req.body` 回退获取请求体，保证 body 匹配可命中。
 `test/rulesServer.test.ts` 同时覆盖了 `req.body` 为空字符串时应按“无 body”处理，避免把空字符串误当作可匹配 body。
 `test/rulesServer.test.ts` 进一步覆盖了 `originalReq.body = false` 时应命中缓存的场景，验证其不应被误判为缺失体而回退 session。
@@ -91,6 +92,7 @@
 
 `test/resStatsServer.test.ts` 覆盖了 `parseRequestContext` 解析不到 URL 时的兜底分支：应记录 `BYPASS`（原因 `missing url or response body`）而非入库。
 `test/resStatsServer.test.ts` 还覆盖了 `originalReq.body` 缺失时从 `session.req.body` 回退记录请求体的场景，确保 POST 录制可被同样 body 重放命中。
+`resStatsServer.ts` 的录制模式判断需要使用 `originalReq.ruleValue ?? req.ruleValue ?? session.req.ruleValue`。如果 `originalReq` 是空壳而当前请求是 `replay`，不能因为缺少 `ruleValue` 走默认 `record`，否则会把 replay-only 请求的真实响应误录进缓存。
 
 `resStatsServer` 使用 `src/shared/requestBody.ts` 的 `toBuffer` 统一请求/响应 body 转 Buffer，和服务端回放阶段共享同一边界行为。
 `resStatsServer` 及 `cache/engine`、`cache/policy` 的 headers 处理统一使用 `src/shared/headers.ts`，包括：统一 header key 为小写、忽略空值、按大小写不敏感读取 header 值。
@@ -233,6 +235,7 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 - `undefined` 表示“插件没有读取到请求体”，POST 回放会允许唯一候选兜底命中。
 - `Buffer.from('')` 表示“明确读到了空 body”，cache key 仍会带空 body 的 sha256，避免与完全缺失 body 的条目混淆。
 - `CacheEngine.replay()`、`findCompatibleEntry()` 与 `createCacheKey()` 都要保持这个区分；修改 body key 规则时必须同步检查这三处。
+- `CacheEngine.record()` 写入的 `requestBodyHash`、`CacheEngine.match()` 的诊断筛选、`findCompatibleEntry()` 的兼容查询也必须使用同一判断：只有 `requestBody === undefined` 才代表无请求体，长度为 0 的 Buffer 仍要计算 sha256。
 
 ### 请求体读取统一策略
 

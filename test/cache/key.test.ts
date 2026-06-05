@@ -32,6 +32,16 @@ test('includes request body hash in POST cache keys', () => {
   assert.ok(firstKey.startsWith('POST https://api.example.com/search body:'));
 });
 
+test('includes empty request body hash in cache keys', () => {
+  const key = createCacheKey({
+    method: 'POST',
+    url: 'https://api.example.com/search',
+    requestBody: Buffer.from(''),
+  });
+
+  assert.ok(key.startsWith('POST https://api.example.com/search body:'));
+});
+
 test('describes cache key composition', () => {
   assert.deepEqual(describeCacheKey({
     method: 'POST',

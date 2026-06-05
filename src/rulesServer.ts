@@ -10,13 +10,14 @@ export default function setupRulesServer(server: any, options?: Record<string, u
     const originalReq = req.originalReq || req;
     const { method, url: fullUrl } = parseRequestContext(req, originalReq);
     const requestId = getRequestId(originalReq, req);
+    const ruleValue = originalReq.ruleValue ?? req.ruleValue;
 
     if (!fullUrl) {
       return res.end('');
     }
 
-    if (!shouldReplay(originalReq.ruleValue)) {
-      return res.end(createPluginRulesPayload(originalReq.ruleValue));
+    if (!shouldReplay(ruleValue)) {
+      return res.end(createPluginRulesPayload(ruleValue));
     }
 
     try {
@@ -25,13 +26,13 @@ export default function setupRulesServer(server: any, options?: Record<string, u
       const replay = await getEngine(options).replay({ method, url: fullUrl, requestBody });
       if (!replay.hit) {
         const match = await getEngine(options).match({ method, url: fullUrl, requestBody });
-        recordEvent({ type: 'MISS', requestId, method, url: fullUrl, reason: createReplayMissReason(originalReq.ruleValue, match.reason) });
-        return res.end(createPluginRulesPayload(originalReq.ruleValue, replay));
+        recordEvent({ type: 'MISS', requestId, method, url: fullUrl, reason: createReplayMissReason(ruleValue, match.reason) });
+        return res.end(createPluginRulesPayload(ruleValue, replay));
       }
 
-      recordEvent({ type: 'HIT', requestId, method, url: fullUrl, reason: createReplayHitReason(originalReq.ruleValue) });
+      recordEvent({ type: 'HIT', requestId, method, url: fullUrl, reason: createReplayHitReason(ruleValue) });
       markRecentReplayHit(method, fullUrl);
-      return res.end(createPluginRulesPayload(originalReq.ruleValue, replay));
+      return res.end(createPluginRulesPayload(ruleValue, replay));
     } catch (error) {
       recordEvent({
         type: 'ERROR',
@@ -40,7 +41,7 @@ export default function setupRulesServer(server: any, options?: Record<string, u
         url: fullUrl,
         reason: error instanceof Error ? error.message : String(error),
       });
-      return res.end(createPluginRulesPayload(originalReq.ruleValue));
+      return res.end(createPluginRulesPayload(ruleValue));
     }
   });
 }

@@ -15,7 +15,8 @@ export default function setupResStatsServer(server: any, options?: Record<string
     req.getSession(async (session: any) => {
       try {
         const originalReq = req.originalReq || session?.req || {};
-        if (!shouldRecord(originalReq.ruleValue)) return;
+        const ruleValue = originalReq.ruleValue ?? req.ruleValue ?? session?.req?.ruleValue;
+        if (!shouldRecord(ruleValue)) return;
 
         const originalRes = req.originalRes || session?.res || {};
         // originalReq 可能是占位对象；补充 session.req 可兜底 method/url，避免回放上下文回退后误判。

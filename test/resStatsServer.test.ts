@@ -54,7 +54,7 @@ test('res stats skips recording responses served from replay hits', async () => 
     },
   });
 
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 20));
 
   assert.equal((await getEngine(options).list()).length, 0);
   assert.deepEqual(getRecentEvents(), []);
@@ -149,6 +149,88 @@ test('res stats falls back to session.req.method and session.req.url when origin
   assert.equal(event.method, 'POST');
   assert.equal(event.url, 'https://api.example.com/sessions');
   clearRecentEvents();
+});
+
+test('res stats falls back to req ruleValue when originalReq is empty shell', async () => {
+  clearRecentEvents();
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-res-stats-req-rule-value-'));
+  const options = { baseDir: root };
+
+  let handler: ((req: any) => void) | undefined;
+  setupResStatsServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  handler?.({
+    ruleValue: 'auto',
+    originalReq: {},
+    originalRes: {
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+    },
+    getSession(callback: (session: any) => void) {
+      callback({
+        req: {
+          method: 'GET',
+          url: 'https://api.example.com/req-rule-value-record',
+          headers: {},
+        },
+        res: {
+          statusCode: 200,
+          headers: { 'content-type': 'application/json' },
+          body: Buffer.from('{"ok":true}'),
+        },
+      });
+    },
+  });
+
+  const event = await waitForEvent('STORE');
+  assert.equal(event.type, 'STORE');
+  assert.equal(event.url, 'https://api.example.com/req-rule-value-record');
+  clearRecentEvents();
+});
+
+test('res stats does not record replay-only req ruleValue when originalReq is empty shell', async () => {
+  clearRecentEvents();
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-res-stats-replay-only-req-rule-value-'));
+  const options = { baseDir: root };
+
+  let handler: ((req: any) => void) | undefined;
+  setupResStatsServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  handler?.({
+    ruleValue: 'replay',
+    originalReq: {},
+    originalRes: {
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+    },
+    getSession(callback: (session: any) => void) {
+      callback({
+        req: {
+          method: 'GET',
+          url: 'https://api.example.com/replay-only-should-not-record',
+          headers: {},
+        },
+        res: {
+          statusCode: 200,
+          headers: { 'content-type': 'application/json' },
+          body: Buffer.from('{"ok":true}'),
+        },
+      });
+    },
+  });
+
+  await new Promise((resolve) => setTimeout(resolve, 20));
+
+  assert.equal((await getEngine(options).list()).length, 0);
+  assert.deepEqual(getRecentEvents(), []);
 });
 
 // 录制场景中的 request body：优先当前 body，其次回退 session，同时对 ''/null/undefined 做统一处理。
