@@ -12,17 +12,18 @@ export interface ParsedRequestContext {
 export function parseRequestContext(req: unknown, fallback?: unknown): ParsedRequestContext {
   const root = toRecord(req);
   const alt = toRecord(fallback);
+  const altReq = toRecord(alt.req);
   const requestLike = getRequestLikeSource(root);
-  const method = normalizeMethod(selectFirstValue(requestLike.method, root.method, alt.method), 'GET');
+  const method = normalizeMethod(selectFirstValue(requestLike.method, root.method, alt.method, altReq.method), 'GET');
   // URL 回退时统一按：原始上下文(fullUrl/url) -> 当前 req(fullUrl/url) -> fallback(fullUrl/url) -> fallback.req.url。
-  const url = selectFirstValue(
+  const url = selectFirstStringValue(
     requestLike.fullUrl,
     requestLike.url,
     root.fullUrl,
     root.url,
     alt.fullUrl,
     alt.url,
-    alt.req?.url,
+    altReq.url,
   );
 
   return { method, url };
@@ -36,6 +37,11 @@ function selectFirstValue(...values: unknown[]): unknown {
     }
   }
   return undefined;
+}
+
+function selectFirstStringValue(...values: unknown[]): string | undefined {
+  const value = selectFirstValue(...values);
+  return value === undefined ? undefined : String(value);
 }
 
 function getRequestLikeSource(root: Record<string, unknown>): Record<string, unknown> {

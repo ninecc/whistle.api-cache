@@ -101,12 +101,13 @@ export function parseIgnoredQueryNames(body: Record<string, unknown>): string[] 
  * 规范化 cache match 接口输入，统一处理 method/url/requestBody 缺省值。
  */
 export function parseCacheMatchBody(body: Record<string, unknown>): MatchRequestBody {
+  const requestBody = typeof body.requestBody === 'string' && body.requestBody.length
+    ? Buffer.from(body.requestBody)
+    : undefined;
   return {
     method: normalizeMethod(body.method),
     url: String(body.url || ''),
-    requestBody: typeof body.requestBody === 'string' && body.requestBody.length
-      ? Buffer.from(body.requestBody)
-      : undefined,
+    ...(requestBody ? { requestBody } : {}),
   };
 }
 
