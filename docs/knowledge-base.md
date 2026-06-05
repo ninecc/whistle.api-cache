@@ -42,7 +42,7 @@
 
 `src/server.ts` 监听请求阶段：
 
-1. 读取 `originalReq.ruleValue` 判断是否需要回放。
+1. 读取 `originalReq.ruleValue` 判断是否需要回放；若 `originalReq` 是空壳或没有 `ruleValue`，会回退读取当前 `req.ruleValue`。
 2. 尝试读取请求 body，用于 POST cache key。
 3. 调用 `CacheEngine.replay()`。
 4. 命中时写入状态码、响应头和 body。
@@ -50,8 +50,10 @@
 6. MISS/HIT 诊断原因通过 `src/shared/replayReasons.ts` 统一生成，避免 server 与 rulesServer 在提示文案上的分歧。
 
 `test/server.test.ts` 覆盖了 `originalReq` 为空壳对象且携带非字符串 `method`（如 `0`）时的边界：会回退到当前 `req` 上下文（`method`、`url`）进行回放，避免误判。
+`server.ts` 的请求上下文回退比 `rulesServer.ts` 更严格：当 `originalReq.fullUrl/url` 为空时，会显式让 `parseRequestContext` 使用当前 `req.method/url`，同时保留 `originalReq.ruleValue ?? req.ruleValue` 的规则模式兜底；否则空壳 `originalReq` 会导致真实请求被误透传。
 `test/server.test.ts` 也覆盖了 `fullUrl` 无法解析到合法 URL 时的 `passThrough` 降级路径，确保空地址不误触发缓存回放。
 `test/server.test.ts`、`test/rulesServer.test.ts` 覆盖了 `originalReq.body = false` 和 `originalReq.body = 0` 时应直接命中缓存，确保数值与布尔值按 `toBuffer` 语义参与 body key 计算。
+`server.ts` 读取请求体时还会兼容 `res.getReqSession()`：部分 Whistle/测试链路会把 session reader 挂在响应对象上，如果只看 `req.getReqSession()`，POST 空 body 场景会缺少 session body 而误 MISS。
 
 如果环境中没有 `passThrough()`，会返回 `502` 和 `x-whistle-cache: MISS`，这是测试或非标准 Whistle 环境下的兜底。
 
@@ -226,6 +228,12 @@ URL 归一化规则：
 
 POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前策略只允许 `GET`、`POST` 被录制，所以实际 body hash 主要服务于 POST。
 
+`requestBody === undefined` 与长度为 0 的 `Buffer` 不是同一个语义：
+
+- `undefined` 表示“插件没有读取到请求体”，POST 回放会允许唯一候选兜底命中。
+- `Buffer.from('')` 表示“明确读到了空 body”，cache key 仍会带空 body 的 sha256，避免与完全缺失 body 的条目混淆。
+- `CacheEngine.replay()`、`findCompatibleEntry()` 与 `createCacheKey()` 都要保持这个区分；修改 body key 规则时必须同步检查这三处。
+
 ### 请求体读取统一策略
 
 `server.ts`、`rulesServer.ts` 与 `resStatsServer.ts` 在回放/录制路径都需要读取 request body 来计算匹配 key。为避免重复实现差异，当前已抽离到 `src/shared/requestBody.ts`，并在两个回放服务与录制侧兜底策略中统一语义（含空字符串回退）。
@@ -276,6 +284,8 @@ POST 或其他带请求 body 的请求会把 body 的 sha256 加入 key。当前
 - 优先读取 Whistle 传入的 `options.storage`、`storageDir`、`dataDir`、`baseDir`。
 - 找到候选路径后在其下创建 `whistle.cache` 子目录。
 - 没有候选路径时使用当前工作目录下的 `.whistle-cache-data`。
+
+`src/shared/state.ts` 的 `getStore()` / `getEngine()` 会按计算出的 dataDir 维护单例。测试或插件运行时如果传入不同 `baseDir/storage`，必须重建对应 `FileCacheStore` 与 `CacheEngine`；否则会出现跨目录串数据，表现为某个空目录测试中突然列出其他用例或旧运行态的缓存。
 
 实际文件：
 
@@ -596,6 +606,7 @@ rtk npm run test:body-regression
 
 - 新增可缓存方法时，需要同步修改 `policy.ts`、`key.ts` 相关测试、UI 策略展示和匹配诊断。
 - 修改 cache key 规则时，需要考虑旧缓存兼容。当前 `replay()` 已有 `findCompatibleEntry()` 兼容按 normalized URL 查找的旧条目。
+- 修改请求 body 读取或 key 规则时，要同时覆盖 `undefined`、`''`、`Buffer.from('')`、`null`、`false`、`0`、session fallback 和唯一 POST 候选兜底，避免录制、server 回放、rulesServer 回放三条链路语义分叉。
 - 修改回放响应头策略时，应同步更新 `getReplayHeaderPolicy()`，否则 UI 展示会不准确。
 - 修改可缓存 content type 时，应同步更新 `getContentTypePolicy()` 和前端策略展示。
 - 增加 profile 持久化时，需要区分内存状态、磁盘配置和 Whistle 传入 options 的数据目录。
@@ -612,3 +623,9 @@ rtk npm run test:body-regression
 - 缓存索引没有 schema migration 机制。
 - body 文件没有引用计数。
 - 端到端脚本是进程内模拟 hook 链路，不等同于真实 Whistle 代理环境联调。
+
+## 调试入口提示
+
+- 插件 UI 正确路径是 `http://localhost:8899/plugin.api-cache/`。
+- 如果看到 `Not Found`，先检查路径拼写；`plugin.api-cahce` 这类拼写错误不会进入插件 UI。
+- UI 中展示的数据目录来自 `getState().dataDir`，排查缓存文件时以页面上的“数据目录”为准，不要假设一定是仓库目录下的 `.whistle-cache-data`。
