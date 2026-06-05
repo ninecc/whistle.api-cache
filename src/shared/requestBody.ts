@@ -9,23 +9,24 @@ export async function getBufferedRequestBody(req: any, originalReq: any): Promis
   // 这段 fallback 统一了三种请求上下文场景：
   // - server/rulesServer：优先从当前请求体读取，必要时回退 getReqSession。
   // - resStatsServer：仅有 getSession 时，也能沿同一规则拿到会话请求体。
-  if (directBody) return directBody;
+  if (directBody && directBody.length > 0) return directBody;
 
   // 同时存在 getReqSession 与 getSession 时，优先 getReqSession（回放链路）以保持既有行为。
   // 否则再回退到 getSession（resStats 场景）。
-  const getSessionReader = getSessionReaderFromRequest(req);
-  if (!getSessionReader) return undefined;
+  const getSessionReader = getSessionReaderFromRequest(req, req?.body === '');
+  if (!getSessionReader) return directBody;
 
   return new Promise((resolveBody) => {
     getSessionReader((session: any) => {
-      resolveBody(toBuffer(session?.req?.body));
+      resolveBody(toBuffer(session?.req?.body) || directBody);
     });
   });
 }
 
 type SessionReader = (callback: (session: any) => void) => void;
 
-function getSessionReaderFromRequest(req: any): SessionReader | undefined {
+function getSessionReaderFromRequest(req: any, preferGetSession = false): SessionReader | undefined {
+  if (preferGetSession && typeof req.getSession === 'function') return req.getSession.bind(req);
   if (typeof req.getReqSession === 'function') return req.getReqSession.bind(req);
   if (typeof req.getSession === 'function') return req.getSession.bind(req);
   return undefined;

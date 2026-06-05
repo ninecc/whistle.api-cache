@@ -134,7 +134,7 @@ export class CacheEngine {
     const legacyEntry = await this.findCompatibleEntry(method, input.url, input.requestBody);
     if (legacyEntry) return this.createReplayHit(legacyEntry);
 
-    if (method === 'POST' && !input.requestBody?.byteLength) {
+    if (method === 'POST' && input.requestBody === undefined) {
       const normalizedUrl = normalizeUrl(input.url, this.profile.ignoredQueryNames);
       const candidates = (await this.store.listEntries()).filter((item) => (
         item.profileId === this.profile.id &&
@@ -229,7 +229,7 @@ export class CacheEngine {
 
   private async findCompatibleEntry(method: string, url: string, requestBody?: Buffer): Promise<CacheEntry | undefined> {
     const normalizedUrl = normalizeUrl(url, this.profile.ignoredQueryNames);
-    const requestBodyHash = requestBody?.byteLength ? hashRequestBody(requestBody) : undefined;
+    const requestBodyHash = requestBody === undefined ? undefined : hashRequestBody(requestBody);
     const candidates = (await this.store.listEntries()).filter((item) => (
       item.profileId === this.profile.id &&
       item.enabled &&

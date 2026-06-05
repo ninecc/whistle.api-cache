@@ -113,7 +113,7 @@ test('server passes through when resolved url is empty', async () => {
   assert.equal(passThroughCalled, true);
   assert.equal(response.statusCode, 0);
   assert.equal(response.body, '');
-  assert.equal(getRecentEvents(), []);
+  assert.deepEqual(getRecentEvents(), []);
 });
 
 // body 取值与优先级：直接 body 优先，空值回退 session，最后由 cache key 共同驱动回放。

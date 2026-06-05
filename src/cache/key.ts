@@ -45,7 +45,7 @@ export function normalizeUrl(rawUrl: string, ignoredQueryNames: string[] = []): 
 
 export function createCacheKey(input: CacheKeyInput): string {
   const baseKey = `${normalizeMethod(input.method)} ${normalizeUrl(input.url, input.ignoredQueryNames)}`;
-  if (!input.requestBody || !input.requestBody.byteLength) return baseKey;
+  if (!input.requestBody) return baseKey;
   return `${baseKey} body:${hashRequestBody(input.requestBody)}`;
 }
 

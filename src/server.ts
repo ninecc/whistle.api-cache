@@ -7,9 +7,11 @@ import { parseRequestContext } from './shared/requestContext';
 export default function setupServer(server: any, options?: Record<string, unknown>) {
   server.on('request', async (req: any, res: any) => {
     const originalReq = req.originalReq || req;
-    const { method, url: fullUrl } = parseRequestContext(req, originalReq);
+    const parseSource = hasOriginalReqUrl(originalReq) ? req : { ...req, originalReq: {} };
+    const { method, url: fullUrl } = parseRequestContext(parseSource, originalReq);
+    const ruleValue = originalReq.ruleValue ?? req.ruleValue;
 
-    if (!shouldReplay(originalReq.ruleValue)) {
+    if (!shouldReplay(ruleValue)) {
       return passThrough(req, res);
     }
 
@@ -19,14 +21,14 @@ export default function setupServer(server: any, options?: Record<string, unknow
 
     try {
       // 注意：空字符串 body 视作缺省触发回退；false/0 等有效值要保留参与 key 计算，避免误判 MISS。
-      const requestBody = await getBufferedRequestBody(req, originalReq);
+      const requestBody = await getBufferedRequestBody(withResponseSessionReader(req, res), originalReq);
       const replay = await getEngine(options).replay({ method, url: fullUrl, requestBody });
       if (!replay.hit) {
-        recordEvent({ type: 'MISS', method, url: fullUrl, reason: createReplayMissReason(originalReq.ruleValue) });
+        recordEvent({ type: 'MISS', method, url: fullUrl, reason: createReplayMissReason(ruleValue) });
         return passThrough(req, res);
       }
 
-      recordEvent({ type: 'HIT', method, url: fullUrl, reason: createReplayHitReason(originalReq.ruleValue) });
+      recordEvent({ type: 'HIT', method, url: fullUrl, reason: createReplayHitReason(ruleValue) });
       markRecentReplayHit(method, fullUrl);
       res.statusCode = replay.statusCode;
       for (const [name, value] of Object.entries(replay.headers)) {
@@ -44,6 +46,16 @@ export default function setupServer(server: any, options?: Record<string, unknow
       passThrough(req, res);
     }
   });
+}
+
+function hasOriginalReqUrl(originalReq: any): boolean {
+  return typeof originalReq?.fullUrl === 'string' && originalReq.fullUrl.length > 0
+    || typeof originalReq?.url === 'string' && originalReq.url.length > 0;
+}
+
+function withResponseSessionReader(req: any, res: any): any {
+  if (typeof req.getReqSession === 'function' || typeof res?.getReqSession !== 'function') return req;
+  return { ...req, getReqSession: res.getReqSession.bind(res) };
 }
 
 function passThrough(req: any, res: any) {

@@ -191,7 +191,7 @@ test('res stats emits BYPASS when url cannot be resolved', async () => {
   const event = await waitForEvent('BYPASS');
   assert.equal(event.type, 'BYPASS');
   assert.equal(event.reason, 'missing url or response body');
-  assert.equal(await getEngine(options).list(), 0);
+  assert.equal((await getEngine(options).list()).length, 0);
 });
 
 test('res stats falls back requestBody from session.req.body when originalReq.body is absent', async () => {

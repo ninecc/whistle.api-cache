@@ -28,7 +28,9 @@ export const defaultProfile: CacheProfile = {
 };
 
 let engine: CacheEngine | undefined;
+let engineDataDir: string | undefined;
 let store: FileCacheStore | undefined;
+let storeDataDir: string | undefined;
 let nextEventId = 1;
 let nextRequestId = 1;
 const recentEvents: CacheEvent[] = [];
@@ -47,15 +49,20 @@ export function getDataDir(options?: Record<string, unknown>): string {
 }
 
 export function getStore(options?: Record<string, unknown>): FileCacheStore {
-  if (!store) {
-    store = new FileCacheStore(getDataDir(options));
+  const dataDir = getDataDir(options);
+  if (!store || storeDataDir !== dataDir) {
+    store = new FileCacheStore(dataDir);
+    storeDataDir = dataDir;
   }
   return store;
 }
 
 export function getEngine(options?: Record<string, unknown>): CacheEngine {
-  if (!engine) {
-    engine = new CacheEngine(getStore(options), defaultProfile);
+  const dataDir = getDataDir(options);
+  const currentStore = getStore(options);
+  if (!engine || engineDataDir !== dataDir) {
+    engine = new CacheEngine(currentStore, defaultProfile);
+    engineDataDir = dataDir;
   }
   return engine;
 }
@@ -147,7 +154,9 @@ export function updateIgnoredQueryNames(names: string[]): string[] {
 
 export function resetStateForTests(): void {
   engine = undefined;
+  engineDataDir = undefined;
   store = undefined;
+  storeDataDir = undefined;
   nextEventId = 1;
   nextRequestId = 1;
   recentEvents.length = 0;
