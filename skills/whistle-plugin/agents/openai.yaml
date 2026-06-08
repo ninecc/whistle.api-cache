@@ -1,0 +1,4 @@
+interface:
+  display_name: "Whistle Plugin"
+  short_description: "开发和调试 Whistle 插件包"
+  default_prompt: "使用 $whistle-plugin 创建或调试一个 Whistle 插件包。"
