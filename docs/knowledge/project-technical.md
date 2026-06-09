@@ -33,7 +33,8 @@
 | `src/uiServer/bodyParsers.ts` | UI CGI JSON body 读取。 |
 | `public/` | 插件前端页面、样式和交互脚本。 |
 | `test/` | Node test 测试用例，覆盖核心模块和 UI API。 |
-| `src/e2e/autoReplay.ts` | 进程内自动模式端到端验证脚本。 |
+| `e2e/autoReplay.ts` | 进程内自动模式端到端验证脚本。 |
+| `e2e/whistleLocal.ts` | 本机 Whistle 联调规则安装和真实联调脚本。 |
 
 ## 默认 Profile
 
@@ -323,6 +324,7 @@ TTL 操作：
 - `test/shared/state.test.ts`：共享状态、数据目录、命中标记。
 - `test/uiServer/`：UI API 和参数解析。
 - `test/e2e/autoReplay.test.ts`：自动模式完整闭环。
+- `test/e2e/whistleLocal.test.ts`：本机联调规则生成和规则文件恢复。
 
 ## 防劣化规则
 

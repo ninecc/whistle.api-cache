@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { IncomingMessage, ServerResponse } from 'node:http';
@@ -25,8 +26,17 @@ import {
 import { readJsonBody } from './bodyParsers';
 import { parseRequestContext } from '../shared/requestContext';
 
-const publicDir = join(__dirname, '../../../public');
+const publicDir = resolvePublicDir();
 const pluginBasePath = '/whistle.api-cache';
+
+export function resolvePublicDir(baseDir: string = __dirname): string {
+  const candidates = [
+    join(baseDir, '../../public'),
+    join(baseDir, '../../../public'),
+    join(baseDir, '../../../../public'),
+  ];
+  return candidates.find((dir) => existsSync(join(dir, 'index.html'))) || candidates[0];
+}
 
 export default function setupUiServer(server: any, options?: Record<string, unknown>) {
     server.on('request', async (req: IncomingMessage, res: ServerResponse) => {

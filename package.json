@@ -3,20 +3,25 @@
   "version": "0.0.1",
   "private": true,
   "description": "Whistle plugin for API response recording and replay.",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
     "dist",
     "public",
     "rules.txt"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "clean:dist": "node scripts/clean-output.js dist",
+    "clean:test": "node scripts/clean-output.js .tmp/test",
+    "clean:e2e": "node scripts/clean-output.js .tmp/e2e",
+    "build": "npm run clean:dist && tsc -p tsconfig.json",
+    "build:test": "npm run clean:test && tsc -p tsconfig.test.json",
+    "build:e2e": "npm run clean:e2e && tsc -p tsconfig.e2e.json",
     "dev": "tsc -w -p tsconfig.json",
-    "e2e:auto-replay": "npm run build && node dist/src/e2e/autoReplay.js",
-    "e2e:whistle-local": "npm run build && node dist/src/e2e/whistleLocal.js",
-    "test": "npm run build && node --test --test-concurrency=1 dist/test/*.test.js dist/test/**/*.test.js",
-    "test:body-regression": "npm run build && node --test --test-concurrency=1 --test-name-pattern body dist/test/**/*.test.js"
+    "e2e:auto-replay": "npm run build:e2e && node .tmp/e2e/e2e/autoReplay.js",
+    "e2e:whistle-local": "npm run build:e2e && node .tmp/e2e/e2e/whistleLocal.js",
+    "test": "npm run build:test && node --test --test-concurrency=1 .tmp/test/test/*.test.js .tmp/test/test/**/*.test.js",
+    "test:body-regression": "npm run build:test && node --test --test-concurrency=1 --test-name-pattern body .tmp/test/test/**/*.test.js"
   },
   "whistleConfig": {
     "openInPlugins": true,

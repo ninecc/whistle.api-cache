@@ -44,16 +44,15 @@ rtk npm test test/shared/requestBody.test.ts test/server.test.ts test/rulesServe
 rtk npm run test:body-regression
 ```
 
-该命令内部使用 `node --test -t body dist/test/**/*.test.js` 的过滤语法，仅运行标题中包含 `body` 的测试用例，适用于快速回归新增的请求体边界场景。
+该命令会先编译测试到 `.tmp/test/`，再使用 `node --test --test-name-pattern body .tmp/test/test/**/*.test.js` 的过滤语法，仅运行标题中包含 `body` 的测试用例，适用于快速回归新增的请求体边界场景。
 
 ## 当前构建基线
 
-`npm run build` 在当前分支上已知存在两个 TypeScript 类型问题：
+`npm run build` 只编译插件运行时代码到 `dist/`，该目录是发布产物目录。
+`npm run build:test` 编译运行时代码、测试代码和进程内 e2e 辅助代码到 `.tmp/test/`。
+`npm run build:e2e` 编译运行时代码和本地联调脚本到 `.tmp/e2e/`。
 
-- `src/shared/requestContext.ts`：`url` 属性在对象返回值推断上存在 `Property 'url' does not exist on type '{}` 的历史告警。
-- `test/uiServer/bodyParsers.test.ts`：`assert.rejects` 类型定义在当前配置下需要补齐。
-
-上述问题为现有基线问题，不应默认计入请求体回归改动的失败判定；请结合行为测试结果确认本次变更影响。
+测试和 e2e 产物不进入 `dist/`，避免开发验证代码被打入插件发布产物。
 
 ## 请求没有被录制
 

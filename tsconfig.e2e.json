@@ -1,11 +1,11 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist",
-    "declaration": true
+    "rootDir": ".",
+    "outDir": ".tmp/e2e"
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "e2e/**/*.ts"
   ]
 }

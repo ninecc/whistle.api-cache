@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import {
   createWhistleLocalE2ERules,
   installWhistleLocalE2ERules,
-} from '../../src/e2e/whistleLocal';
+} from '../../e2e/whistleLocal';
 
 test('formats temporary local Whistle rules for the fake api port', () => {
   assert.equal(createWhistleLocalE2ERules(18080), [

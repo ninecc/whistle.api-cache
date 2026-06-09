@@ -32,6 +32,10 @@ declare module 'node:fs/promises' {
   export function writeFile(path: string, data: string | Buffer): Promise<void>;
 }
 
+declare module 'node:fs' {
+  export function existsSync(path: string): boolean;
+}
+
 declare module 'node:path' {
   export function basename(path: string): string;
   export function dirname(path: string): string;

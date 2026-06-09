@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runAutoReplayE2E } from '../../src/e2e/autoReplay';
+import { runAutoReplayE2E } from '../../e2e/autoReplay';
 
 test('local auto replay e2e stores once then replays without hitting fake server again', async () => {
   const result = await runAutoReplayE2E();

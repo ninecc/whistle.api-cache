@@ -1,9 +1,9 @@
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import setupResStatsServer from '../resStatsServer';
-import setupRulesServer from '../rulesServer';
-import { clearRecentEvents, getEngine, getRecentEvents, resetStateForTests } from '../shared/state';
+import setupResStatsServer from '../src/resStatsServer';
+import setupRulesServer from '../src/rulesServer';
+import { clearRecentEvents, getEngine, getRecentEvents, resetStateForTests } from '../src/shared/state';
 
 interface TextResponse {
   body: string;
