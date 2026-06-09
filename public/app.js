@@ -353,17 +353,21 @@ function renderEvents() {
       <div class="eventItem" title="${escapeHtml(event.url || '')}">
         <span class="badge ${event.type.toLowerCase()}">${escapeHtml(event.type)}</span>
         <div class="eventMain">
-          <div class="eventTitle">
-            <strong>${escapeHtml(event.method || '-')}</strong>
-            <span>${escapeHtml(url.host || '-')}</span>
+          <div class="eventRequest">
+            <div class="eventTitle">
+              <strong>${escapeHtml(event.method || '-')}</strong>
+              <span>${escapeHtml(url.host || '-')}</span>
+            </div>
+            <div class="eventPath">${escapeHtml(url.path || '-')}</div>
+            ${bodyHint ? `<div class="eventBodyHint">${escapeHtml(bodyHint)}</div>` : ''}
           </div>
-          <div class="eventPath">${escapeHtml(url.path || '-')}</div>
-          ${bodyHint ? `<div class="eventBodyHint">${escapeHtml(bodyHint)}</div>` : ''}
-          <p>${escapeHtml(reason.primary)} · ${formatRelativeDate(event.timestamp)}</p>
-          <div class="eventMeta">
-            ${event.requestId ? `<code>${escapeHtml(event.requestId)}</code>` : ''}
-            ${reason.detail ? `<span>${escapeHtml(reason.detail)}</span>` : ''}
-            ${url.query ? `<span>${escapeHtml(compactQueryLabel(url.query))}</span>` : ''}
+          <div class="eventDiagnostics">
+            <p>${escapeHtml(reason.primary)} · ${formatRelativeDate(event.timestamp)}</p>
+            <div class="eventMeta">
+              ${event.requestId ? `<code>${escapeHtml(event.requestId)}</code>` : ''}
+              ${reason.detail ? `<span>${escapeHtml(reason.detail)}</span>` : ''}
+              ${url.query ? `<span>${escapeHtml(compactQueryLabel(url.query))}</span>` : ''}
+            </div>
           </div>
         </div>
       </div>
