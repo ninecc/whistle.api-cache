@@ -245,7 +245,7 @@ test('rules server falls back requestBody from req.body when originalReq.body is
   assert.equal(event.url, 'https://api.example.com/body-from-req');
 });
 
-test('rules server misses body-bound POST replay when request body is unavailable', async () => {
+test('rules server misses same-url body-bound POST replay when request body is unavailable', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-miss-body-fallback-'));
   const options = { baseDir: root };
   clearRecentEvents();

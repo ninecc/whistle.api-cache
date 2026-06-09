@@ -142,10 +142,10 @@ export class CacheEngine {
         item.enabled &&
         item.method === method &&
         item.normalizedUrl === normalizedUrl &&
-        item.requestBodyHash === undefined &&
         new Date(item.expiresAt).getTime() > Date.now()
       ));
-      if (candidates.length === 1) return this.createReplayHit(candidates[0]);
+      const compatible = getSingleRequestBodyVariantCandidate(candidates, input.url);
+      if (compatible) return this.createReplayHit(compatible);
     }
 
     return { hit: false };
@@ -203,6 +203,16 @@ export class CacheEngine {
           reason: 'HIT',
           entry: bodylessCandidates[0],
           candidates: bodylessCandidates,
+          reasons: [],
+        };
+      }
+      const singleBodyVariant = getSingleRequestBodyVariantCandidate(fresh, input.url);
+      if (singleBodyVariant) {
+        return {
+          hit: true,
+          reason: 'HIT',
+          entry: singleBodyVariant,
+          candidates: [singleBodyVariant],
           reasons: [],
         };
       }
@@ -349,6 +359,17 @@ function createMatchMiss(reason: string, candidates: CacheEntry[], reasons: Matc
     candidates,
     reasons,
   };
+}
+
+function getSingleRequestBodyVariantCandidate(entries: CacheEntry[], requestUrl: string): CacheEntry | undefined {
+  const byHash = new Map<string, CacheEntry>();
+  for (const entry of entries) {
+    const hash = entry.requestBodyHash || '';
+    byHash.set(hash, entry);
+  }
+  if (byHash.size !== 1) return undefined;
+  const [candidate] = entries;
+  return candidate && candidate.url !== requestUrl ? candidate : undefined;
 }
 
 function getBatchDeleteIds(input: DeleteBatchInput, entries: CacheEntry[]): string[] {

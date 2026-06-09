@@ -11,25 +11,41 @@ export async function getBufferedRequestBody(req: any, originalReq: any): Promis
   // - resStatsServer：仅有 getSession 时，也能沿同一规则拿到会话请求体。
   if (directBody && directBody.length > 0) return directBody;
 
-  // 同时存在 getReqSession 与 getSession 时，优先 getReqSession（回放链路）以保持既有行为。
-  // 否则再回退到 getSession（resStats 场景）。
-  const getSessionReader = getSessionReaderFromRequest(req, req?.body === '');
-  if (!getSessionReader) return directBody;
-
-  return new Promise((resolveBody) => {
-    getSessionReader((session: any) => {
-      resolveBody(toBuffer(session?.req?.body) || directBody);
+  // 同时存在多个 session reader 时按优先级尝试；若高优先级 reader 暂时没有 body，
+  // 继续回退到另一个 reader，避免 replay 阶段拿不到而 record 阶段又能拿到。
+  const sessionReaders = getSessionReadersFromRequest(req, req?.body === '');
+  for (const readSession of sessionReaders) {
+    const sessionBody = await new Promise<Buffer | undefined>((resolveBody) => {
+      readSession((session: any) => {
+        const body = toBuffer(session?.req?.body);
+        resolveBody(body && body.length > 0 ? body : undefined);
+      });
     });
-  });
+    if (sessionBody) return sessionBody;
+  }
+
+  return directBody;
 }
 
 type SessionReader = (callback: (session: any) => void) => void;
 
-function getSessionReaderFromRequest(req: any, preferGetSession = false): SessionReader | undefined {
-  if (preferGetSession && typeof req.getSession === 'function') return req.getSession.bind(req);
-  if (typeof req.getReqSession === 'function') return req.getReqSession.bind(req);
-  if (typeof req.getSession === 'function') return req.getSession.bind(req);
-  return undefined;
+function getSessionReadersFromRequest(req: any, preferGetSession = false): SessionReader[] {
+  const readers: SessionReader[] = [];
+  const addReader = (reader: unknown) => {
+    if (typeof reader !== 'function') return;
+    const boundReader = reader.bind(req);
+    if (!readers.includes(boundReader)) readers.push(boundReader);
+  };
+
+  if (preferGetSession) {
+    addReader(req?.getSession);
+    addReader(req?.getReqSession);
+  } else {
+    addReader(req?.getReqSession);
+    addReader(req?.getSession);
+  }
+
+  return readers;
 }
 
 /**

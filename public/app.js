@@ -361,9 +361,9 @@ function getEventBodyHint(event) {
   if (event.method !== 'POST' || !event.url) return '';
   const hashes = getPostBodyVariants(event.url);
   if (String(event.reason || '').includes('request body unavailable')) {
-    return hashes.length
-      ? 'POST 请求体参与匹配；当前同 URL 有多个 body 变体'
-      : 'POST 请求体参与匹配；当前请求体不可得，已放行真实请求';
+    if (hashes.length > 1) return 'POST 请求体参与匹配；当前同 URL 有多个 body 变体';
+    if (hashes.length === 1) return `POST 请求体参与匹配；当前同 URL 只有一个 body 变体 ${shortHash(hashes[0])}`;
+    return 'POST 请求体参与匹配；当前请求体不可得，已放行真实请求';
   }
   if (hashes.length > 1) return '同 URL 有多个 body 变体';
   if (hashes.length === 1) return `POST body hash ${shortHash(hashes[0])}`;
@@ -371,12 +371,32 @@ function getEventBodyHint(event) {
 }
 
 function getPostBodyVariants(url) {
+  const normalizedUrl = normalizeUrlForIgnoredQuery(url);
   return Array.from(new Set(
     state.entries
-      .filter((entry) => entry.method === 'POST' && entry.url === url)
+      .filter((entry) => entry.method === 'POST' && normalizeUrlForIgnoredQuery(entry.url) === normalizedUrl)
       .map((entry) => entry.requestBodyHash)
       .filter(Boolean)
   ));
+}
+
+function normalizeUrlForIgnoredQuery(value) {
+  try {
+    const ignored = new Set(state.profile.ignoredQueryNames || []);
+    const url = new URL(value);
+    url.hash = '';
+    const pairs = Array.from(url.searchParams.entries())
+      .filter(([name]) => !ignored.has(name))
+      .sort(([leftName, leftValue], [rightName, rightValue]) => {
+        const nameOrder = leftName.localeCompare(rightName);
+        return nameOrder || leftValue.localeCompare(rightValue);
+      });
+    url.search = '';
+    for (const [name, pairValue] of pairs) url.searchParams.append(name, pairValue);
+    return url.toString();
+  } catch {
+    return value || '';
+  }
 }
 
 function getFilteredEvents() {

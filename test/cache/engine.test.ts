@@ -173,7 +173,7 @@ test('distinguishes empty POST body from unavailable request body', async () => 
   assert.equal(match.entry?.requestBodyHash, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
 });
 
-test('misses body-bound POST entry when request body is unavailable', async () => {
+test('replays single body-bound POST variant when ignored query changes and request body is unavailable', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-post-fallback-'));
   const engine = new CacheEngine(new FileCacheStore(root), {
     ...profile,
@@ -193,6 +193,31 @@ test('misses body-bound POST entry when request body is unavailable', async () =
   const replay = await engine.replay({
     method: 'POST',
     url: 'https://api.example.com/search?wsgsig=second',
+  });
+
+  assert.equal(replay.hit, true);
+  if (replay.hit) {
+    assert.equal(replay.body.toString(), '{"result":"alpha"}');
+  }
+});
+
+test('misses same-url body-bound POST when request body is unavailable', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-post-same-url-unavailable-'));
+  const engine = new CacheEngine(new FileCacheStore(root), profile);
+
+  await engine.record({
+    method: 'POST',
+    url: 'https://api.example.com/search',
+    requestHeaders: {},
+    requestBody: Buffer.from('{"keyword":"alpha"}'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"result":"alpha"}'),
+  });
+
+  const replay = await engine.replay({
+    method: 'POST',
+    url: 'https://api.example.com/search',
   });
 
   assert.equal(replay.hit, false);
@@ -301,6 +326,54 @@ test('default profile ignores signed ticket query names for replay', async () =>
   assert.equal(replay.hit, true);
 });
 
+test('default profile replays POST when only signed query values change and body is unchanged', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-default-signed-query-post-'));
+  const { defaultProfile } = await import('../../src/shared/state');
+  const engine = new CacheEngine(new FileCacheStore(root), defaultProfile);
+  const requestBody = Buffer.from('station-list-body');
+
+  await engine.record({
+    method: 'POST',
+    url: 'https://energy.xiaojukeji.com/station-api/homepage/stationList?source=1&ttid=driver&wsgsig=dd05-record-signature&ticket=record-ticket',
+    requestHeaders: {},
+    requestBody,
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  const replay = await engine.replay({
+    method: 'POST',
+    url: 'https://energy.xiaojukeji.com/station-api/homepage/stationList?source=1&ttid=driver&wsgsig=dd05-replay-signature&ticket=replay-ticket',
+    requestBody,
+  });
+
+  assert.equal(replay.hit, true);
+});
+
+test('default profile replays single signed-query POST variant when request body is unavailable', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-default-signed-query-post-unavailable-'));
+  const { defaultProfile } = await import('../../src/shared/state');
+  const engine = new CacheEngine(new FileCacheStore(root), defaultProfile);
+
+  await engine.record({
+    method: 'POST',
+    url: 'https://energy.xiaojukeji.com/station-api/homepage/stationList?source=1&ttid=driver&wsgsig=dd05-record-signature&ticket=record-ticket',
+    requestHeaders: {},
+    requestBody: Buffer.from('station-list-body'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  const replay = await engine.replay({
+    method: 'POST',
+    url: 'https://energy.xiaojukeji.com/station-api/homepage/stationList?source=1&ttid=driver&wsgsig=dd05-replay-signature&ticket=replay-ticket',
+  });
+
+  assert.equal(replay.hit, true);
+});
+
 test('replays entries recorded before default signed query names were ignored', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-legacy-signed-query-'));
   const store = new FileCacheStore(root);
@@ -401,6 +474,29 @@ test('explains unavailable request body for body-bound POST matches', async () =
   assert.equal(result.reason, 'request body unavailable for body-bound POST cache');
   assert.equal(result.reasons[0].type, 'REQUEST_BODY_UNAVAILABLE');
   assert.equal(result.candidates.length, 2);
+});
+
+test('matches single body-bound POST variant when ignored query changes and request body is unavailable', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-match-single-unavailable-body-'));
+  const engine = new CacheEngine(new FileCacheStore(root), profile);
+
+  await engine.record({
+    method: 'POST',
+    url: 'https://api.example.com/search?_t=1',
+    requestHeaders: {},
+    requestBody: Buffer.from('{"keyword":"alpha"}'),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"result":"alpha"}'),
+  });
+
+  const result = await engine.match({
+    method: 'POST',
+    url: 'https://api.example.com/search?_t=2',
+  });
+
+  assert.equal(result.hit, true);
+  assert.equal(result.reason, 'HIT');
 });
 
 test('deletes cache entries by batch scope', async () => {
