@@ -1,20 +1,117 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, rm, unlink, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { CacheEntry } from './types';
 
 interface CacheIndex {
   entries: CacheEntry[];
 }
 
+export interface CacheStore {
+  listEntries(): Promise<CacheEntry[]>;
+  getEntryByKey(profileId: string, key: string): Promise<CacheEntry | undefined>;
+  readBody(entry: CacheEntry): Promise<Buffer>;
+  putEntry(entry: CacheEntry, body: Buffer): Promise<void>;
+  updateActiveBody(id: string, body: Buffer, options?: { expectedUpdatedAt?: string }): Promise<CacheEntry>;
+  restoreOriginalBody(id: string): Promise<CacheEntry>;
+  deleteEntry(id: string): Promise<boolean>;
+  setEnabled(id: string, enabled: boolean): Promise<boolean>;
+  updateExpiresAt(ids: string[], expiresAt: string): Promise<number>;
+  clearExpired(now?: Date): Promise<number>;
+  clearAll(): Promise<number>;
+  markHit(id: string, now?: Date): Promise<void>;
+}
+
+export interface BodyWriteResult {
+  key: string;
+  hash: string;
+  size: number;
+}
+
+export interface GarbageCollectResult {
+  removed: string[];
+  missing: string[];
+}
+
+export class BodyObjectStore {
+  private readonly objectsDir: string;
+
+  constructor(rootDir: string) {
+    this.objectsDir = join(rootDir, 'objects');
+  }
+
+  async writeOriginal(body: Buffer): Promise<BodyWriteResult> {
+    const hash = hashBody(body);
+    const key = `original/${hash}.body`;
+    await this.writeObject(key, body, { keepExisting: true });
+    return { key, hash, size: body.byteLength };
+  }
+
+  async writeEditable(entryId: string, body: Buffer): Promise<BodyWriteResult> {
+    const safeEntryId = entryId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const hash = hashBody(body);
+    const key = `editable/${safeEntryId}.body`;
+    await this.writeObject(key, body, { keepExisting: false });
+    return { key, hash, size: body.byteLength };
+  }
+
+  async read(key: string): Promise<Buffer> {
+    return readFile(this.objectPath(key));
+  }
+
+  async deleteIfUnreferenced(key: string, referencedKeys: Set<string>): Promise<void> {
+    if (referencedKeys.has(key)) return;
+    await unlink(this.objectPath(key)).catch(() => undefined);
+  }
+
+  async clear(): Promise<void> {
+    await rm(this.objectsDir, { recursive: true, force: true });
+    await mkdir(this.objectsDir, { recursive: true });
+  }
+
+  private async writeObject(key: string, body: Buffer, options: { keepExisting: boolean }): Promise<void> {
+    const finalPath = this.objectPath(key);
+    const dir = dirname(finalPath);
+    await mkdir(dir, { recursive: true });
+    if (options.keepExisting) {
+      try {
+        await readFile(finalPath);
+        return;
+      } catch {
+        // Missing original objects are written below. Other read errors will surface on write/rename.
+      }
+    }
+    const tmpPath = join(dir, `${randomUUID()}.tmp`);
+    await writeFile(tmpPath, body);
+    await rename(tmpPath, finalPath).catch(async (error) => {
+      await unlink(tmpPath).catch(() => undefined);
+      if (options.keepExisting && isFileExistsError(error)) return;
+      throw error;
+    });
+  }
+
+  private objectPath(key: string): string {
+    const normalizedKey = key.replace(/\\/g, '/');
+    if (normalizedKey.startsWith('/') || normalizedKey.includes('..')) {
+      throw new Error(`invalid body object key: ${key}`);
+    }
+    const resolvedObjectsDir = resolve(this.objectsDir);
+    const resolvedPath = resolve(resolvedObjectsDir, normalizedKey);
+    if (resolvedPath !== resolvedObjectsDir && !resolvedPath.startsWith(`${resolvedObjectsDir}${sep}`)) {
+      throw new Error(`body object key escapes objects directory: ${key}`);
+    }
+    return resolvedPath;
+  }
+}
+
 export class FileCacheStore {
   private readonly indexPath: string;
-  private readonly objectsDir: string;
+  private readonly bodyObjects: BodyObjectStore;
   private writeQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly rootDir: string) {
     this.indexPath = join(rootDir, 'cache-index.json');
-    this.objectsDir = join(rootDir, 'objects');
+    this.bodyObjects = new BodyObjectStore(rootDir);
   }
 
   async listEntries(): Promise<CacheEntry[]> {
@@ -27,33 +124,105 @@ export class FileCacheStore {
   }
 
   async readBody(entry: CacheEntry): Promise<Buffer> {
-    return readFile(this.bodyPath(entry.bodyHash));
+    return this.bodyObjects.read(getActiveBodyKey(entry));
   }
 
   async putEntry(entry: CacheEntry, body: Buffer): Promise<void> {
     await this.withWriteLock(async () => {
       await this.ensureDirs();
-      const bodyHash = entry.bodyHash || hashBody(body);
-      const nextEntry = { ...entry, bodyHash, bodySize: body.byteLength };
+      const originalBody = await this.bodyObjects.writeOriginal(body);
       const index = await this.readIndex();
-      const withoutExisting = index.entries.filter((item) => item.id !== nextEntry.id && item.key !== nextEntry.key);
-      withoutExisting.push(nextEntry);
-      await writeFile(this.bodyPath(bodyHash), body);
-      await this.writeIndex({ entries: withoutExisting });
+      const existing = index.entries.find((item) => item.profileId === entry.profileId && item.key === entry.key);
+      const importedEditableBody = !existing && entry.activeBodyKind === 'editable'
+        ? await this.bodyObjects.writeEditable(entry.id, body)
+        : undefined;
+      const keepEditableActive = existing?.activeBodyKind === 'editable' || Boolean(importedEditableBody);
+      const now = new Date().toISOString();
+      const nextEntry = normalizeStoredEntry({
+        ...entry,
+        id: existing?.id || entry.id,
+        createdAt: existing?.createdAt || entry.createdAt,
+        updatedAt: now,
+        bodyHash: originalBody.hash,
+        bodySize: originalBody.size,
+        originalBodyHash: originalBody.hash,
+        originalBodyKey: originalBody.key,
+        originalBodySize: originalBody.size,
+        activeBodyKind: keepEditableActive ? 'editable' : 'original',
+        activeBodyKey: existing?.activeBodyKind === 'editable' ? getActiveBodyKey(existing) : (importedEditableBody?.key || originalBody.key),
+        activeBodyHash: existing?.activeBodyKind === 'editable' ? (existing.activeBodyHash || existing.bodyHash) : (importedEditableBody?.hash || originalBody.hash),
+        activeBodySize: existing?.activeBodyKind === 'editable' ? (existing.activeBodySize || existing.bodySize) : (importedEditableBody?.size || originalBody.size),
+        hitCount: existing?.hitCount || entry.hitCount,
+        lastHitAt: existing?.lastHitAt,
+        enabled: existing?.enabled ?? entry.enabled,
+      });
+      await this.writeIndex({
+        entries: index.entries
+          .filter((item) => item.id !== nextEntry.id && !(item.profileId === nextEntry.profileId && item.key === nextEntry.key))
+          .concat(nextEntry),
+      });
+    });
+  }
+
+  async updateActiveBody(id: string, body: Buffer, options: { expectedUpdatedAt?: string } = {}): Promise<CacheEntry> {
+    return this.withWriteLock(async () => {
+      const index = await this.readIndex();
+      const found = index.entries.find((entry) => entry.id === id);
+      if (!found) throw new Error(`cache entry not found: ${id}`);
+      if (options.expectedUpdatedAt && found.updatedAt !== options.expectedUpdatedAt) {
+        throw new Error(`cache entry update conflict: ${id}`);
+      }
+      const editableBody = await this.bodyObjects.writeEditable(id, body);
+      const updated = normalizeStoredEntry({
+        ...found,
+        activeBodyKind: 'editable',
+        activeBodyKey: editableBody.key,
+        activeBodyHash: editableBody.hash,
+        activeBodySize: editableBody.size,
+        bodyHash: editableBody.hash,
+        bodySize: editableBody.size,
+        updatedAt: new Date().toISOString(),
+      });
+      await this.writeIndex({ entries: index.entries.map((entry) => entry.id === id ? updated : entry) });
+      return updated;
+    });
+  }
+
+  async restoreOriginalBody(id: string): Promise<CacheEntry> {
+    return this.withWriteLock(async () => {
+      const index = await this.readIndex();
+      const found = index.entries.find((entry) => entry.id === id);
+      if (!found) throw new Error(`cache entry not found: ${id}`);
+      const originalKey = getOriginalBodyKey(found);
+      const originalHash = found.originalBodyHash || found.bodyHash;
+      const originalSize = found.originalBodySize || found.bodySize;
+      const updated = normalizeStoredEntry({
+        ...found,
+        activeBodyKind: 'original',
+        activeBodyKey: originalKey,
+        activeBodyHash: originalHash,
+        activeBodySize: originalSize,
+        bodyHash: originalHash,
+        bodySize: originalSize,
+        updatedAt: new Date().toISOString(),
+      });
+      await this.writeIndex({ entries: index.entries.map((entry) => entry.id === id ? updated : entry) });
+      return updated;
     });
   }
 
   async deleteEntry(id: string): Promise<boolean> {
-    const entry = await this.withWriteLock(async () => {
+    return this.withWriteLock(async () => {
       const index = await this.readIndex();
       const found = index.entries.find((item) => item.id === id);
-      if (!found) return undefined;
-      await this.writeIndex({ entries: index.entries.filter((item) => item.id !== id) });
-      return found;
+      if (!found) return false;
+      const entries = index.entries.filter((item) => item.id !== id);
+      await this.writeIndex({ entries });
+      const referencedKeys = collectReferencedBodyKeys(entries);
+      await this.bodyObjects.deleteIfUnreferenced(getActiveBodyKey(found), referencedKeys);
+      await this.bodyObjects.deleteIfUnreferenced(getOriginalBodyKey(found), referencedKeys);
+      return true;
     });
-    if (!entry) return false;
-    await unlink(this.bodyPath(entry.bodyHash)).catch(() => undefined);
-    return true;
   }
 
   async setEnabled(id: string, enabled: boolean): Promise<boolean> {
@@ -96,11 +265,15 @@ export class FileCacheStore {
       if (!expiredEntries.length) return [];
 
       const expiredIds = new Set(expiredEntries.map((entry) => entry.id));
-      await this.writeIndex({ entries: index.entries.filter((entry) => !expiredIds.has(entry.id)) });
+      const entries = index.entries.filter((entry) => !expiredIds.has(entry.id));
+      await this.writeIndex({ entries });
+      const referencedKeys = collectReferencedBodyKeys(entries);
+      for (const entry of expiredEntries) {
+        await this.bodyObjects.deleteIfUnreferenced(getActiveBodyKey(entry), referencedKeys);
+        await this.bodyObjects.deleteIfUnreferenced(getOriginalBodyKey(entry), referencedKeys);
+      }
       return expiredEntries;
     });
-    if (!expired.length) return 0;
-    await Promise.all(expired.map((entry) => unlink(this.bodyPath(entry.bodyHash)).catch(() => undefined)));
     return expired.length;
   }
 
@@ -108,8 +281,7 @@ export class FileCacheStore {
     const count = await this.withWriteLock(async () => {
       const index = await this.readIndex();
       await this.writeIndex({ entries: [] });
-      await rm(this.objectsDir, { recursive: true, force: true });
-      await mkdir(this.objectsDir, { recursive: true });
+      await this.bodyObjects.clear();
       return index.entries.length;
     });
     return count;
@@ -125,12 +297,8 @@ export class FileCacheStore {
     });
   }
 
-  private bodyPath(bodyHash: string): string {
-    return join(this.objectsDir, `${bodyHash}.body`);
-  }
-
   private async ensureDirs(): Promise<void> {
-    await mkdir(this.objectsDir, { recursive: true });
+    await mkdir(join(this.rootDir, 'objects'), { recursive: true });
   }
 
   private async readIndex(): Promise<CacheIndex> {
@@ -138,7 +306,7 @@ export class FileCacheStore {
     try {
       const raw = await readFile(this.indexPath, 'utf8');
       const parsed = JSON.parse(raw) as CacheIndex;
-      return { entries: Array.isArray(parsed.entries) ? parsed.entries : [] };
+      return { entries: Array.isArray(parsed.entries) ? parsed.entries.map(normalizeStoredEntry) : [] };
     } catch {
       return { entries: [] };
     }
@@ -160,4 +328,52 @@ export class FileCacheStore {
 
 export function hashBody(body: Buffer): string {
   return createHash('sha256').update(body).digest('hex');
+}
+
+function normalizeStoredEntry(entry: CacheEntry): CacheEntry {
+  const originalBodyHash = entry.originalBodyHash || entry.bodyHash;
+  const originalBodyKey = entry.originalBodyKey || legacyBodyKey(entry.bodyHash);
+  const originalBodySize = entry.originalBodySize || entry.bodySize;
+  const activeBodyKind = entry.activeBodyKind || 'original';
+  const activeBodyKey = entry.activeBodyKey || originalBodyKey;
+  const activeBodyHash = entry.activeBodyHash || (activeBodyKind === 'original' ? originalBodyHash : entry.bodyHash);
+  const activeBodySize = entry.activeBodySize || (activeBodyKind === 'original' ? originalBodySize : entry.bodySize);
+  return {
+    ...entry,
+    bodyHash: activeBodyHash,
+    bodySize: activeBodySize,
+    originalBodyHash,
+    originalBodyKey,
+    originalBodySize,
+    activeBodyKind,
+    activeBodyKey,
+    activeBodyHash,
+    activeBodySize,
+    updatedAt: entry.updatedAt || entry.createdAt,
+  };
+}
+
+function getActiveBodyKey(entry: CacheEntry): string {
+  return entry.activeBodyKey || getOriginalBodyKey(entry);
+}
+
+function getOriginalBodyKey(entry: CacheEntry): string {
+  return entry.originalBodyKey || legacyBodyKey(entry.originalBodyHash || entry.bodyHash);
+}
+
+function legacyBodyKey(bodyHash: string): string {
+  return bodyHash.includes('/') ? bodyHash : `${bodyHash}.body`;
+}
+
+function collectReferencedBodyKeys(entries: CacheEntry[]): Set<string> {
+  const keys = new Set<string>();
+  for (const entry of entries) {
+    keys.add(getActiveBodyKey(entry));
+    keys.add(getOriginalBodyKey(entry));
+  }
+  return keys;
+}
+
+function isFileExistsError(error: unknown): boolean {
+  return Boolean(error && typeof error === 'object' && 'code' in error && error.code === 'EEXIST');
 }

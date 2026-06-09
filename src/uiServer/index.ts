@@ -19,6 +19,7 @@ import {
   filterEventsAfter,
   parseIgnoredQueryNames,
   parseEnabledBody,
+  parseUpdateBodyBody,
   parseUpdateTtlBody,
 } from './requestParsers';
 import { readJsonBody } from './bodyParsers';
@@ -50,51 +51,62 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
       }
 
       if (method === 'GET' && pathname === '/cgi-bin/cache') {
-        return sendJson(res, { entries: await getEngine(options).list() });
+        return sendJson(res, { entries: await (await getEngine(options)).list() });
       }
 
       if (method === 'GET' && pathname === '/cgi-bin/cache/export') {
-        return sendJson(res, await getEngine(options).exportBundle());
+        return sendJson(res, await (await getEngine(options)).exportBundle());
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/clear-expired') {
-        return sendJson(res, { removed: await getEngine(options).clearExpired() });
+        return sendJson(res, { removed: await (await getEngine(options)).clearExpired() });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/clear-all') {
-        return sendJson(res, { removed: await getEngine(options).clearAll() });
+        return sendJson(res, { removed: await (await getEngine(options)).clearAll() });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/delete') {
         const body = await readJsonBody(req);
         const deleteBody = parseDeleteBody(body);
-        return sendJson(res, { deleted: await getEngine(options).delete(deleteBody.id) });
+        return sendJson(res, { deleted: await (await getEngine(options)).delete(deleteBody.id) });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/delete-batch') {
         const body = await readJsonBody(req);
-        return sendJson(res, { removed: await getEngine(options).deleteBatch(parseDeleteBatchBody(body)) });
+        return sendJson(res, { removed: await (await getEngine(options)).deleteBatch(parseDeleteBatchBody(body)) });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/enabled') {
         const body = await readJsonBody(req);
         const enabledBody = parseEnabledBody(body);
-        return sendJson(res, { updated: await getEngine(options).setEnabled(enabledBody.id, enabledBody.enabled) });
+        return sendJson(res, { updated: await (await getEngine(options)).setEnabled(enabledBody.id, enabledBody.enabled) });
+      }
+
+      if (method === 'POST' && pathname === '/cgi-bin/cache/body') {
+        const body = await readJsonBody(req);
+        return sendJson(res, { entry: await (await getEngine(options)).updateActiveBody(parseUpdateBodyBody(body)) });
+      }
+
+      if (method === 'POST' && pathname === '/cgi-bin/cache/body/restore-original') {
+        const body = await readJsonBody(req);
+        const deleteBody = parseDeleteBody(body);
+        return sendJson(res, { entry: await (await getEngine(options)).restoreOriginalBody(deleteBody.id) });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/ttl') {
         const body = await readJsonBody(req);
-        return sendJson(res, { updated: await getEngine(options).updateTtl(parseUpdateTtlBody(body)) });
+        return sendJson(res, { updated: await (await getEngine(options)).updateTtl(parseUpdateTtlBody(body)) });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/import') {
         const body = await readJsonBody(req);
-        return sendJson(res, { imported: await getEngine(options).importBundle(parseImportBody(body)) });
+        return sendJson(res, { imported: await (await getEngine(options)).importBundle(parseImportBody(body)) });
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/cache/match') {
         const body = await readJsonBody(req);
-        return sendJson(res, await getEngine(options).match(parseCacheMatchBody(body)));
+        return sendJson(res, await (await getEngine(options)).match(parseCacheMatchBody(body)));
       }
 
       if (method === 'POST' && pathname === '/cgi-bin/open-data-dir') {

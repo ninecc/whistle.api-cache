@@ -63,6 +63,12 @@ test('parses cache match request body with defaults and non-empty request payloa
     requestBody: Buffer.from('a=1'),
   });
 
+  assert.deepEqual(parseCacheMatchBody({ method: 'post', url: 'https://api.example.com/search', requestBody: '' }), {
+    method: 'POST',
+    url: 'https://api.example.com/search',
+    requestBody: Buffer.from(''),
+  });
+
   assert.deepEqual(parseCacheMatchBody({ method: 'post', requestBody: 12 }), {
     method: 'POST',
     url: '',

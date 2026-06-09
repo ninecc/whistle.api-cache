@@ -56,7 +56,7 @@ test('res stats skips recording responses served from replay hits', async () => 
 
   await new Promise((resolve) => setTimeout(resolve, 20));
 
-  assert.equal((await getEngine(options).list()).length, 0);
+  assert.equal((await (await getEngine(options)).list()).length, 0);
   assert.deepEqual(getRecentEvents(), []);
 });
 
@@ -229,7 +229,7 @@ test('res stats does not record replay-only req ruleValue when originalReq is em
 
   await new Promise((resolve) => setTimeout(resolve, 20));
 
-  assert.equal((await getEngine(options).list()).length, 0);
+  assert.equal((await (await getEngine(options)).list()).length, 0);
   assert.deepEqual(getRecentEvents(), []);
 });
 
@@ -273,7 +273,7 @@ test('res stats emits BYPASS when url cannot be resolved', async () => {
   const event = await waitForEvent('BYPASS');
   assert.equal(event.type, 'BYPASS');
   assert.equal(event.reason, 'missing url or response body');
-  assert.equal((await getEngine(options).list()).length, 0);
+  assert.equal((await (await getEngine(options)).list()).length, 0);
 });
 
 test('res stats falls back requestBody from session.req.body when originalReq.body is absent', async () => {
@@ -318,7 +318,7 @@ test('res stats falls back requestBody from session.req.body when originalReq.bo
   const storeEvent = await waitForEvent('STORE');
   assert.equal(storeEvent.type, 'STORE');
 
-  const replay = await getEngine(options).replay({
+  const replay = await (await getEngine(options)).replay({
     method: 'POST',
     url,
     requestBody: Buffer.from('action=save'),
@@ -369,7 +369,7 @@ test('res stats treats empty-string originalReq.body as missing and falls back t
   const storeEvent = await waitForEvent('STORE');
   assert.equal(storeEvent.type, 'STORE');
 
-  const replay = await getEngine(options).replay({
+  const replay = await (await getEngine(options)).replay({
     method: 'POST',
     url,
     requestBody: Buffer.from('action=save'),
@@ -422,7 +422,7 @@ test('res stats falls back when req.body is empty string', async () => {
   const storeEvent = await waitForEvent('STORE');
   assert.equal(storeEvent.type, 'STORE');
 
-  const replay = await getEngine(options).replay({
+  const replay = await (await getEngine(options)).replay({
     method: 'POST',
     url,
     requestBody: Buffer.from('action=save'),
@@ -475,7 +475,7 @@ test('res stats falls back when req.body is undefined', async () => {
   const storeEvent = await waitForEvent('STORE');
   assert.equal(storeEvent.type, 'STORE');
 
-  const replay = await getEngine(options).replay({
+  const replay = await (await getEngine(options)).replay({
     method: 'POST',
     url,
     requestBody: Buffer.from('action=save'),
@@ -529,7 +529,7 @@ test('res stats falls back when originalReq.body is null and req.body is empty',
   const storeEvent = await waitForEvent('STORE');
   assert.equal(storeEvent.type, 'STORE');
 
-  const replay = await getEngine(options).replay({
+  const replay = await (await getEngine(options)).replay({
     method: 'POST',
     url,
     requestBody: Buffer.from('action=save'),
@@ -583,14 +583,14 @@ test('res stats preserves originalReq body when it is undefined and req.body has
   const storeEvent = await waitForEvent('STORE');
   assert.equal(storeEvent.type, 'STORE');
 
-  const replayByRequestBody = await getEngine(options).replay({
+  const replayByRequestBody = await (await getEngine(options)).replay({
     method: 'POST',
     url,
     requestBody: Buffer.from('request-body-direct'),
   });
   assert.equal(replayByRequestBody.hit, true);
 
-  const replayBySessionBody = await getEngine(options).replay({
+  const replayBySessionBody = await (await getEngine(options)).replay({
     method: 'POST',
     url,
     requestBody: Buffer.from('session-body'),
@@ -641,7 +641,7 @@ test('res stats treats missing originalReq.body and req.body as missing body', a
   const storeEvent = await waitForEvent('STORE');
   assert.equal(storeEvent.type, 'STORE');
 
-  const replay = await getEngine(options).replay({
+  const replay = await (await getEngine(options)).replay({
     method: 'POST',
     url,
   });
@@ -693,7 +693,7 @@ test('res stats falls back to session body when originalReq.body is null', async
   const storeEvent = await waitForEvent('STORE');
   assert.equal(storeEvent.type, 'STORE');
 
-  const replay = await getEngine(options).replay({
+  const replay = await (await getEngine(options)).replay({
     method: 'POST',
     url,
     requestBody: Buffer.from('action=save'),
@@ -751,7 +751,7 @@ test('res stats prefers originalReq.body over session body for non-empty values'
     const storeEvent = await waitForEvent('STORE');
     assert.equal(storeEvent.type, 'STORE');
 
-    const replay = await getEngine(options).replay({
+    const replay = await (await getEngine(options)).replay({
       method: 'POST',
       url,
       requestBody: Buffer.from(expectedBody),

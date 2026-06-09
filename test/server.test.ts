@@ -13,7 +13,7 @@ test('server replays by fallback context when originalReq is empty shell', async
   const options = { baseDir: root };
   const url = 'https://api.example.com/users';
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url,
     requestHeaders: {},
@@ -122,7 +122,7 @@ test('server replays when originalReq.body is false', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-server-false-body-'));
   const options = { baseDir: root };
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/boolean-body',
     requestHeaders: {},
@@ -182,7 +182,7 @@ test('server prefers false originalReq.body over session body', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-server-false-body-session-'));
   const options = { baseDir: root };
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/boolean-body-priority',
     requestHeaders: {},
@@ -235,7 +235,7 @@ test('server prefers numeric originalReq.body over session body', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-server-number-body-session-'));
   const options = { baseDir: root };
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/number-body-priority',
     requestHeaders: {},
@@ -288,7 +288,7 @@ test('server prefers req.body when originalReq.body is undefined', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-server-undefined-body-preferred-'));
   const options = { baseDir: root };
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/undefined-body-preferred',
     requestHeaders: {},
@@ -343,7 +343,7 @@ test('server falls back req.body empty string when originalReq.body is undefined
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-server-empty-req-body-with-undefined-original-'));
   const options = { baseDir: root };
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/empty-req-body-with-undefined-original',
     requestHeaders: {},
@@ -398,7 +398,7 @@ test('server falls back req.body empty string when originalReq.body is null', as
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-server-empty-req-body-with-null-original-'));
   const options = { baseDir: root };
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/empty-req-body-with-null-original',
     requestHeaders: {},
@@ -453,7 +453,7 @@ test('server treats missing originalReq.body and missing req.body as empty body'
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-server-missing-both-body-'));
   const options = { baseDir: root };
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/post-with-missing-both-body',
     requestHeaders: {},

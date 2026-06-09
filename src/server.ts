@@ -22,7 +22,7 @@ export default function setupServer(server: any, options?: Record<string, unknow
     try {
       // 注意：空字符串 body 视作缺省触发回退；false/0 等有效值要保留参与 key 计算，避免误判 MISS。
       const requestBody = await getBufferedRequestBody(withResponseSessionReader(req, res), originalReq);
-      const replay = await getEngine(options).replay({ method, url: fullUrl, requestBody });
+      const replay = await (await getEngine(options)).replay({ method, url: fullUrl, requestBody });
       if (!replay.hit) {
         recordEvent({ type: 'MISS', method, url: fullUrl, reason: createReplayMissReason(ruleValue) });
         return passThrough(req, res);

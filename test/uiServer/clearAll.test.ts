@@ -21,7 +21,7 @@ test('ui status panel presents proxy state as a readable overview', async () => 
 test('ui server clears all cache entries', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-clear-all-'));
   const options = { baseDir: root };
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'GET',
     url: 'https://api.example.com/users',
     requestHeaders: {},
@@ -41,7 +41,7 @@ test('ui server clears all cache entries', async () => {
   await handler?.({ method: 'POST', url: '/cgi-bin/cache/clear-all' }, response);
 
   assert.deepEqual(response.body, { removed: 1 });
-  assert.equal((await getEngine(options).list()).length, 0);
+  assert.equal((await (await getEngine(options)).list()).length, 0);
 });
 
 test('ui server accepts plugin-prefixed cgi paths', async () => {
@@ -105,7 +105,7 @@ test('ui server returns an empty favicon response without throwing', async () =>
 test('ui server tests cache matches from request input', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-match-'));
   const options = { baseDir: root };
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/search?_t=1',
     requestHeaders: {},
@@ -135,11 +135,43 @@ test('ui server tests cache matches from request input', async () => {
   assert.equal(body.entry.url, 'https://api.example.com/search?_t=1');
 });
 
+test('ui server preserves empty POST body when testing cache matches', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-empty-body-match-'));
+  const options = { baseDir: root };
+  await (await getEngine(options)).record({
+    method: 'POST',
+    url: 'https://api.example.com/search',
+    requestHeaders: {},
+    requestBody: Buffer.from(''),
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"result":"empty"}'),
+  });
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupUiServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = createJsonResponse();
+  await handler?.(createJsonRequest('/cgi-bin/cache/match', {
+    method: 'POST',
+    url: 'https://api.example.com/search',
+    requestBody: '',
+  }), response);
+
+  const body = response.body as { hit: boolean; reason: string };
+  assert.equal(body.hit, true);
+  assert.equal(body.reason, 'HIT');
+});
+
 test('ui server deletes cache entries by batch scope', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-delete-batch-'));
   const options = { baseDir: root };
-  await getEngine(options).clearAll();
-  await getEngine(options).record({
+  await (await getEngine(options)).clearAll();
+  await (await getEngine(options)).record({
     method: 'GET',
     url: 'https://api.example.com/users/1',
     requestHeaders: {},
@@ -147,7 +179,7 @@ test('ui server deletes cache entries by batch scope', async () => {
     responseHeaders: { 'content-type': 'application/json' },
     body: Buffer.from('{"id":1}'),
   });
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'GET',
     url: 'https://api.example.com/users/2',
     requestHeaders: {},
@@ -156,7 +188,7 @@ test('ui server deletes cache entries by batch scope', async () => {
     body: Buffer.from('{"id":2}'),
   });
 
-  const [entry] = await getEngine(options).list();
+  const [entry] = await (await getEngine(options)).list();
   let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
   setupUiServer({
     on(event: string, nextHandler: typeof handler) {
@@ -171,14 +203,14 @@ test('ui server deletes cache entries by batch scope', async () => {
   }), response);
 
   assert.deepEqual(response.body, { removed: 2 });
-  assert.equal((await getEngine(options).list()).length, 0);
+  assert.equal((await (await getEngine(options)).list()).length, 0);
 });
 
 test('ui server toggles cache entry enabled state', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-toggle-'));
   const options = { baseDir: root };
-  await getEngine(options).clearAll();
-  await getEngine(options).record({
+  await (await getEngine(options)).clearAll();
+  await (await getEngine(options)).record({
     method: 'GET',
     url: 'https://api.example.com/users',
     requestHeaders: {},
@@ -187,7 +219,7 @@ test('ui server toggles cache entry enabled state', async () => {
     body: Buffer.from('{"ok":true}'),
   });
 
-  const [entry] = await getEngine(options).list();
+  const [entry] = await (await getEngine(options)).list();
   let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
   setupUiServer({
     on(event: string, nextHandler: typeof handler) {
@@ -202,14 +234,14 @@ test('ui server toggles cache entry enabled state', async () => {
   }), response);
 
   assert.deepEqual(response.body, { updated: true });
-  assert.equal((await getEngine(options).list())[0].enabled, false);
+  assert.equal((await (await getEngine(options)).list())[0].enabled, false);
 });
 
 test('ui server updates cache entry TTL', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-ttl-'));
   const options = { baseDir: root };
-  await getEngine(options).clearAll();
-  await getEngine(options).record({
+  await (await getEngine(options)).clearAll();
+  await (await getEngine(options)).record({
     method: 'GET',
     url: 'https://api.example.com/users',
     requestHeaders: {},
@@ -218,7 +250,7 @@ test('ui server updates cache entry TTL', async () => {
     body: Buffer.from('{"ok":true}'),
   });
 
-  const [entry] = await getEngine(options).list();
+  const [entry] = await (await getEngine(options)).list();
   let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
   setupUiServer({
     on(event: string, nextHandler: typeof handler) {
@@ -234,14 +266,14 @@ test('ui server updates cache entry TTL', async () => {
   }), response);
 
   assert.deepEqual(response.body, { updated: 1 });
-  assert.equal((await getEngine(options).list())[0].expiresAt, '9999-12-31T23:59:59.999Z');
+  assert.equal((await (await getEngine(options)).list())[0].expiresAt, '9999-12-31T23:59:59.999Z');
 });
 
 test('ui server exports and imports cache bundles', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-import-export-'));
   const options = { baseDir: root };
-  await getEngine(options).clearAll();
-  await getEngine(options).record({
+  await (await getEngine(options)).clearAll();
+  await (await getEngine(options)).record({
     method: 'GET',
     url: 'https://api.example.com/users',
     requestHeaders: {},
@@ -263,12 +295,12 @@ test('ui server exports and imports cache bundles', async () => {
   assert.equal(bundle.version, 1);
   assert.equal(bundle.entries.length, 1);
 
-  await getEngine(options).clearAll();
+  await (await getEngine(options)).clearAll();
   const importResponse = createJsonResponse();
   await handler?.(createJsonRequest('/cgi-bin/cache/import', { bundle }), importResponse);
 
   assert.deepEqual(importResponse.body, { imported: 1 });
-  assert.equal((await getEngine(options).list()).length, 1);
+  assert.equal((await (await getEngine(options)).list()).length, 1);
 });
 
 function createJsonResponse() {

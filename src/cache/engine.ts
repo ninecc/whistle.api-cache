@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { createCacheKey, hashRequestBody, normalizeUrl } from './key';
 import { isCacheableResponse, sanitizeReplayHeaders } from './policy';
-import { FileCacheStore, hashBody } from './store';
+import { CacheStore, hashBody } from './store';
 import { CacheEntry, CacheProfile, CacheRecordInput } from './types';
 import { getHeaderValue, normalizeHeaderMap } from '../shared/headers';
 import { normalizeMethod } from '../shared/requestContext';
@@ -71,7 +71,7 @@ export interface CacheExportBundle {
 
 export class CacheEngine {
   constructor(
-    private readonly store: FileCacheStore,
+    private readonly store: CacheStore,
     private readonly profile: CacheProfile,
   ) {}
 
@@ -297,6 +297,14 @@ export class CacheEngine {
 
   async setEnabled(id: string, enabled: boolean): Promise<boolean> {
     return this.store.setEnabled(id, enabled);
+  }
+
+  async updateActiveBody(input: { id: string; body: Buffer; expectedUpdatedAt?: string }): Promise<CacheEntry> {
+    return this.store.updateActiveBody(input.id, input.body, { expectedUpdatedAt: input.expectedUpdatedAt });
+  }
+
+  async restoreOriginalBody(id: string): Promise<CacheEntry> {
+    return this.store.restoreOriginalBody(id);
   }
 
   async deleteBatch(input: DeleteBatchInput): Promise<number> {

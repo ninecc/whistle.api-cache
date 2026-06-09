@@ -80,6 +80,12 @@ export interface EnabledRequestBody {
   enabled: boolean;
 }
 
+export interface UpdateBodyRequestBody {
+  id: string;
+  body: Buffer;
+  expectedUpdatedAt?: string;
+}
+
 /**
  * 规范化缓存启用状态切换参数。
  */
@@ -98,16 +104,30 @@ export function parseIgnoredQueryNames(body: Record<string, unknown>): string[] 
 }
 
 /**
+ * 规范化缓存 active body 编辑接口输入，支持 bodyText 或 bodyBase64。
+ */
+export function parseUpdateBodyBody(body: Record<string, unknown>): UpdateBodyRequestBody {
+  const bodyBuffer = typeof body.bodyBase64 === 'string'
+    ? Buffer.from(body.bodyBase64, 'base64')
+    : Buffer.from(String(body.bodyText || ''));
+  return {
+    id: String(body.id || ''),
+    body: bodyBuffer,
+    expectedUpdatedAt: typeof body.expectedUpdatedAt === 'string' ? body.expectedUpdatedAt : undefined,
+  };
+}
+
+/**
  * 规范化 cache match 接口输入，统一处理 method/url/requestBody 缺省值。
  */
 export function parseCacheMatchBody(body: Record<string, unknown>): MatchRequestBody {
-  const requestBody = typeof body.requestBody === 'string' && body.requestBody.length
+  const requestBody = typeof body.requestBody === 'string'
     ? Buffer.from(body.requestBody)
     : undefined;
   return {
     method: normalizeMethod(body.method),
     url: String(body.url || ''),
-    ...(requestBody ? { requestBody } : {}),
+    ...(requestBody !== undefined ? { requestBody } : {}),
   };
 }
 

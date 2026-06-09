@@ -42,7 +42,7 @@ export default function setupResStatsServer(server: any, options?: Record<string
           return;
         }
 
-        const result = await getEngine(options).record({
+        const result = await (await getEngine(options)).record({
           method,
           url,
           requestHeaders: normalizeHeaders(originalReq.headers || session?.req?.headers || {}),

@@ -11,7 +11,7 @@ import { clearRecentEvents, consumeRecentReplayHit, getEngine, getRecentEvents }
 test('rules server injects replay rules for cache hits and marks them', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-'));
   const options = { baseDir: root };
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'GET',
     url: 'https://api.example.com/users',
     requestHeaders: {},
@@ -42,7 +42,7 @@ test('rules server injects replay rules for cache hits and marks them', async ()
   assert.ok(rules.startsWith('* style://bgColor=@1d4ed8 style://color=@dbeafe style://fontStyle=bold\n* statusCode://200'));
   assert.ok(rules.includes('resHeaders://{whistleApiCache'));
   assert.ok(rules.includes('resBody://{whistleApiCache'));
-  const [entry] = await getEngine(options).list();
+  const [entry] = await (await getEngine(options)).list();
   assert.equal(entry.hitCount, 1);
   assert.equal(consumeRecentReplayHit('GET', 'https://api.example.com/users'), true);
 });
@@ -51,7 +51,7 @@ test('rules server reports unavailable body-bound POST candidates in miss diagno
   clearRecentEvents();
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-ambiguous-'));
   const options = { baseDir: root };
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/search',
     requestHeaders: {},
@@ -60,7 +60,7 @@ test('rules server reports unavailable body-bound POST candidates in miss diagno
     responseHeaders: { 'content-type': 'application/json' },
     body: Buffer.from('{"result":"alpha"}'),
   });
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/search',
     requestHeaders: {},
@@ -100,7 +100,7 @@ test('rules server falls back to req context when originalReq is empty shell', a
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-empty-original-'));
   const options = { baseDir: root };
   clearRecentEvents();
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'GET',
     url: 'https://api.example.com/empty-original',
     requestHeaders: {},
@@ -137,7 +137,7 @@ test('rules server falls back to req ruleValue when originalReq is empty shell',
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-req-rule-value-'));
   const options = { baseDir: root };
   clearRecentEvents();
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'GET',
     url: 'https://api.example.com/req-rule-value',
     requestHeaders: {},
@@ -171,7 +171,7 @@ test('rules server normalizes method for empty-shell originalReq fallback', asyn
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-empty-original-method-'));
   const options = { baseDir: root };
   clearRecentEvents();
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/method-lowercase',
     requestHeaders: {},
@@ -210,7 +210,7 @@ test('rules server falls back requestBody from req.body when originalReq.body is
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-body-fallback-'));
   const options = { baseDir: root };
   clearRecentEvents();
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/body-from-req',
     requestHeaders: {},
@@ -250,7 +250,7 @@ test('rules server misses same-url body-bound POST replay when request body is u
   const options = { baseDir: root };
   clearRecentEvents();
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/body-miss-candidate',
     requestHeaders: {},
@@ -291,7 +291,7 @@ test('rules server treats empty-string req.body as missing request body', async 
   const options = { baseDir: root };
   clearRecentEvents();
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/empty-body',
     requestHeaders: {},
@@ -330,7 +330,7 @@ test('rules server replays with false body when it is provided directly', async 
   const options = { baseDir: root };
   clearRecentEvents();
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/boolean-body',
     requestHeaders: {},
@@ -370,7 +370,7 @@ test('rules server prefers false originalReq.body over session body', async () =
   const options = { baseDir: root };
   clearRecentEvents();
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/boolean-body-priority',
     requestHeaders: {},
@@ -411,7 +411,7 @@ test('rules server prefers numeric originalReq.body over session body', async ()
   const options = { baseDir: root };
   clearRecentEvents();
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/number-body-priority',
     requestHeaders: {},
@@ -452,7 +452,7 @@ test('rules server prefers req.body when originalReq.body is undefined', async (
   const options = { baseDir: root };
   clearRecentEvents();
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/undefined-body-preferred',
     requestHeaders: {},
@@ -496,7 +496,7 @@ test('rules server falls back req.body empty string when originalReq.body is und
   const options = { baseDir: root };
   clearRecentEvents();
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/empty-req-body-with-undefined-original',
     requestHeaders: {},
@@ -540,7 +540,7 @@ test('rules server falls back req.body empty string when originalReq.body is nul
   const options = { baseDir: root };
   clearRecentEvents();
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/empty-req-body-with-null-original',
     requestHeaders: {},
@@ -584,7 +584,7 @@ test('rules server treats missing originalReq.body and req.body as missing body'
   const options = { baseDir: root };
   clearRecentEvents();
 
-  await getEngine(options).record({
+  await (await getEngine(options)).record({
     method: 'POST',
     url: 'https://api.example.com/post-with-missing-both-body',
     requestHeaders: {},

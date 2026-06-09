@@ -1,7 +1,8 @@
 import { resolve } from 'node:path';
 import { CacheEngine } from '../cache/engine';
 import { getContentTypePolicy, getReplayHeaderPolicy } from '../cache/policy';
-import { FileCacheStore } from '../cache/store';
+import { CacheStore } from '../cache/store';
+import { CacheStoreStatus, createCacheStore, parseStorageMode } from '../cache/storeFactory';
 import { CacheProfile } from '../cache/types';
 import { normalizeMethod } from './requestContext';
 
@@ -29,8 +30,9 @@ export const defaultProfile: CacheProfile = {
 
 let engine: CacheEngine | undefined;
 let engineDataDir: string | undefined;
-let store: FileCacheStore | undefined;
+let store: CacheStore | undefined;
 let storeDataDir: string | undefined;
+let storeStatus: CacheStoreStatus | undefined;
 let nextEventId = 1;
 let nextRequestId = 1;
 const recentEvents: CacheEvent[] = [];
@@ -48,18 +50,20 @@ export function getDataDir(options?: Record<string, unknown>): string {
   return candidate ? resolve(candidate, 'whistle.cache') : resolve('.whistle-cache-data');
 }
 
-export function getStore(options?: Record<string, unknown>): FileCacheStore {
+export async function getStore(options?: Record<string, unknown>): Promise<CacheStore> {
   const dataDir = getDataDir(options);
   if (!store || storeDataDir !== dataDir) {
-    store = new FileCacheStore(dataDir);
+    const handle = await createCacheStore(dataDir, parseStorageMode(options?.storageMode));
+    store = handle.store;
+    storeStatus = handle.status;
     storeDataDir = dataDir;
   }
   return store;
 }
 
-export function getEngine(options?: Record<string, unknown>): CacheEngine {
+export async function getEngine(options?: Record<string, unknown>): Promise<CacheEngine> {
   const dataDir = getDataDir(options);
-  const currentStore = getStore(options);
+  const currentStore = await getStore(options);
   if (!engine || engineDataDir !== dataDir) {
     engine = new CacheEngine(currentStore, defaultProfile);
     engineDataDir = dataDir;
@@ -68,7 +72,7 @@ export function getEngine(options?: Record<string, unknown>): CacheEngine {
 }
 
 export async function getState(options?: Record<string, unknown>) {
-  const currentEngine = getEngine(options);
+  const currentEngine = await getEngine(options);
   const entries = await currentEngine.list();
   const totalSize = entries.reduce((sum, entry) => sum + entry.bodySize, 0);
 
@@ -77,6 +81,7 @@ export async function getState(options?: Record<string, unknown>) {
     dataDir: getDataDir(options),
     entryCount: entries.length,
     totalSize,
+    storage: storeStatus,
     entries,
     events: getRecentEvents(),
     contentTypePolicy: getContentTypePolicy(defaultProfile),

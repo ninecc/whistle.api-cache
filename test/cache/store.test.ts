@@ -31,7 +31,7 @@ test('writes entries, reads bodies, and marks hits', async () => {
 
   const found = await store.getEntryByKey('default', entry.key);
   assert.equal(found?.id, 'entry-1');
-  assert.equal((await store.readBody(entry)).toString(), '{"ok":true}');
+  assert.equal((await store.readBody(found!)).toString(), '{"ok":true}');
 
   await store.markHit('entry-1', new Date('2026-06-04T00:05:00.000Z'));
   const hit = await store.getEntryByKey('default', entry.key);
@@ -98,3 +98,53 @@ test('serializes concurrent entry writes without losing index updates', async ()
     entries.map((entry) => entry.id).sort(),
   );
 });
+
+test('keeps shared original body while another entry still references it', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-shared-body-'));
+  const store = new FileCacheStore(root);
+  const body = Buffer.from('shared');
+
+  await store.putEntry(createEntry('entry-1', 'GET https://api.example.com/a'), body);
+  await store.putEntry(createEntry('entry-2', 'GET https://api.example.com/b'), body);
+
+  assert.equal(await store.deleteEntry('entry-1'), true);
+  const remaining = await store.getEntryByKey('default', 'GET https://api.example.com/b');
+
+  assert.equal((await store.readBody(remaining!)).toString(), 'shared');
+});
+
+test('updates active editable body without losing original body', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-editable-body-'));
+  const store = new FileCacheStore(root);
+
+  await store.putEntry(createEntry('entry-1', 'GET https://api.example.com/edit'), Buffer.from('original'));
+  const edited = await store.updateActiveBody('entry-1', Buffer.from('edited'));
+
+  assert.equal(edited.activeBodyKind, 'editable');
+  assert.equal((await store.readBody(edited)).toString(), 'edited');
+
+  const restored = await store.restoreOriginalBody('entry-1');
+  assert.equal(restored.activeBodyKind, 'original');
+  assert.equal((await store.readBody(restored)).toString(), 'original');
+});
+
+function createEntry(id: string, key: string): CacheEntry {
+  const url = key.replace(/^GET /, '');
+  return {
+    id,
+    profileId: 'default',
+    key,
+    method: 'GET',
+    url,
+    normalizedUrl: url,
+    statusCode: 200,
+    headers: { 'content-type': 'text/plain' },
+    contentType: 'text/plain',
+    bodyHash: id,
+    bodySize: 0,
+    createdAt: '2026-06-04T00:00:00.000Z',
+    expiresAt: '2026-06-04T01:00:00.000Z',
+    hitCount: 0,
+    enabled: true,
+  };
+}

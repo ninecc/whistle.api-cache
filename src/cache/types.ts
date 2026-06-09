@@ -23,7 +23,15 @@ export interface CacheEntry {
   contentType: string;
   bodyHash: string;
   bodySize: number;
+  originalBodyHash?: string;
+  originalBodyKey?: string;
+  originalBodySize?: number;
+  activeBodyKind?: 'original' | 'editable';
+  activeBodyKey?: string;
+  activeBodyHash?: string;
+  activeBodySize?: number;
   createdAt: string;
+  updatedAt?: string;
   expiresAt: string;
   lastHitAt?: string;
   hitCount: number;

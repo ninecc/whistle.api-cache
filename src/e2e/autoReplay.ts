@@ -21,7 +21,7 @@ export async function runAutoReplayE2E(): Promise<AutoReplayE2EResult> {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-e2e-auto-'));
   const options = { baseDir: root };
   resetStateForTests();
-  await getEngine(options).clearAll();
+  await (await getEngine(options)).clearAll();
   clearRecentEvents();
 
   const fakeServer = createFakeServer();
@@ -143,7 +143,7 @@ async function runResStats(
 async function waitForStoredEntry(options: Record<string, unknown>): Promise<void> {
   const deadline = Date.now() + 1000;
   while (Date.now() < deadline) {
-    if ((await getEngine(options).list()).length > 0) return;
+    if ((await (await getEngine(options)).list()).length > 0) return;
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
   throw new Error('cache entry was not stored before e2e replay check');

@@ -23,9 +23,9 @@ export default function setupRulesServer(server: any, options?: Record<string, u
     try {
       // 注意：仅空字符串/空值会回退到 session，false/0 这类 body 仍应直接参与 replay key 计算。
       const requestBody = await getBufferedRequestBody(req, originalReq);
-      const replay = await getEngine(options).replay({ method, url: fullUrl, requestBody });
+      const replay = await (await getEngine(options)).replay({ method, url: fullUrl, requestBody });
       if (!replay.hit) {
-        const match = await getEngine(options).match({ method, url: fullUrl, requestBody });
+        const match = await (await getEngine(options)).match({ method, url: fullUrl, requestBody });
         recordEvent({ type: 'MISS', requestId, method, url: fullUrl, reason: createReplayMissReason(ruleValue, match.reason) });
         return res.end(createPluginRulesPayload(ruleValue, replay));
       }
