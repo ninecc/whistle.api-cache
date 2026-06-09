@@ -247,8 +247,9 @@ function renderEntries() {
 function getEntryBodyHint(entry) {
   if (entry.method !== 'POST') return '';
   const variants = getPostBodyVariants(entry.url);
-  const hashLabel = entry.requestBodyHash ? `body ${shortHash(entry.requestBodyHash)}` : '无请求体';
-  return variants.length > 1 ? `${hashLabel} · 同 URL ${variants.length} 个 body 变体` : hashLabel;
+  if (!entry.requestBodyHash) return '';
+  const hashLabel = `body ${shortHash(entry.requestBodyHash)}`;
+  return variants.length > 1 ? `${hashLabel} · 同 URL 有多个 body 变体` : hashLabel;
 }
 
 function renderStatus() {
@@ -361,11 +362,11 @@ function getEventBodyHint(event) {
   const hashes = getPostBodyVariants(event.url);
   if (String(event.reason || '').includes('request body unavailable')) {
     return hashes.length
-      ? `POST 请求体参与匹配；当前同 URL 已有 ${hashes.length} 个 body 变体`
+      ? 'POST 请求体参与匹配；当前同 URL 有多个 body 变体'
       : 'POST 请求体参与匹配；当前请求体不可得，已放行真实请求';
   }
-  if (hashes.length > 1) return `POST body 变体 ${hashes.length} 个`;
-  if (hashes.length === 1 && hashes[0] !== '无请求体') return `POST body hash ${shortHash(hashes[0])}`;
+  if (hashes.length > 1) return '同 URL 有多个 body 变体';
+  if (hashes.length === 1) return `POST body hash ${shortHash(hashes[0])}`;
   return '';
 }
 
@@ -373,7 +374,7 @@ function getPostBodyVariants(url) {
   return Array.from(new Set(
     state.entries
       .filter((entry) => entry.method === 'POST' && entry.url === url)
-      .map((entry) => entry.requestBodyHash || '无请求体')
+      .map((entry) => entry.requestBodyHash)
       .filter(Boolean)
   ));
 }
