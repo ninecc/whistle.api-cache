@@ -47,7 +47,7 @@ test('rules server injects replay rules for cache hits and marks them', async ()
   assert.equal(consumeRecentReplayHit('GET', 'https://api.example.com/users'), true);
 });
 
-test('rules server reports ambiguous POST candidates in miss diagnostics', async () => {
+test('rules server reports unavailable body-bound POST candidates in miss diagnostics', async () => {
   clearRecentEvents();
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-ambiguous-'));
   const options = { baseDir: root };
@@ -92,7 +92,7 @@ test('rules server reports ambiguous POST candidates in miss diagnostics', async
   const [event] = getRecentEvents();
   assert.equal(event.type, 'MISS');
   assert.equal(event.requestId, 'req-ambiguous-1');
-  assert.equal(event.reason, 'REPLAY MISS -> PASS THROUGH: ambiguous POST candidates: 2');
+  assert.equal(event.reason, 'REPLAY MISS -> PASS THROUGH: request body unavailable for body-bound POST cache');
   clearRecentEvents();
 });
 

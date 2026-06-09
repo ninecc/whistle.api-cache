@@ -369,8 +369,8 @@ test('explains cache match results without marking hits', async () => {
   assert.equal((await store.listEntries())[0].hitCount, 0);
 });
 
-test('explains ambiguous POST matches when request body is unavailable', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-match-ambiguous-'));
+test('explains unavailable request body for body-bound POST matches', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-match-unavailable-body-'));
   const engine = new CacheEngine(new FileCacheStore(root), profile);
 
   await engine.record({
@@ -398,8 +398,8 @@ test('explains ambiguous POST matches when request body is unavailable', async (
   });
 
   assert.equal(result.hit, false);
-  assert.equal(result.reason, 'ambiguous POST candidates: 2');
-  assert.equal(result.reasons[0].type, 'AMBIGUOUS_POST_CANDIDATES');
+  assert.equal(result.reason, 'request body unavailable for body-bound POST cache');
+  assert.equal(result.reasons[0].type, 'REQUEST_BODY_UNAVAILABLE');
   assert.equal(result.candidates.length, 2);
 });
 

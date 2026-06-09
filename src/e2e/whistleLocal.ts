@@ -128,6 +128,7 @@ export async function runWhistleLocalE2E(): Promise<ScenarioResult[]> {
     return [];
   }
 
+  await resetWhistleLocalE2EState(whistlePort);
   const fakeServer = createFakeApiServer();
   try {
     await listen(fakeServer, fakeApiPort);
@@ -305,10 +306,30 @@ async function waitForCacheEntries(whistlePort: number, url: string, minCount: n
   throw new Error(`等待缓存录制超时：${url}，期望至少 ${minCount} 条缓存。请在 whistle.api-cache 面板查看最近诊断是否有 STORE/BYPASS/ERROR。`);
 }
 
+async function resetWhistleLocalE2EState(whistlePort: number): Promise<void> {
+  const entries = await listPluginCacheEntries(whistlePort);
+  const ids = entries
+    .filter((entry: any) => entry && typeof entry.url === 'string' && entry.url.includes(PREFIX))
+    .map((entry: any) => String(entry.id || ''))
+    .filter(Boolean);
+  if (ids.length) {
+    await postWhistlePluginJson(whistlePort, '/whistle.api-cache/cgi-bin/cache/delete-batch', { scope: 'ids', ids });
+  }
+  await postWhistlePluginJson(whistlePort, '/whistle.api-cache/cgi-bin/events/clear', {});
+}
+
 async function listPluginCacheEntries(whistlePort: number): Promise<any[]> {
   const response = await requestWhistleManagement(whistlePort, 'GET', '/whistle.api-cache/cgi-bin/cache');
   const data = parseJson(response.body);
   return Array.isArray(data.entries) ? data.entries : [];
+}
+
+async function postWhistlePluginJson(whistlePort: number, path: string, payload: Record<string, unknown>): Promise<void> {
+  const response = await requestWhistleManagement(whistlePort, 'POST', path, JSON.stringify(payload), 'application/json; charset=utf-8');
+  const data = parseJson(response.body);
+  if (data.error) {
+    throw new Error(`whistle.api-cache 接口 ${path} 返回失败：${response.body.slice(0, 200)}`);
+  }
 }
 
 function delay(ms: number): Promise<void> {
@@ -320,11 +341,12 @@ async function requestWhistleManagement(
   method: string,
   path: string,
   body?: string,
+  contentType = 'application/x-www-form-urlencoded; charset=utf-8',
 ): Promise<JsonResponse> {
   return new Promise((resolve, reject) => {
     const headers: Record<string, string | number> = {};
     if (body !== undefined) {
-      headers['content-type'] = 'application/x-www-form-urlencoded; charset=utf-8';
+      headers['content-type'] = contentType;
       headers['content-length'] = Buffer.byteLength(body);
     }
 

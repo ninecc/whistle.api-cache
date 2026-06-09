@@ -26,6 +26,7 @@ export type MatchReasonType =
   | 'HIT'
   | 'URL_MISMATCH'
   | 'BODY_HASH_MISMATCH'
+  | 'REQUEST_BODY_UNAVAILABLE'
   | 'EXPIRED'
   | 'DISABLED'
   | 'AMBIGUOUS_POST_CANDIDATES'
@@ -171,7 +172,7 @@ export class CacheEngine {
       entry.normalizedUrl === normalizedUrl
     ));
     if (!urlCandidates.length) {
-      return createMatchMiss('URL mismatch', [], [{ type: 'URL_MISMATCH', message: `no cache entry for ${normalizedUrl}` }]);
+      return createMatchMiss(`no cache entry for ${normalizedUrl}`, [], [{ type: 'URL_MISMATCH', message: `no cache entry for ${normalizedUrl}` }]);
     }
 
     const disabled = urlCandidates.filter((entry) => !entry.enabled);
@@ -194,6 +195,32 @@ export class CacheEngine {
       })));
     }
 
+    if (method === 'POST' && requestBodyHash === undefined) {
+      const bodylessCandidates = fresh.filter((entry) => entry.requestBodyHash === undefined);
+      if (bodylessCandidates.length === 1) {
+        return {
+          hit: true,
+          reason: 'HIT',
+          entry: bodylessCandidates[0],
+          candidates: bodylessCandidates,
+          reasons: [],
+        };
+      }
+      if (fresh.some((entry) => entry.requestBodyHash !== undefined)) {
+        return createMatchMiss('request body unavailable for body-bound POST cache', fresh, fresh.map((entry) => ({
+          type: 'REQUEST_BODY_UNAVAILABLE',
+          message: 'request body unavailable for body-bound POST cache',
+          entryId: entry.id,
+        })));
+      }
+      if (bodylessCandidates.length > 1) {
+        return createMatchMiss(`ambiguous POST candidates: ${bodylessCandidates.length}`, bodylessCandidates, [{
+          type: 'AMBIGUOUS_POST_CANDIDATES',
+          message: `ambiguous POST candidates: ${bodylessCandidates.length}`,
+        }]);
+      }
+    }
+
     const bodyCandidates = requestBodyHash !== undefined
       ? fresh.filter((entry) => entry.requestBodyHash === requestBodyHash)
       : fresh;
@@ -203,13 +230,6 @@ export class CacheEngine {
         message: 'request body hash mismatch',
         entryId: entry.id,
       })));
-    }
-
-    if (method === 'POST' && requestBodyHash === undefined && bodyCandidates.length > 1) {
-      return createMatchMiss(`ambiguous POST candidates: ${bodyCandidates.length}`, bodyCandidates, [{
-        type: 'AMBIGUOUS_POST_CANDIDATES',
-        message: `ambiguous POST candidates: ${bodyCandidates.length}`,
-      }]);
     }
 
     if (bodyCandidates.length === 1) {
