@@ -193,6 +193,7 @@ function renderEntries() {
   for (const entry of entries) {
     const expiry = getExpiryState(entry);
     const parsed = parseUrl(entry.url);
+    const bodyHint = getEntryBodyHint(entry);
     const row = document.createElement('tr');
     row.innerHTML = `
       <td><input class="entryCheck" type="checkbox" data-action="select" data-id="${escapeHtml(entry.id)}" ${state.selectedEntryIds.has(entry.id) ? 'checked' : ''} aria-label="选择缓存"></td>
@@ -201,6 +202,7 @@ function renderEntries() {
         <strong>${escapeHtml(parsed.host)}</strong>
         <span>${escapeHtml(parsed.path)}</span>
         <small>${escapeHtml(entry.contentType || '-')}</small>
+        ${bodyHint ? `<small class="bodyHint">${escapeHtml(bodyHint)}</small>` : ''}
       </td>
       <td><span class="badge">${escapeHtml(String(entry.statusCode))}</span></td>
       <td>${formatBytes(entry.bodySize || 0)}</td>
@@ -240,6 +242,13 @@ function renderEntries() {
       elements.cacheRows.appendChild(detailRow);
     }
   }
+}
+
+function getEntryBodyHint(entry) {
+  if (entry.method !== 'POST') return '';
+  const variants = getPostBodyVariants(entry.url);
+  const hashLabel = entry.requestBodyHash ? `body ${shortHash(entry.requestBodyHash)}` : '无请求体';
+  return variants.length > 1 ? `${hashLabel} · 同 URL ${variants.length} 个 body 变体` : hashLabel;
 }
 
 function renderStatus() {
@@ -327,6 +336,7 @@ function renderEvents() {
 
   elements.eventsList.innerHTML = events.map((event) => {
     const url = parseUrlParts(event.url || '');
+    const bodyHint = getEventBodyHint(event);
     return `
       <div class="eventItem" title="${escapeHtml(event.url || '')}">
         <span class="badge ${event.type.toLowerCase()}">${escapeHtml(event.type)}</span>
@@ -338,11 +348,34 @@ function renderEvents() {
           </div>
           <div class="eventPath">${escapeHtml(url.path || '-')}</div>
           ${url.query ? `<div class="eventQuery">${escapeHtml(url.query)}</div>` : ''}
+          ${bodyHint ? `<div class="eventBodyHint">${escapeHtml(bodyHint)}</div>` : ''}
           <p>${escapeHtml(event.reason || 'ok')} · ${formatRelativeDate(event.timestamp)}</p>
         </div>
       </div>
     `;
   }).join('');
+}
+
+function getEventBodyHint(event) {
+  if (event.method !== 'POST' || !event.url) return '';
+  const hashes = getPostBodyVariants(event.url);
+  if (String(event.reason || '').includes('request body unavailable')) {
+    return hashes.length
+      ? `POST 请求体参与匹配；当前同 URL 已有 ${hashes.length} 个 body 变体`
+      : 'POST 请求体参与匹配；当前请求体不可得，已放行真实请求';
+  }
+  if (hashes.length > 1) return `POST body 变体 ${hashes.length} 个`;
+  if (hashes.length === 1 && hashes[0] !== '无请求体') return `POST body hash ${shortHash(hashes[0])}`;
+  return '';
+}
+
+function getPostBodyVariants(url) {
+  return Array.from(new Set(
+    state.entries
+      .filter((entry) => entry.method === 'POST' && entry.url === url)
+      .map((entry) => entry.requestBodyHash || '无请求体')
+      .filter(Boolean)
+  ));
 }
 
 function getFilteredEvents() {
@@ -865,6 +898,10 @@ function shortUrl(value) {
   if (!value) return '';
   const parsed = parseUrl(value);
   return parsed.host ? `${parsed.host}${parsed.path}` : value;
+}
+
+function shortHash(value) {
+  return value ? String(value).slice(0, 8) : '-';
 }
 
 function escapeHtml(value) {

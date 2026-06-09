@@ -580,6 +580,11 @@ td:nth-child(9) {
   color: #98a2b3;
 }
 
+.url .bodyHint {
+  color: #475467;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 .empty,
 .error {
   border-radius: 6px;
@@ -692,6 +697,13 @@ ul {
   color: #667085;
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.eventBodyHint {
+  margin-top: 3px;
+  color: #475467;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
 }
 
 .tableActions {
