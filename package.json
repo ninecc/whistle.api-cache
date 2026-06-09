@@ -14,6 +14,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -w -p tsconfig.json",
     "e2e:auto-replay": "npm run build && node dist/src/e2e/autoReplay.js",
+    "e2e:whistle-local": "npm run build && node dist/src/e2e/whistleLocal.js",
     "test": "npm run build && node --test --test-concurrency=1 dist/test/*.test.js dist/test/**/*.test.js",
     "test:body-regression": "npm run build && node --test --test-concurrency=1 -t body dist/test/**/*.test.js"
   },

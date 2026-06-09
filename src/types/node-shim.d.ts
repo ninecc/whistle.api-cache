@@ -16,12 +16,14 @@ declare module 'node:assert/strict' {
 declare class Buffer extends Uint8Array {
   static from(input: string | ArrayBuffer | Uint8Array, encoding?: string): Buffer;
   static byteLength(input: string): number;
+  static concat(list: Buffer[]): Buffer;
   toString(encoding?: string): string;
 }
 
 declare module 'node:fs/promises' {
   export function mkdir(path: string, options?: { recursive?: boolean }): Promise<void>;
   export function mkdtemp(prefix: string): Promise<string>;
+  export function readdir(path: string): Promise<string[]>;
   export function readFile(path: string): Promise<Buffer>;
   export function readFile(path: string, encoding: 'utf8'): Promise<string>;
   export function rename(oldPath: string, newPath: string): Promise<void>;
@@ -78,6 +80,7 @@ declare module 'node:http' {
 declare const __dirname: string;
 declare const process: {
   argv: string[];
+  env: Record<string, string | undefined>;
   exitCode?: number;
   platform: 'aix' | 'android' | 'darwin' | 'freebsd' | 'haiku' | 'linux' | 'openbsd' | 'sunos' | 'win32' | 'cygwin' | 'netbsd';
 };
