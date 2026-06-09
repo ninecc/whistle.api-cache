@@ -173,7 +173,7 @@ test('distinguishes empty POST body from unavailable request body', async () => 
   assert.equal(match.entry?.requestBodyHash, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
 });
 
-test('replays the only matching POST entry when request body is unavailable', async () => {
+test('misses body-bound POST entry when request body is unavailable', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-post-fallback-'));
   const engine = new CacheEngine(new FileCacheStore(root), {
     ...profile,
@@ -195,9 +195,30 @@ test('replays the only matching POST entry when request body is unavailable', as
     url: 'https://api.example.com/search?wsgsig=second',
   });
 
+  assert.equal(replay.hit, false);
+});
+
+test('replays POST entry without request body hash when request body is unavailable', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-post-no-body-fallback-'));
+  const engine = new CacheEngine(new FileCacheStore(root), profile);
+
+  await engine.record({
+    method: 'POST',
+    url: 'https://api.example.com/search',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"result":"no-body"}'),
+  });
+
+  const replay = await engine.replay({
+    method: 'POST',
+    url: 'https://api.example.com/search',
+  });
+
   assert.equal(replay.hit, true);
   if (replay.hit) {
-    assert.equal(replay.body.toString(), '{"result":"alpha"}');
+    assert.equal(replay.body.toString(), '{"result":"no-body"}');
   }
 });
 

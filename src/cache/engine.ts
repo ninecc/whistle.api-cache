@@ -141,6 +141,7 @@ export class CacheEngine {
         item.enabled &&
         item.method === method &&
         item.normalizedUrl === normalizedUrl &&
+        item.requestBodyHash === undefined &&
         new Date(item.expiresAt).getTime() > Date.now()
       ));
       if (candidates.length === 1) return this.createReplayHit(candidates[0]);
@@ -236,7 +237,9 @@ export class CacheEngine {
       item.method === method &&
       normalizeUrl(item.url, this.profile.ignoredQueryNames) === normalizedUrl &&
       new Date(item.expiresAt).getTime() > Date.now() &&
-      (requestBodyHash === undefined || item.requestBodyHash === requestBodyHash)
+      (requestBodyHash === undefined
+        ? method !== 'POST' || item.requestBodyHash === undefined
+        : item.requestBodyHash === requestBodyHash)
     ));
     if (candidates.length === 1) return candidates[0];
     return undefined;

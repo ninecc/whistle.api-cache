@@ -247,19 +247,20 @@ async function runPostBodyReplayScenario(fakeApiPort: number, whistlePort: numbe
 
   const firstAlpha = await requestViaWhistle(whistlePort, 'POST', url, alpha);
   await waitForCacheEntries(whistlePort, url, 1);
-  await requestViaWhistle(whistlePort, 'POST', url, beta);
+  const firstBeta = await requestViaWhistle(whistlePort, 'POST', url, beta);
   await waitForCacheEntries(whistlePort, url, 2);
-  const secondAlpha = await requestViaWhistle(whistlePort, 'POST', url, alpha);
 
-  const firstBody = parseJson(firstAlpha.body);
-  const secondBody = parseJson(secondAlpha.body);
-  assertReplay('POST body replay', firstBody, secondBody);
+  const alphaBody = parseJson(firstAlpha.body);
+  const betaBody = parseJson(firstBeta.body);
+  if (alphaBody.body !== alpha || betaBody.body !== beta || alphaBody.hits !== 1 || betaBody.hits !== 1) {
+    throw new Error(`POST body safety 未按不同请求体访问真实服务：alpha=${firstAlpha.body}，beta=${firstBeta.body}`);
+  }
   return {
-    name: 'POST body replay',
-    fakeServerHits: Number(secondBody.hits),
-    first: firstBody,
-    second: secondBody,
-    replayed: secondAlpha.headers['x-whistle-cache'] === 'HIT',
+    name: 'POST body safety',
+    fakeServerHits: Number(alphaBody.hits) + Number(betaBody.hits),
+    first: alphaBody,
+    second: betaBody,
+    replayed: firstBeta.headers['x-whistle-cache'] === 'HIT',
   };
 }
 

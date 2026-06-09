@@ -245,7 +245,7 @@ test('rules server falls back requestBody from req.body when originalReq.body is
   assert.equal(event.url, 'https://api.example.com/body-from-req');
 });
 
-test('rules server can hit replay even when originalReq.body is missing for empty-shell body path', async () => {
+test('rules server misses body-bound POST replay when request body is unavailable', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-rules-server-miss-body-fallback-'));
   const options = { baseDir: root };
   clearRecentEvents();
@@ -277,9 +277,9 @@ test('rules server can hit replay even when originalReq.body is missing for empt
   }, response);
 
   const parsed = JSON.parse(response.body);
-  assert.ok(parsed.rules.includes('resBody://{whistleApiCache'));
+  assert.ok(!parsed.rules.includes('resBody://{whistleApiCache'));
   const [event] = getRecentEvents();
-  assert.equal(event.type, 'HIT');
+  assert.equal(event.type, 'MISS');
   assert.equal(event.method, 'POST');
   assert.equal(event.url, 'https://api.example.com/body-miss-candidate');
 });
