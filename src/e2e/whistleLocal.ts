@@ -35,6 +35,12 @@ interface InstallRulesOptions {
   whistlePort?: number;
 }
 
+interface SelectedRulesSnapshot {
+  name: string;
+  value: string;
+  selected: boolean;
+}
+
 export function createWhistleLocalE2ERules(fakeApiPort: number): string {
   return [
     '# whistle.api-cache 本机真实联调临时规则',
@@ -56,7 +62,8 @@ async function installWhistleLocalE2ERulesViaApi(
   fakeApiPort: number,
   selectForRun: boolean,
 ): Promise<() => Promise<void>> {
-  const previousSelectedList = await getSelectedRulesList(whistlePort);
+  const previousRulesList = await getRulesSnapshots(whistlePort);
+  const previousE2ERules = previousRulesList.find((item) => item.name === E2E_RULES_NAME);
   const value = createWhistleLocalE2ERules(fakeApiPort);
   await postWhistleCgi(whistlePort, '/cgi-bin/rules/add', {
     name: E2E_RULES_NAME,
@@ -64,19 +71,25 @@ async function installWhistleLocalE2ERulesViaApi(
   });
 
   if (selectForRun) {
-    for (const name of previousSelectedList) {
-      if (name !== E2E_RULES_NAME) {
-        await postWhistleCgi(whistlePort, '/cgi-bin/rules/unselect', { name, value: '' });
-      }
-    }
     await postWhistleCgi(whistlePort, '/cgi-bin/rules/select', { name: E2E_RULES_NAME, value });
   }
 
   return async () => {
     if (!selectForRun) return;
-    await postWhistleCgi(whistlePort, '/cgi-bin/rules/unselect', { name: E2E_RULES_NAME, value });
-    for (const name of previousSelectedList) {
-      await postWhistleCgi(whistlePort, '/cgi-bin/rules/select', { name, value: '' });
+    if (previousE2ERules) {
+      await postWhistleCgi(whistlePort, '/cgi-bin/rules/add', { name: E2E_RULES_NAME, value: previousE2ERules.value });
+      if (previousE2ERules.selected) {
+        await postWhistleCgi(whistlePort, '/cgi-bin/rules/select', { name: E2E_RULES_NAME, value: previousE2ERules.value });
+      } else {
+        await postWhistleCgi(whistlePort, '/cgi-bin/rules/unselect', { name: E2E_RULES_NAME, value: previousE2ERules.value });
+      }
+    } else {
+      await postWhistleCgi(whistlePort, '/cgi-bin/rules/unselect', { name: E2E_RULES_NAME, value });
+    }
+    for (const snapshot of previousRulesList) {
+      if (snapshot.name !== E2E_RULES_NAME && snapshot.selected) {
+        await postWhistleCgi(whistlePort, '/cgi-bin/rules/select', { name: snapshot.name, value: snapshot.value });
+      }
     }
   };
 }
@@ -273,21 +286,35 @@ async function assertWhistleReachable(whistlePort: number): Promise<void> {
   }
 }
 
-async function getSelectedRulesList(whistlePort: number): Promise<string[]> {
+async function getRulesSnapshots(whistlePort: number): Promise<SelectedRulesSnapshot[]> {
   const response = await requestWhistleManagement(whistlePort, 'GET', '/cgi-bin/rules/list');
   const data = parseJson(response.body);
   if (!Array.isArray(data.list)) return [];
   return data.list
-    .filter((item: any) => item && item.selected && typeof item.name === 'string')
-    .map((item: any) => item.name);
+    .filter((item: any) => item && typeof item.name === 'string')
+    .map((item: any) => {
+      const value = readRulesValue(item);
+      if (value === undefined) {
+        throw new Error(`无法从 Whistle rules/list 响应中读取规则内容，拒绝执行 e2e 规则切换以避免清空规则：${item.name}`);
+      }
+      return { name: item.name, value, selected: Boolean(item.selected) };
+    });
+}
+
+function readRulesValue(item: Record<string, unknown>): string | undefined {
+  for (const key of ['value', 'data', 'rules', 'text']) {
+    const value = item[key];
+    if (typeof value === 'string') return value;
+  }
+  return undefined;
 }
 
 async function postWhistleCgi(
   whistlePort: number,
   path: string,
-  fields: Record<string, string>,
+  fields: Record<string, string | undefined>,
 ): Promise<void> {
-  const body = new URLSearchParams(fields).toString();
+  const body = new URLSearchParams(Object.entries(fields).filter((entry): entry is [string, string] => entry[1] !== undefined)).toString();
   const response = await requestWhistleManagement(whistlePort, 'POST', path, body);
   const data = parseJson(response.body);
   if (data.ec !== 0) {
