@@ -12,6 +12,7 @@ const state = {
   lastEventId: 0,
   selectedEntryIds: new Set(),
   syncTimer: undefined,
+  lastSyncAt: undefined,
 };
 
 const diagnosticsRefreshInterval = 1000;
@@ -48,6 +49,7 @@ const elements = {
   empty: document.querySelector('#empty'),
   error: document.querySelector('#error'),
   loadingText: document.querySelector('#loadingText'),
+  syncStatusText: document.querySelector('#syncStatusText'),
   rulesBlock: document.querySelector('#rulesBlock'),
   refreshBtn: document.querySelector('#refreshBtn'),
   openDataDirBtn: undefined,
@@ -55,6 +57,7 @@ const elements = {
   exportCacheBtn: document.querySelector('#exportCacheBtn'),
   importCacheBtn: document.querySelector('#importCacheBtn'),
   importCacheInput: document.querySelector('#importCacheInput'),
+  clearE2eBtn: document.querySelector('#clearE2eBtn'),
   deleteSelectedBtn: document.querySelector('#deleteSelectedBtn'),
   ttlSelectedSelect: document.querySelector('#ttlSelectedSelect'),
   clearExpiredBtn: document.querySelector('#clearExpiredBtn'),
@@ -69,6 +72,7 @@ elements.saveIgnoredQueryBtn.addEventListener('click', saveIgnoredQueryNames);
 elements.exportCacheBtn.addEventListener('click', exportCache);
 elements.importCacheBtn.addEventListener('click', () => elements.importCacheInput.click());
 elements.importCacheInput.addEventListener('change', importCache);
+elements.clearE2eBtn.addEventListener('click', clearE2eEntries);
 elements.deleteSelectedBtn.addEventListener('click', () => deleteBatch({ scope: 'ids', ids: Array.from(state.selectedEntryIds) }));
 elements.ttlSelectedSelect.addEventListener('change', () => updateSelectedTtl(elements.ttlSelectedSelect.value));
 elements.clearExpiredBtn.addEventListener('click', clearExpired);
@@ -124,6 +128,7 @@ function applyState(data, options = {}) {
   state.contentTypePolicy = data.contentTypePolicy || {};
   state.replayHeaderPolicy = data.replayHeaderPolicy || {};
   state.lastEventId = getMaxEventId(state.events, state.lastEventId);
+  state.lastSyncAt = new Date().toISOString();
   state.profile = data.profile || {};
   elements.profileId.textContent = state.profile.id || 'default';
   elements.entryCount.textContent = String(data.entryCount || 0);
@@ -135,6 +140,7 @@ function applyState(data, options = {}) {
   renderStatus();
   renderHealth();
   renderEvents();
+  renderSyncStatus();
   renderPolicy();
   renderEntries();
 }
@@ -148,6 +154,8 @@ function startDiagnosticsSync() {
       for (const event of events.slice().reverse()) {
         appendEvent(event);
       }
+      state.lastSyncAt = new Date().toISOString();
+      renderSyncStatus(events.length ? '收到新诊断，正在同步缓存' : undefined);
       if (events.length) scheduleSilentRefresh();
     } catch {
       scheduleSilentRefresh();
@@ -164,6 +172,7 @@ function startFallbackRefresh() {
 
 function scheduleSilentRefresh() {
   clearTimeout(state.syncTimer);
+  renderSyncStatus('收到新诊断，正在同步缓存');
   state.syncTimer = setTimeout(() => {
     if (document.hidden) return;
     refresh({ silent: true });
@@ -201,6 +210,7 @@ function renderEntries() {
       <td class="url" title="${escapeHtml(entry.url)}">
         <strong>${escapeHtml(parsed.host)}</strong>
         <span>${escapeHtml(parsed.path)}</span>
+        ${parsed.hiddenQueryCount ? `<small class="queryHint">已折叠 ${escapeHtml(String(parsed.hiddenQueryCount))} 个忽略参数</small>` : ''}
         <small>${escapeHtml(entry.contentType || '-')}</small>
         ${bodyHint ? `<small class="bodyHint">${escapeHtml(bodyHint)}</small>` : ''}
       </td>
@@ -248,8 +258,8 @@ function getEntryBodyHint(entry) {
   if (entry.method !== 'POST') return '';
   const variants = getPostBodyVariants(entry.url);
   if (!entry.requestBodyHash) return '';
-  const hashLabel = `body ${shortHash(entry.requestBodyHash)}`;
-  return variants.length > 1 ? `${hashLabel} · 同 URL 有多个 body 变体` : hashLabel;
+  const hashLabel = `Body key ${shortHash(entry.requestBodyHash)}`;
+  return variants.length > 1 ? `${hashLabel} · 同 URL 多个 Body` : hashLabel;
 }
 
 function renderStatus() {
@@ -338,6 +348,7 @@ function renderEvents() {
   elements.eventsList.innerHTML = events.map((event) => {
     const url = parseUrlParts(event.url || '');
     const bodyHint = getEventBodyHint(event);
+    const reason = describeEventReason(event);
     return `
       <div class="eventItem" title="${escapeHtml(event.url || '')}">
         <span class="badge ${event.type.toLowerCase()}">${escapeHtml(event.type)}</span>
@@ -345,12 +356,15 @@ function renderEvents() {
           <div class="eventTitle">
             <strong>${escapeHtml(event.method || '-')}</strong>
             <span>${escapeHtml(url.host || '-')}</span>
-            ${event.requestId ? `<code>${escapeHtml(event.requestId)}</code>` : ''}
           </div>
           <div class="eventPath">${escapeHtml(url.path || '-')}</div>
-          ${url.query ? `<div class="eventQuery">${escapeHtml(url.query)}</div>` : ''}
           ${bodyHint ? `<div class="eventBodyHint">${escapeHtml(bodyHint)}</div>` : ''}
-          <p>${escapeHtml(event.reason || 'ok')} · ${formatRelativeDate(event.timestamp)}</p>
+          <p>${escapeHtml(reason.primary)} · ${formatRelativeDate(event.timestamp)}</p>
+          <div class="eventMeta">
+            ${event.requestId ? `<code>${escapeHtml(event.requestId)}</code>` : ''}
+            ${reason.detail ? `<span>${escapeHtml(reason.detail)}</span>` : ''}
+            ${url.query ? `<span>${escapeHtml(compactQueryLabel(url.query))}</span>` : ''}
+          </div>
         </div>
       </div>
     `;
@@ -361,13 +375,51 @@ function getEventBodyHint(event) {
   if (event.method !== 'POST' || !event.url) return '';
   const hashes = getPostBodyVariants(event.url);
   if (String(event.reason || '').includes('request body unavailable')) {
-    if (hashes.length > 1) return 'POST 请求体参与匹配；当前同 URL 有多个 body 变体';
-    if (hashes.length === 1) return `POST 请求体参与匹配；当前同 URL 只有一个 body 变体 ${shortHash(hashes[0])}`;
-    return 'POST 请求体参与匹配；当前请求体不可得，已放行真实请求';
+    if (hashes.length > 1) return '同 URL 多个 Body';
+    if (hashes.length === 1) return `Body key ${shortHash(hashes[0])}`;
+    return '缺少 Body，已放行真实请求';
   }
-  if (hashes.length > 1) return '同 URL 有多个 body 变体';
-  if (hashes.length === 1) return `POST body hash ${shortHash(hashes[0])}`;
+  if (hashes.length > 1) return '同 URL 多个 Body';
+  if (hashes.length === 1) return `Body key ${shortHash(hashes[0])}`;
   return '';
+}
+
+function describeEventReason(event) {
+  const reason = String(event.reason || 'ok');
+  const type = String(event.type || '');
+  if (reason === 'ok') return { primary: '已写入缓存' };
+  if (type === 'HIT' || reason.includes('HIT')) return { primary: '命中缓存，跳过写入' };
+  if (reason.includes('no cache entries')) {
+    return {
+      primary: '暂无缓存条目，已写入第一条缓存',
+      detail: reason,
+    };
+  }
+  if (reason.includes('request body unavailable for body-bound POST cache')) {
+    return {
+      primary: '缺少 Body，无法安全回放，已转为录制',
+      detail: reason,
+    };
+  }
+  if (reason.includes('no cache entry for')) {
+    return {
+      primary: '首次请求未命中，已写入缓存',
+      detail: reason,
+    };
+  }
+  if (reason.includes('method mismatch')) {
+    return {
+      primary: '未找到同 Method 的缓存，已写入缓存',
+      detail: reason,
+    };
+  }
+  if (reason.includes('request body hash mismatch')) {
+    return {
+      primary: 'Body 不同，已转为录制',
+      detail: reason,
+    };
+  }
+  return { primary: reason };
 }
 
 function getPostBodyVariants(url) {
@@ -502,6 +554,17 @@ async function deleteBatch(input) {
   } catch (error) {
     showError(error);
   }
+}
+
+async function clearE2eEntries() {
+  const ids = state.entries
+    .filter((entry) => String(entry.url || '').includes('/__whistle_api_cache_e2e/'))
+    .map((entry) => entry.id);
+  if (!ids.length) {
+    showToast('暂无测试缓存可清理。');
+    return;
+  }
+  await deleteBatch({ scope: 'ids', ids });
 }
 
 async function exportCache() {
@@ -686,16 +749,30 @@ function showMatchResult(result) {
   elements.matchResult.innerHTML = `
     <div class="matchResultHeader">
       <span class="badge ${result.hit ? 'hit' : 'miss'}">${escapeHtml(title)}</span>
-      <strong>${escapeHtml(result.reason || '-')}</strong>
+      <strong>${escapeHtml(describeMatchReason(result.reason || '-'))}</strong>
     </div>
     ${entry ? renderMatchEntry(entry) : ''}
     ${reasons.length ? `
       <ul>
-        ${reasons.map((reason) => `<li>${escapeHtml(reason.message || reason.type || '-')}</li>`).join('')}
+        ${reasons.map((reason) => `<li>${escapeHtml(describeMatchReason(reason.message || reason.type || '-'))}</li>`).join('')}
       </ul>
     ` : ''}
     ${!result.hit && candidates.length ? `<p class="hint">候选缓存：${escapeHtml(String(candidates.length))} 条</p>` : ''}
   `;
+}
+
+function describeMatchReason(reason) {
+  const value = String(reason || '-');
+  if (value === 'HIT') return '命中缓存';
+  if (value === 'no cache entries') return '暂无缓存条目';
+  if (value === 'method mismatch' || value.startsWith('no ') && value.endsWith(' cache entries')) return '未找到同 Method 的缓存';
+  if (value.includes('no cache entry for')) return '未找到同 URL 的缓存';
+  if (value === 'cache entry disabled') return '缓存已禁用';
+  if (value === 'cache entry expired') return '缓存已过期';
+  if (value === 'request body unavailable for body-bound POST cache') return '缺少 Body，无法安全回放';
+  if (value === 'request body hash mismatch') return 'Body 不同';
+  if (value.includes('ambiguous POST candidates')) return 'POST 候选缓存不唯一';
+  return value;
 }
 
 function renderMatchEntry(entry) {
@@ -855,6 +932,11 @@ function setLoading(isLoading) {
   elements.refreshBtn.textContent = isLoading ? '刷新中...' : '刷新';
 }
 
+function renderSyncStatus(message) {
+  const suffix = state.lastSyncAt ? ` · 更新于 ${formatClockTime(state.lastSyncAt)}` : '';
+  elements.syncStatusText.textContent = `${message || '实时同步'} · 最近 20 条${suffix}`;
+}
+
 function formatBytes(size) {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
@@ -893,9 +975,12 @@ function getExpiryState(entry) {
 function parseUrl(value) {
   try {
     const url = new URL(value);
+    const compact = compactUrl(url);
     return {
       host: url.host,
-      path: `${url.pathname}${url.search}`,
+      path: compact.path,
+      query: compact.query,
+      hiddenQueryCount: compact.hiddenQueryCount,
     };
   } catch {
     return { host: value, path: '' };
@@ -913,6 +998,35 @@ function parseUrlParts(value) {
   } catch {
     return { host: value, path: '', query: '' };
   }
+}
+
+function compactUrl(url) {
+  const ignoredNames = new Set(state.profile.ignoredQueryNames || []);
+  const visible = [];
+  let hiddenQueryCount = 0;
+  for (const [name, value] of url.searchParams.entries()) {
+    if (ignoredNames.has(name)) {
+      hiddenQueryCount += 1;
+    } else {
+      visible.push([name, value]);
+    }
+  }
+  const query = visible.map(([name, value]) => `${name}=${value}`).join('&');
+  return {
+    path: `${url.pathname}${query ? `?${query}` : ''}`,
+    query,
+    hiddenQueryCount,
+  };
+}
+
+function compactQueryLabel(query) {
+  if (!query) return '';
+  const count = query.split('&').filter(Boolean).length;
+  return count > 1 ? `含 ${count} 个 Query 参数` : `Query: ${query}`;
+}
+
+function formatClockTime(value) {
+  return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 function shortUrl(value) {

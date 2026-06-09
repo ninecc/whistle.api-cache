@@ -585,6 +585,10 @@ td:nth-child(9) {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+.url .queryHint {
+  color: #667085;
+}
+
 .empty,
 .error {
   border-radius: 6px;
@@ -664,7 +668,7 @@ ul {
 
 .eventTitle span,
 .eventPath,
-.eventQuery {
+.eventMeta span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -675,14 +679,34 @@ ul {
   font-weight: 700;
 }
 
-.eventTitle code {
-  flex: 0 0 auto;
+.eventMeta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 5px;
+  min-width: 0;
+}
+
+.eventMeta code,
+.eventMeta span {
   border-radius: 999px;
   background: #f2f4f7;
   color: #475467;
+  max-width: 100%;
+  min-width: 0;
+  padding: 3px 7px;
+}
+
+.eventMeta code {
+  flex: 0 0 auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 11px;
-  padding: 3px 7px;
+}
+
+.eventMeta span {
+  display: inline-block;
+  font-size: 11px;
 }
 
 .eventPath {
@@ -690,13 +714,6 @@ ul {
   color: #344054;
   font-size: 13px;
   font-weight: 600;
-}
-
-.eventQuery {
-  margin-top: 2px;
-  color: #667085;
-  font-size: 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .eventBodyHint {
@@ -722,6 +739,10 @@ ul {
 
 #ttlSelectedSelect {
   width: 132px;
+}
+
+#clearE2eBtn {
+  color: #175cd3;
 }
 
 .policyList {

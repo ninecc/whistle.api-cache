@@ -88,7 +88,7 @@
         <div class="panelHeader">
           <h2>最近诊断</h2>
           <div class="inlineActions">
-            <span class="muted">实时同步 · 最近 20 条</span>
+            <span id="syncStatusText" class="muted">实时同步 · 最近 20 条</span>
             <select id="eventFilterSelect" aria-label="诊断过滤">
               <option value="all">全部</option>
               <option value="HIT">HIT</option>
@@ -137,6 +137,7 @@
             <button id="exportCacheBtn" type="button">导出</button>
             <button id="importCacheBtn" type="button">导入</button>
             <input id="importCacheInput" type="file" accept="application/json,.json" hidden>
+            <button id="clearE2eBtn" type="button">清理测试缓存</button>
             <button id="deleteSelectedBtn" class="danger" type="button" disabled>删除选中</button>
             <select id="ttlSelectedSelect" aria-label="批量 TTL 操作" disabled>
               <option value="">TTL</option>
