@@ -59,7 +59,7 @@ li {
 main {
   display: grid;
   gap: 14px;
-  width: min(100%, 1280px);
+  width: min(100%, 1760px);
   margin: 0 auto;
   padding: 18px clamp(12px, 3vw, 28px) 28px;
 }
@@ -72,7 +72,6 @@ main.isLoading {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  max-width: 980px;
 }
 
 .summary > div,
@@ -454,9 +453,10 @@ pre {
 
 table {
   width: 100%;
-  min-width: 1280px;
+  min-width: 1360px;
   border-collapse: collapse;
   font-size: 12px;
+  table-layout: fixed;
 }
 
 th,
@@ -510,8 +510,34 @@ td:first-child {
 
 th:last-child,
 td:last-child {
-  width: 280px;
-  min-width: 280px;
+  width: 300px;
+  min-width: 300px;
+}
+
+th:nth-child(2),
+td:nth-child(2) {
+  width: 74px;
+}
+
+th:nth-child(4),
+td:nth-child(4) {
+  width: 76px;
+}
+
+th:nth-child(5),
+td:nth-child(5),
+th:nth-child(6),
+td:nth-child(6) {
+  width: 72px;
+}
+
+th:nth-child(7),
+td:nth-child(7),
+th:nth-child(8),
+td:nth-child(8),
+th:nth-child(9),
+td:nth-child(9) {
+  width: 96px;
 }
 
 th:nth-child(4),
@@ -530,9 +556,7 @@ td:nth-child(9) {
 }
 
 .url {
-  width: 38%;
   min-width: 360px;
-  max-width: 620px;
 }
 
 .url strong,
@@ -755,7 +779,7 @@ ul {
 .tableActions {
   margin-left: auto;
   justify-content: flex-end;
-  max-width: 760px;
+  max-width: min(100%, 980px);
 }
 
 .tableActions input {
@@ -773,6 +797,51 @@ ul {
 
 #clearE2eBtn {
   color: #175cd3;
+}
+
+@media (min-width: 1440px) {
+  main {
+    padding-right: 32px;
+    padding-left: 32px;
+  }
+
+  .dashboard {
+    grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.65fr);
+  }
+
+  .tableActions {
+    max-width: none;
+  }
+
+  .tableActions input {
+    width: clamp(240px, 18vw, 360px);
+  }
+
+  table {
+    min-width: 0;
+  }
+
+  th:last-child,
+  td:last-child {
+    width: 320px;
+    min-width: 320px;
+  }
+}
+
+@media (min-width: 1680px) {
+  .statusOverview {
+    grid-template-columns: minmax(260px, 0.9fr) minmax(260px, 0.8fr) minmax(440px, 1.3fr);
+  }
+
+  .dashboard {
+    grid-template-columns: minmax(0, 1.5fr) minmax(380px, 0.7fr);
+  }
+
+  th:last-child,
+  td:last-child {
+    width: 340px;
+    min-width: 340px;
+  }
 }
 
 .policyList {
