@@ -114,17 +114,28 @@
 }
 
 #managerBodyEditor,
-.bodyPreview {
+.bodyPreview,
+.jsonEditorHost {
   min-height: 360px;
   border: 1px solid #c8d0da;
   border-radius: 8px;
+  overflow: auto;
+}
+
+#managerBodyEditor,
+.bodyPreview {
   background: #0f172a;
   color: #e5e7eb;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
   line-height: 1.55;
   padding: 12px;
-  overflow: auto;
+}
+
+.jsonEditorHost {
+  height: min(64vh, 720px);
+  min-height: 460px;
+  background: #ffffff;
 }
 
 .bodyPreview {
@@ -135,7 +146,8 @@
 
 .requestManager[hidden],
 #managerBodyEditor[hidden],
-.bodyPreview[hidden] {
+.bodyPreview[hidden],
+.jsonEditorHost[hidden] {
   display: none;
 }
 

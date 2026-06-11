@@ -37,6 +37,7 @@
     "typescript": "^5.8.0"
   },
   "dependencies": {
-    "better-sqlite3": "^12.10.0"
+    "better-sqlite3": "^12.10.0",
+    "vanilla-jsoneditor": "^3.12.0"
   }
 }

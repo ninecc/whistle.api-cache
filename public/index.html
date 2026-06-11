@@ -220,6 +220,7 @@
                   <button id="managerRestoreBtn" class="danger" type="button">恢复原始</button>
                 </div>
               </div>
+              <div id="managerJsonEditor" class="jsonEditorHost" hidden></div>
               <textarea id="managerBodyEditor" spellcheck="false"></textarea>
               <pre id="managerBodyPreview" class="bodyPreview"></pre>
               <div id="managerBodyNotice" class="hint"></div>
@@ -253,6 +254,12 @@
 
     </main>
 
+    <script type="module">
+      import { createJSONEditor, toTextContent } from './vendor/vanilla-jsoneditor/standalone.js';
+
+      window.apiCacheJsonEditor = { createJSONEditor, toTextContent };
+      window.dispatchEvent(new Event('api-cache-jsoneditor-ready'));
+    </script>
     <script src="app.js"></script>
   </body>
 </html>

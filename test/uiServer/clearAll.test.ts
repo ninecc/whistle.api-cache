@@ -23,6 +23,8 @@ test('ui status panel presents proxy state as a readable overview', async () => 
   assert.ok(/id="cacheListView"/.test(html));
   assert.ok(/id="requestManagerView"/.test(html));
   assert.ok(/id="managerBodyEditor"/.test(html));
+  assert.ok(/id="managerJsonEditor"/.test(html));
+  assert.ok(/vendor\/vanilla-jsoneditor\/standalone\.js/.test(html));
   assert.ok(/renderRequestManager/.test(app));
   assert.ok(/saveManagedBody/.test(app));
   assert.ok(/restoreManagedBody/.test(app));
@@ -32,6 +34,9 @@ test('ui status panel presents proxy state as a readable overview', async () => 
   assert.ok(/getFormattedBodyText/.test(app));
   assert.ok(/getEditableDraft/.test(app));
   assert.ok(/managerSavedDraft/.test(app));
+  assert.ok(/initManagedJsonEditor/.test(app));
+  assert.ok(/createJSONEditor/.test(html));
+  assert.ok(/jsonEditorHost/.test(styles));
   assert.ok(/button:disabled\s*\{[^}]*cursor: default/s.test(styles));
 });
 

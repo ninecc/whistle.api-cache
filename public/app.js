@@ -17,6 +17,10 @@ const state = {
   managerSelectedId: undefined,
   managerBody: undefined,
   managerOriginalBody: undefined,
+  managerJsonEditor: undefined,
+  managerJsonEditorContent: { text: '' },
+  managerJsonEditorReady: false,
+  managerJsonEditorSuppressChange: false,
   managerMode: 'preview',
   managerDraft: '',
   managerSavedDraft: '',
@@ -79,6 +83,7 @@ const elements = {
   managerFormatJsonBtn: document.querySelector('#managerFormatJsonBtn'),
   managerSaveBtn: document.querySelector('#managerSaveBtn'),
   managerRestoreBtn: document.querySelector('#managerRestoreBtn'),
+  managerJsonEditor: document.querySelector('#managerJsonEditor'),
   managerBodyEditor: document.querySelector('#managerBodyEditor'),
   managerBodyPreview: document.querySelector('#managerBodyPreview'),
   managerBodyNotice: document.querySelector('#managerBodyNotice'),
@@ -150,6 +155,10 @@ elements.managerBodyEditor.addEventListener('input', () => {
   state.managerDirty = Boolean(state.managerBody && state.managerDraft !== state.managerSavedDraft);
   renderManagerActions();
 });
+window.addEventListener('api-cache-jsoneditor-ready', () => {
+  state.managerJsonEditorReady = true;
+  renderManagedBody();
+});
 window.addEventListener('beforeunload', (event) => {
   if (!state.managerDirty) return;
   event.preventDefault();
@@ -178,6 +187,7 @@ refresh();
 startDiagnosticsSync();
 startFallbackRefresh();
 updateRule();
+initManagedJsonEditor();
 
 async function refresh(options = {}) {
   const silent = Boolean(options.silent);
@@ -495,18 +505,28 @@ function renderManagedBody() {
   elements.managerPreviewModeBtn.classList.toggle('active', state.managerMode === 'preview');
   elements.managerEditModeBtn.classList.toggle('active', state.managerMode === 'edit');
   elements.managerOriginalModeBtn.classList.toggle('active', state.managerMode === 'original');
-  elements.managerBodyEditor.hidden = state.managerMode !== 'edit';
-  elements.managerBodyPreview.hidden = state.managerMode === 'edit';
 
   if (!payload) {
+    elements.managerJsonEditor.hidden = true;
     elements.managerBodyEditor.value = '';
+    elements.managerBodyEditor.hidden = true;
+    elements.managerBodyPreview.hidden = false;
     elements.managerBodyPreview.textContent = '请选择一条缓存请求。';
     elements.managerBodyNotice.textContent = '';
     renderManagerActions();
     return;
   }
 
+  if (canUseManagedJsonEditor(payload)) {
+    renderJsonEditorBody(payload);
+    renderManagerActions();
+    return;
+  }
+
   const text = payload.encoding === 'utf8' ? (state.managerMode === 'edit' ? state.managerDraft : getFormattedBodyText(payload)) : payload.bodyBase64;
+  elements.managerJsonEditor.hidden = true;
+  elements.managerBodyEditor.hidden = state.managerMode !== 'edit';
+  elements.managerBodyPreview.hidden = state.managerMode === 'edit';
   elements.managerBodyEditor.value = state.managerDraft;
   elements.managerBodyPreview.textContent = text || '';
   elements.managerBodyNotice.textContent = payload.editable
@@ -547,8 +567,10 @@ function renderManagerActions() {
 
 function formatManagedJson() {
   try {
-    state.managerDraft = formatJsonText(elements.managerBodyEditor.value);
+    state.managerDraft = formatJsonText(getManagedBodyText());
+    state.managerSavedDraft = state.managerSavedDraft || getEditableDraft(state.managerBody);
     elements.managerBodyEditor.value = state.managerDraft;
+    if (isManagedJsonEditorVisible()) setManagedJsonEditorContent(contentFromText(state.managerDraft));
     state.managerDirty = Boolean(state.managerBody && state.managerDraft !== state.managerSavedDraft);
     renderManagerActions();
   } catch {
@@ -580,15 +602,107 @@ function isJsonPayload(payload) {
   return type === 'application/json' || type.endsWith('+json');
 }
 
+function initManagedJsonEditor() {
+  const api = getJsonEditorApi();
+  if (!api || !elements.managerJsonEditor || state.managerJsonEditor) return;
+  state.managerJsonEditor = api.createJSONEditor({
+    target: elements.managerJsonEditor,
+    props: {
+      content: state.managerJsonEditorContent,
+      mode: 'tree',
+      readOnly: true,
+      mainMenuBar: true,
+      navigationBar: true,
+      statusBar: true,
+      askToFormat: true,
+      onChange: (content) => {
+        if (state.managerJsonEditorSuppressChange) return;
+        state.managerJsonEditorContent = content;
+        state.managerDraft = contentToText(content);
+        state.managerDirty = Boolean(state.managerBody && state.managerDraft !== state.managerSavedDraft);
+        renderManagerActions();
+      },
+    },
+  });
+  state.managerJsonEditorReady = true;
+}
+
+function canUseManagedJsonEditor(payload) {
+  if (!payload || payload.encoding !== 'utf8' || !isJsonPayload(payload)) return false;
+  initManagedJsonEditor();
+  return Boolean(state.managerJsonEditor);
+}
+
+function renderJsonEditorBody(payload) {
+  const text = state.managerMode === 'edit' ? state.managerDraft : getFormattedBodyText(payload);
+  const content = contentFromText(text);
+  const readOnly = state.managerMode !== 'edit';
+  elements.managerJsonEditor.hidden = false;
+  elements.managerBodyEditor.hidden = true;
+  elements.managerBodyPreview.hidden = true;
+  setManagedJsonEditorContent(content, { readOnly });
+  elements.managerBodyNotice.textContent = payload.editable
+    ? `${payload.kind === 'original' ? '原始响应只读' : '当前响应'} · JSON 编辑器 · ${formatBytes(payload.size || 0)} · ${shortHash(payload.hash || '')}`
+    : '当前响应无法安全按 UTF-8 文本编辑，已显示只读 JSON 视图。';
+}
+
+function setManagedJsonEditorContent(content, options = {}) {
+  if (!state.managerJsonEditor) return;
+  state.managerJsonEditorContent = content;
+  state.managerJsonEditorSuppressChange = true;
+  state.managerJsonEditor.updateProps({
+    content,
+    mode: 'tree',
+    readOnly: Boolean(options.readOnly),
+    mainMenuBar: true,
+    navigationBar: true,
+    statusBar: true,
+    askToFormat: true,
+  });
+  state.managerJsonEditorSuppressChange = false;
+}
+
+function getManagedBodyText() {
+  if (isManagedJsonEditorVisible()) {
+    state.managerJsonEditorContent = state.managerJsonEditor.get();
+    return contentToText(state.managerJsonEditorContent);
+  }
+  return elements.managerBodyEditor.value;
+}
+
+function isManagedJsonEditorVisible() {
+  return Boolean(state.managerJsonEditor && !elements.managerJsonEditor.hidden);
+}
+
+function contentFromText(text) {
+  try {
+    return { json: JSON.parse(text || 'null') };
+  } catch {
+    return { text: text || '' };
+  }
+}
+
+function contentToText(content) {
+  const api = getJsonEditorApi();
+  if (api && content) return api.toTextContent(content, 2).text;
+  if (content && typeof content.text === 'string') return content.text;
+  return JSON.stringify(content?.json ?? null, null, 2);
+}
+
+function getJsonEditorApi() {
+  return window.apiCacheJsonEditor;
+}
+
 async function saveManagedBody() {
   if (!state.managerBody || !state.managerBody.editable) return;
   try {
+    const bodyText = getManagedBodyText();
     hideError();
     const data = await requestJson('cgi-bin/cache/body', {
       method: 'POST',
       body: JSON.stringify({
         id: state.managerBody.entry.id,
-        bodyText: state.managerDraft,
+        bodyText,
         expectedUpdatedAt: state.managerBody.updatedAt,
       }),
     });
