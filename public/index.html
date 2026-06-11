@@ -130,8 +130,14 @@
       </section>
 
       <section class="panel">
-        <div class="panelHeader">
-          <h2>缓存列表</h2>
+        <div class="panelHeader mainWorkspaceHeader">
+          <div>
+            <h2>缓存数据</h2>
+            <div class="workspaceTabs" role="tablist" aria-label="缓存工作区">
+              <button id="cacheListTab" class="active" type="button" role="tab" aria-selected="true">缓存列表</button>
+              <button id="requestManagerTab" type="button" role="tab" aria-selected="false">请求管理</button>
+            </div>
+          </div>
           <span id="loadingText" class="loadingText" hidden>正在刷新缓存数据...</span>
           <div class="tableActions">
             <button id="exportCacheBtn" type="button">导出</button>
@@ -156,32 +162,69 @@
           </div>
         </div>
         <div id="error" class="error" hidden></div>
-        <div id="empty" class="empty">
-          <strong>暂无匹配缓存</strong>
-          <ol>
-            <li>复制录制规则并粘贴到 Whistle Rules。</li>
-            <li>让目标接口流量经过 Whistle。</li>
-            <li>回到这里刷新缓存列表。</li>
-          </ol>
+        <div id="cacheListView">
+          <div id="empty" class="empty">
+            <strong>暂无匹配缓存</strong>
+            <ol>
+              <li>复制录制规则并粘贴到 Whistle Rules。</li>
+              <li>让目标接口流量经过 Whistle。</li>
+              <li>回到这里刷新缓存列表。</li>
+            </ol>
+          </div>
+          <div class="tableWrap">
+            <table id="cacheTable" hidden>
+              <thead>
+                <tr>
+                  <th>选择</th>
+                  <th>Method</th>
+                  <th>URL</th>
+                  <th>状态</th>
+                  <th>大小</th>
+                  <th>命中</th>
+                  <th>最近命中</th>
+                  <th>创建</th>
+                  <th>过期</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="cacheRows"></tbody>
+            </table>
+          </div>
         </div>
-        <div class="tableWrap">
-          <table id="cacheTable" hidden>
-            <thead>
-              <tr>
-                <th>选择</th>
-                <th>Method</th>
-                <th>URL</th>
-                <th>状态</th>
-                <th>大小</th>
-                <th>命中</th>
-                <th>最近命中</th>
-                <th>创建</th>
-                <th>过期</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody id="cacheRows"></tbody>
-          </table>
+        <div id="requestManagerView" class="requestManager" hidden>
+          <div class="managerToolbar">
+            <input id="managerSearchInput" type="search" placeholder="搜索 Method / URL / Content-Type">
+            <select id="managerMethodSelect" aria-label="请求管理 Method 过滤">
+              <option value="all">全部 Method</option>
+              <option value="GET">GET</option>
+              <option value="POST">POST</option>
+            </select>
+            <label class="checkFilter"><input id="managerModifiedOnly" type="checkbox"> 已修改</label>
+            <label class="checkFilter"><input id="managerEditableOnly" type="checkbox"> 仅可编辑</label>
+            <button id="managerPrevBtn" type="button">上一条</button>
+            <button id="managerNextBtn" type="button">下一条</button>
+          </div>
+          <div class="managerLayout">
+            <div id="managerRequestList" class="managerRequestList"></div>
+            <div class="managerDetail">
+              <div id="managerEntryInfo" class="managerEntryInfo"></div>
+              <div class="managerBodyHeader">
+                <div class="segmented" role="group" aria-label="响应体视图">
+                  <button id="managerPreviewModeBtn" class="active" type="button">预览</button>
+                  <button id="managerEditModeBtn" type="button">编辑</button>
+                  <button id="managerOriginalModeBtn" type="button">原始</button>
+                </div>
+                <div class="inlineActions">
+                  <button id="managerFormatJsonBtn" type="button">格式化 JSON</button>
+                  <button id="managerSaveBtn" type="button">保存修改</button>
+                  <button id="managerRestoreBtn" class="danger" type="button">恢复原始</button>
+                </div>
+              </div>
+              <textarea id="managerBodyEditor" spellcheck="false"></textarea>
+              <pre id="managerBodyPreview" class="bodyPreview"></pre>
+              <div id="managerBodyNotice" class="hint"></div>
+            </div>
+          </div>
         </div>
       </section>
 

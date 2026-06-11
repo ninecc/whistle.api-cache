@@ -13,6 +13,19 @@ const state = {
   selectedEntryIds: new Set(),
   syncTimer: undefined,
   lastSyncAt: undefined,
+  workspaceTab: 'list',
+  managerSelectedId: undefined,
+  managerBody: undefined,
+  managerOriginalBody: undefined,
+  managerMode: 'preview',
+  managerDraft: '',
+  managerDirty: false,
+  managerFilters: {
+    search: '',
+    method: 'all',
+    modifiedOnly: false,
+    editableOnly: false,
+  },
 };
 
 const diagnosticsRefreshInterval = 1000;
@@ -47,6 +60,27 @@ const elements = {
   cacheTable: document.querySelector('#cacheTable'),
   cacheRows: document.querySelector('#cacheRows'),
   empty: document.querySelector('#empty'),
+  cacheListTab: document.querySelector('#cacheListTab'),
+  requestManagerTab: document.querySelector('#requestManagerTab'),
+  cacheListView: document.querySelector('#cacheListView'),
+  requestManagerView: document.querySelector('#requestManagerView'),
+  managerSearchInput: document.querySelector('#managerSearchInput'),
+  managerMethodSelect: document.querySelector('#managerMethodSelect'),
+  managerModifiedOnly: document.querySelector('#managerModifiedOnly'),
+  managerEditableOnly: document.querySelector('#managerEditableOnly'),
+  managerPrevBtn: document.querySelector('#managerPrevBtn'),
+  managerNextBtn: document.querySelector('#managerNextBtn'),
+  managerRequestList: document.querySelector('#managerRequestList'),
+  managerEntryInfo: document.querySelector('#managerEntryInfo'),
+  managerPreviewModeBtn: document.querySelector('#managerPreviewModeBtn'),
+  managerEditModeBtn: document.querySelector('#managerEditModeBtn'),
+  managerOriginalModeBtn: document.querySelector('#managerOriginalModeBtn'),
+  managerFormatJsonBtn: document.querySelector('#managerFormatJsonBtn'),
+  managerSaveBtn: document.querySelector('#managerSaveBtn'),
+  managerRestoreBtn: document.querySelector('#managerRestoreBtn'),
+  managerBodyEditor: document.querySelector('#managerBodyEditor'),
+  managerBodyPreview: document.querySelector('#managerBodyPreview'),
+  managerBodyNotice: document.querySelector('#managerBodyNotice'),
   error: document.querySelector('#error'),
   loadingText: document.querySelector('#loadingText'),
   syncStatusText: document.querySelector('#syncStatusText'),
@@ -84,6 +118,42 @@ elements.matchTestBtn.addEventListener('click', testMatch);
 elements.matchInput.addEventListener('input', updateRule);
 elements.searchInput.addEventListener('input', renderEntries);
 elements.filterSelect.addEventListener('change', renderEntries);
+elements.cacheListTab.addEventListener('click', () => switchWorkspaceTab('list'));
+elements.requestManagerTab.addEventListener('click', () => switchWorkspaceTab('manager'));
+elements.managerSearchInput.addEventListener('input', () => {
+  state.managerFilters.search = elements.managerSearchInput.value;
+  renderRequestManager();
+});
+elements.managerMethodSelect.addEventListener('change', () => {
+  state.managerFilters.method = elements.managerMethodSelect.value;
+  renderRequestManager();
+});
+elements.managerModifiedOnly.addEventListener('change', () => {
+  state.managerFilters.modifiedOnly = elements.managerModifiedOnly.checked;
+  renderRequestManager();
+});
+elements.managerEditableOnly.addEventListener('change', () => {
+  state.managerFilters.editableOnly = elements.managerEditableOnly.checked;
+  renderRequestManager();
+});
+elements.managerPrevBtn.addEventListener('click', () => selectAdjacentManagedEntry(-1));
+elements.managerNextBtn.addEventListener('click', () => selectAdjacentManagedEntry(1));
+elements.managerPreviewModeBtn.addEventListener('click', () => setManagerMode('preview'));
+elements.managerEditModeBtn.addEventListener('click', () => setManagerMode('edit'));
+elements.managerOriginalModeBtn.addEventListener('click', () => setManagerMode('original'));
+elements.managerFormatJsonBtn.addEventListener('click', formatManagedJson);
+elements.managerSaveBtn.addEventListener('click', saveManagedBody);
+elements.managerRestoreBtn.addEventListener('click', restoreManagedBody);
+elements.managerBodyEditor.addEventListener('input', () => {
+  state.managerDraft = elements.managerBodyEditor.value;
+  state.managerDirty = state.managerBody && state.managerDraft !== state.managerBody.bodyText;
+  renderManagerActions();
+});
+window.addEventListener('beforeunload', (event) => {
+  if (!state.managerDirty) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
 elements.eventFilterSelect.addEventListener('change', () => {
   state.eventFilter = elements.eventFilterSelect.value;
   renderEvents();
@@ -143,6 +213,7 @@ function applyState(data, options = {}) {
   renderSyncStatus();
   renderPolicy();
   renderEntries();
+  if (state.workspaceTab === 'manager') renderRequestManager();
 }
 
 function startDiagnosticsSync() {
@@ -258,9 +329,232 @@ function renderEntries() {
   }
 }
 
-function openEntryManager(entryId) {
+async function switchWorkspaceTab(tab) {
+  if (tab === state.workspaceTab) return;
+  if (!(await confirmDiscardManagedChanges())) return;
+  state.workspaceTab = tab;
+  elements.cacheListTab.classList.toggle('active', tab === 'list');
+  elements.cacheListTab.setAttribute('aria-selected', String(tab === 'list'));
+  elements.requestManagerTab.classList.toggle('active', tab === 'manager');
+  elements.requestManagerTab.setAttribute('aria-selected', String(tab === 'manager'));
+  elements.cacheListView.hidden = tab !== 'list';
+  elements.requestManagerView.hidden = tab !== 'manager';
+  if (tab === 'manager') {
+    if (!state.managerSelectedId && state.entries[0]) state.managerSelectedId = state.entries[0].id;
+    await loadManagedBody(state.managerSelectedId);
+  }
+}
+
+async function openEntryManager(entryId) {
+  if (!(await confirmDiscardManagedChanges())) return;
   state.managerSelectedId = entryId;
-  showToast('请求管理即将打开该缓存。');
+  await switchWorkspaceTab('manager');
+  await loadManagedBody(entryId);
+}
+
+async function confirmDiscardManagedChanges() {
+  if (!state.managerDirty) return true;
+  return confirm('当前响应体有未保存修改，确定丢弃并继续吗？');
+}
+
+function getManagerEntries() {
+  const search = state.managerFilters.search.trim().toLowerCase();
+  return state.entries.filter((entry) => {
+    if (state.managerFilters.method !== 'all' && entry.method !== state.managerFilters.method) return false;
+    if (state.managerFilters.modifiedOnly && entry.activeBodyKind !== 'editable') return false;
+    if (state.managerFilters.editableOnly && !isEditableEntry(entry)) return false;
+    if (!search) return true;
+    return [entry.method, entry.url, entry.contentType].join(' ').toLowerCase().includes(search);
+  });
+}
+
+function renderRequestManager() {
+  const entries = getManagerEntries();
+  elements.managerRequestList.innerHTML = entries.length ? entries.map((entry) => {
+    const parsed = parseUrl(entry.url);
+    const selected = entry.id === state.managerSelectedId;
+    return `
+      <button type="button" class="managerRequestItem ${selected ? 'active' : ''}" data-id="${escapeHtml(entry.id)}">
+        <strong>${escapeHtml(entry.method)} ${escapeHtml(parsed.host)}</strong>
+        <span>${escapeHtml(parsed.path)}</span>
+        <small>${escapeHtml(entry.contentType || '-')} · ${formatBytes(entry.bodySize || 0)}</small>
+        <span class="managerBadges">
+          ${entry.activeBodyKind === 'editable' ? '<em>已修改</em>' : '<em>原始</em>'}
+          ${new Date(entry.expiresAt).getTime() <= Date.now() ? '<em>已过期</em>' : ''}
+          ${entry.enabled ? '' : '<em>已禁用</em>'}
+        </span>
+      </button>
+    `;
+  }).join('') : '<div class="empty compact">没有符合条件的缓存请求。</div>';
+
+  for (const item of elements.managerRequestList.querySelectorAll('[data-id]')) {
+    item.addEventListener('click', () => selectManagedEntry(item.dataset.id));
+  }
+  renderManagedEntryInfo();
+  renderManagerActions();
+}
+
+function isEditableEntry(entry) {
+  const type = String(entry.contentType || '').toLowerCase().split(';')[0].trim();
+  return type === 'application/json' || type.endsWith('+json') || type.startsWith('text/') ||
+    type === 'application/javascript' || type === 'application/xml' || type === 'application/x-www-form-urlencoded';
+}
+
+async function selectManagedEntry(entryId) {
+  if (!(await confirmDiscardManagedChanges())) return;
+  state.managerSelectedId = entryId;
+  await loadManagedBody(entryId);
+}
+
+async function loadManagedBody(entryId, kind = 'active') {
+  if (!entryId) {
+    state.managerBody = undefined;
+    state.managerOriginalBody = undefined;
+    state.managerDraft = '';
+    state.managerDirty = false;
+    renderRequestManager();
+    renderManagedBody();
+    return;
+  }
+  try {
+    hideError();
+    const payload = await requestJson(`cgi-bin/cache/body?id=${encodeURIComponent(entryId)}&kind=${kind}`);
+    state.managerBody = kind === 'active' ? payload : state.managerBody;
+    state.managerOriginalBody = kind === 'original' ? payload : state.managerOriginalBody;
+    if (kind === 'active') {
+      state.managerOriginalBody = undefined;
+      state.managerDraft = payload.bodyText || '';
+      state.managerDirty = false;
+    }
+    renderRequestManager();
+    renderManagedBody();
+  } catch (error) {
+    showError(error);
+  }
+}
+
+async function setManagerMode(mode) {
+  state.managerMode = mode;
+  if (mode === 'original' && state.managerSelectedId && !state.managerOriginalBody) {
+    await loadManagedBody(state.managerSelectedId, 'original');
+  }
+  renderManagedBody();
+}
+
+function renderManagedBody() {
+  const active = state.managerBody;
+  const original = state.managerOriginalBody;
+  const payload = state.managerMode === 'original' ? original : active;
+  elements.managerPreviewModeBtn.classList.toggle('active', state.managerMode === 'preview');
+  elements.managerEditModeBtn.classList.toggle('active', state.managerMode === 'edit');
+  elements.managerOriginalModeBtn.classList.toggle('active', state.managerMode === 'original');
+  elements.managerBodyEditor.hidden = state.managerMode !== 'edit';
+  elements.managerBodyPreview.hidden = state.managerMode === 'edit';
+
+  if (!payload) {
+    elements.managerBodyEditor.value = '';
+    elements.managerBodyPreview.textContent = '请选择一条缓存请求。';
+    elements.managerBodyNotice.textContent = '';
+    renderManagerActions();
+    return;
+  }
+
+  const text = payload.encoding === 'utf8' ? (state.managerMode === 'edit' ? state.managerDraft : payload.bodyText) : payload.bodyBase64;
+  elements.managerBodyEditor.value = state.managerDraft;
+  elements.managerBodyPreview.textContent = text || '';
+  elements.managerBodyNotice.textContent = payload.editable
+    ? `${payload.kind === 'original' ? '原始响应只读' : '当前响应'} · ${formatBytes(payload.size || 0)} · ${shortHash(payload.hash || '')}`
+    : '当前响应无法安全按 UTF-8 文本编辑，已显示 base64 内容。';
+  renderManagerActions();
+}
+
+function renderManagedEntryInfo() {
+  const entry = state.entries.find((item) => item.id === state.managerSelectedId);
+  if (!entry) {
+    elements.managerEntryInfo.innerHTML = '<div class="empty compact">请选择一条缓存请求。</div>';
+    return;
+  }
+  const expiry = getExpiryState(entry);
+  elements.managerEntryInfo.innerHTML = `
+    <dl class="detailGrid">
+      <div><dt>Method</dt><dd>${escapeHtml(entry.method)}</dd></div>
+      <div><dt>URL</dt><dd>${escapeHtml(entry.url)}</dd></div>
+      <div><dt>状态码</dt><dd>${escapeHtml(String(entry.statusCode))}</dd></div>
+      <div><dt>Content-Type</dt><dd>${escapeHtml(entry.contentType || '-')}</dd></div>
+      <div><dt>回放状态</dt><dd>${entry.enabled ? escapeHtml(expiry.label) : '已禁用'}</dd></div>
+      <div><dt>响应体状态</dt><dd>${entry.activeBodyKind === 'editable' ? '已修改响应' : '原始响应'}</dd></div>
+    </dl>
+  `;
+}
+
+function renderManagerActions() {
+  const active = state.managerBody;
+  elements.managerSaveBtn.disabled = !active || !active.editable || !state.managerDirty;
+  elements.managerFormatJsonBtn.disabled = !active || !active.editable || state.managerMode !== 'edit';
+  elements.managerRestoreBtn.disabled = !active || active.entry.activeBodyKind !== 'editable';
+  const entries = getManagerEntries();
+  const index = entries.findIndex((entry) => entry.id === state.managerSelectedId);
+  elements.managerPrevBtn.disabled = index <= 0;
+  elements.managerNextBtn.disabled = index < 0 || index >= entries.length - 1;
+}
+
+function formatManagedJson() {
+  try {
+    state.managerDraft = JSON.stringify(JSON.parse(elements.managerBodyEditor.value), null, 2);
+    elements.managerBodyEditor.value = state.managerDraft;
+    state.managerDirty = state.managerBody && state.managerDraft !== state.managerBody.bodyText;
+    renderManagerActions();
+  } catch {
+    showToast('JSON 格式错误，无法格式化。');
+  }
+}
+
+async function saveManagedBody() {
+  if (!state.managerBody || !state.managerBody.editable) return;
+  try {
+    hideError();
+    const data = await requestJson('cgi-bin/cache/body', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: state.managerBody.entry.id,
+        bodyText: state.managerDraft,
+        expectedUpdatedAt: state.managerBody.updatedAt,
+      }),
+    });
+    state.entries = state.entries.map((entry) => entry.id === data.entry.id ? data.entry : entry);
+    state.managerDirty = false;
+    showToast('响应体修改已保存。');
+    await loadManagedBody(data.entry.id, 'active');
+    renderEntries();
+  } catch (error) {
+    showError(error);
+  }
+}
+
+async function restoreManagedBody() {
+  if (!state.managerBody || !confirm('确定恢复为原始录制响应吗？')) return;
+  try {
+    hideError();
+    const data = await requestJson('cgi-bin/cache/body/restore-original', {
+      method: 'POST',
+      body: JSON.stringify({ id: state.managerBody.entry.id }),
+    });
+    state.entries = state.entries.map((entry) => entry.id === data.entry.id ? data.entry : entry);
+    state.managerOriginalBody = undefined;
+    state.managerDirty = false;
+    showToast('已恢复原始响应。');
+    await loadManagedBody(data.entry.id, 'active');
+    renderEntries();
+  } catch (error) {
+    showError(error);
+  }
+}
+
+async function selectAdjacentManagedEntry(offset) {
+  const entries = getManagerEntries();
+  const index = entries.findIndex((entry) => entry.id === state.managerSelectedId);
+  const next = entries[index + offset];
+  if (next) await selectManagedEntry(next.id);
 }
 
 function getEntryBodyHint(entry) {

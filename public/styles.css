@@ -5,6 +5,147 @@
   background: #f6f7f9;
 }
 
+.mainWorkspaceHeader {
+  align-items: flex-start;
+}
+
+.workspaceTabs {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.workspaceTabs button.active {
+  background: #20242a;
+  border-color: #20242a;
+  color: #ffffff;
+}
+
+.requestManager {
+  display: grid;
+  gap: 12px;
+}
+
+.managerToolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 140px auto auto auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.checkFilter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #475467;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.checkFilter input {
+  width: auto;
+}
+
+.managerLayout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.38fr) minmax(0, 1fr);
+  gap: 12px;
+  min-height: 560px;
+}
+
+.managerRequestList {
+  overflow: auto;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 8px;
+}
+
+.managerRequestItem {
+  display: grid;
+  width: 100%;
+  gap: 5px;
+  min-height: 88px;
+  margin-bottom: 8px;
+  padding: 10px;
+  text-align: left;
+  white-space: normal;
+}
+
+.managerRequestItem.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.managerRequestItem span,
+.managerRequestItem small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.managerBadges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.managerBadges em {
+  border-radius: 999px;
+  background: #eef2f6;
+  color: #475467;
+  padding: 3px 6px;
+  font-style: normal;
+  font-size: 11px;
+}
+
+.managerDetail {
+  display: grid;
+  grid-template-rows: auto auto minmax(300px, 1fr) auto;
+  gap: 10px;
+  min-width: 0;
+}
+
+.managerBodyHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#managerBodyEditor,
+.bodyPreview {
+  min-height: 360px;
+  border: 1px solid #c8d0da;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #e5e7eb;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  padding: 12px;
+  overflow: auto;
+}
+
+.bodyPreview {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.requestManager[hidden],
+#managerBodyEditor[hidden],
+.bodyPreview[hidden] {
+  display: none;
+}
+
+@media (max-width: 960px) {
+  .managerToolbar,
+  .managerLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
 *,
 *::before,
 *::after {
