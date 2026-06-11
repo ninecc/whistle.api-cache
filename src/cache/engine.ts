@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import { TextDecoder } from 'node:util';
 import { createCacheKey, hashRequestBody, normalizeUrl } from './key';
 import { isCacheableResponse, sanitizeReplayHeaders } from './policy';
 import { CacheStore, hashBody } from './store';
-import { CacheEntry, CacheProfile, CacheRecordInput } from './types';
+import { CacheBodyKind, CacheEntry, CacheProfile, CacheRecordInput } from './types';
 import { getHeaderValue, normalizeHeaderMap } from '../shared/headers';
 import { normalizeMethod } from '../shared/requestContext';
 
@@ -67,6 +68,24 @@ export interface CacheExportBundle {
   version: 1;
   exportedAt: string;
   entries: CacheExportEntry[];
+}
+
+export interface ReadBodyInput {
+  id: string;
+  kind?: CacheBodyKind;
+}
+
+export interface ReadBodyResult {
+  entry: CacheEntry;
+  kind: CacheBodyKind;
+  contentType: string;
+  encoding: 'utf8' | 'base64';
+  editable: boolean;
+  bodyText: string;
+  bodyBase64: string;
+  size: number;
+  hash: string;
+  updatedAt: string;
 }
 
 export class CacheEngine {
@@ -307,6 +326,34 @@ export class CacheEngine {
     return this.store.restoreOriginalBody(id);
   }
 
+  async readBody(input: ReadBodyInput): Promise<ReadBodyResult> {
+    const kind = input.kind || 'active';
+    const entry = (await this.store.listEntries()).find((item) => item.id === input.id);
+    if (!entry) throw new Error(`cache entry not found: ${input.id}`);
+
+    const body = await this.store.readBody(entry, kind);
+    const text = decodeEditableText(body, entry.contentType);
+    const hash = kind === 'original'
+      ? (entry.originalBodyHash || entry.bodyHash)
+      : (entry.activeBodyHash || entry.bodyHash);
+    const size = kind === 'original'
+      ? (entry.originalBodySize || entry.bodySize)
+      : (entry.activeBodySize || entry.bodySize);
+
+    return {
+      entry,
+      kind,
+      contentType: entry.contentType || '',
+      encoding: text === undefined ? 'base64' : 'utf8',
+      editable: text !== undefined,
+      bodyText: text || '',
+      bodyBase64: text === undefined ? body.toString('base64') : '',
+      size,
+      hash,
+      updatedAt: entry.updatedAt || entry.createdAt,
+    };
+  }
+
   async deleteBatch(input: DeleteBatchInput): Promise<number> {
     const entries = await this.store.listEntries();
     const ids = new Set(getBatchDeleteIds(input, entries));
@@ -358,6 +405,25 @@ export class CacheEngine {
   async clearAll(): Promise<number> {
     return this.store.clearAll();
   }
+}
+
+function decodeEditableText(body: Buffer, contentType: string): string | undefined {
+  if (!isEditableContentType(contentType)) return undefined;
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(body);
+  } catch {
+    return undefined;
+  }
+}
+
+function isEditableContentType(contentType: string): boolean {
+  const normalized = contentType.toLowerCase().split(';')[0].trim();
+  return normalized === 'application/json' ||
+    normalized.endsWith('+json') ||
+    normalized === 'application/javascript' ||
+    normalized === 'application/xml' ||
+    normalized === 'application/x-www-form-urlencoded' ||
+    normalized.startsWith('text/');
 }
 
 function createMatchMiss(reason: string, candidates: CacheEntry[], reasons: MatchReason[]): MatchResult {

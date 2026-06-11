@@ -45,6 +45,64 @@ test('records cacheable responses and replays them by key', async () => {
   }
 });
 
+test('reads active and original cache body payloads for UI editing', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-read-body-'));
+  const engine = new CacheEngine(new FileCacheStore(root), profile);
+
+  await engine.record({
+    method: 'GET',
+    url: 'https://api.example.com/users',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json; charset=utf-8' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  const [entry] = await engine.list();
+  await engine.updateActiveBody({
+    id: entry.id,
+    body: Buffer.from('{"ok":false}'),
+    expectedUpdatedAt: entry.updatedAt,
+  });
+
+  const active = await engine.readBody({ id: entry.id, kind: 'active' });
+  const original = await engine.readBody({ id: entry.id, kind: 'original' });
+
+  assert.equal(active.kind, 'active');
+  assert.equal(active.editable, true);
+  assert.equal(active.encoding, 'utf8');
+  assert.equal(active.bodyText, '{"ok":false}');
+  assert.equal(active.bodyBase64, '');
+  assert.equal(active.entry.activeBodyKind, 'editable');
+  assert.equal(original.kind, 'original');
+  assert.equal(original.bodyText, '{"ok":true}');
+});
+
+test('returns base64 payload for non-text cache bodies', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-binary-body-'));
+  const engine = new CacheEngine(new FileCacheStore(root), {
+    ...profile,
+    cacheableContentTypes: ['application/octet-stream'],
+  });
+
+  await engine.record({
+    method: 'GET',
+    url: 'https://api.example.com/file',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/octet-stream' },
+    body: Buffer.from(new Uint8Array([0, 1, 2, 3])),
+  });
+
+  const [entry] = await engine.list();
+  const payload = await engine.readBody({ id: entry.id, kind: 'active' });
+
+  assert.equal(payload.editable, false);
+  assert.equal(payload.encoding, 'base64');
+  assert.equal(payload.bodyText, '');
+  assert.equal(payload.bodyBase64, Buffer.from(new Uint8Array([0, 1, 2, 3])).toString('base64'));
+});
+
 test('normalizes lowercase methods for engine replay matching', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-engine-lowercase-method-'));
   const engine = new CacheEngine(new FileCacheStore(root), profile);
