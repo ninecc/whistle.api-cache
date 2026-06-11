@@ -20,10 +20,12 @@ import {
   filterEventsAfter,
   parseIgnoredQueryNames,
   parseEnabledBody,
+  parseReadBodyQuery,
   parseUpdateBodyBody,
   parseUpdateTtlBody,
 } from './requestParsers';
 import { readJsonBody } from './bodyParsers';
+import { toHttpError } from './httpError';
 import { parseRequestContext } from '../shared/requestContext';
 
 const publicDir = resolvePublicDir();
@@ -62,6 +64,10 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
 
       if (method === 'GET' && pathname === '/cgi-bin/cache') {
         return sendJson(res, { entries: await (await getEngine(options)).list() });
+      }
+
+      if (method === 'GET' && pathname === '/cgi-bin/cache/body') {
+        return sendJson(res, await (await getEngine(options)).readBody(parseReadBodyQuery(url.searchParams)));
       }
 
       if (method === 'GET' && pathname === '/cgi-bin/cache/export') {
@@ -132,9 +138,10 @@ export default function setupUiServer(server: any, options?: Record<string, unkn
 
       return serveStatic(res, pathname === '/' ? '/index.html' : pathname);
     } catch (error) {
+      const httpError = toHttpError(error);
       console.error('[whistle.cache] ui error:', error);
-      res.statusCode = 500;
-      sendJson(res, { error: error instanceof Error ? error.message : String(error) });
+      res.statusCode = httpError.statusCode;
+      sendJson(res, { error: httpError.message, code: httpError.code });
     }
   });
 }

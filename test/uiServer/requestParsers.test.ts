@@ -5,6 +5,7 @@ import {
   parseDeleteBody,
   parseDeleteBatchBody,
   parseImportBody,
+  parseReadBodyQuery,
   filterEventsAfter,
   parseEnabledBody,
   parseEventsAfter,
@@ -132,6 +133,23 @@ test('normalizes import body with default values and fallback for invalid input'
   assert.equal(withEntries.version, 2);
   assert.equal(withEntries.exportedAt, 't');
   assert.deepEqual(withEntries.entries, [{ bodyBase64: 'a2V5', id: 'entry-1' }]);
+});
+
+test('parses cache body read query with active fallback', () => {
+  assert.deepEqual(parseReadBodyQuery(new URLSearchParams('id=entry-1&kind=original')), {
+    id: 'entry-1',
+    kind: 'original',
+  });
+
+  assert.deepEqual(parseReadBodyQuery(new URLSearchParams('id=entry-2&kind=bad')), {
+    id: 'entry-2',
+    kind: 'active',
+  });
+
+  assert.deepEqual(parseReadBodyQuery(new URLSearchParams('')), {
+    id: '',
+    kind: 'active',
+  });
 });
 
 test('filters events by after id with invalid input fallback', () => {

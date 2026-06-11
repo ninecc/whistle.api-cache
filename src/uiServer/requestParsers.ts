@@ -1,4 +1,5 @@
 import { CacheExportBundle, CacheExportEntry, DeleteBatchInput, TtlOperation, UpdateTtlInput } from '../cache/engine';
+import { CacheBodyKind } from '../cache/types';
 import { CacheEvent } from '../shared/state';
 import { normalizeMethod } from '../shared/requestContext';
 
@@ -86,6 +87,11 @@ export interface UpdateBodyRequestBody {
   expectedUpdatedAt?: string;
 }
 
+export interface ReadBodyQuery {
+  id: string;
+  kind: CacheBodyKind;
+}
+
 /**
  * 规范化缓存启用状态切换参数。
  */
@@ -114,6 +120,14 @@ export function parseUpdateBodyBody(body: Record<string, unknown>): UpdateBodyRe
     id: String(body.id || ''),
     body: bodyBuffer,
     expectedUpdatedAt: typeof body.expectedUpdatedAt === 'string' ? body.expectedUpdatedAt : undefined,
+  };
+}
+
+export function parseReadBodyQuery(searchParams: URLSearchParams): ReadBodyQuery {
+  const kind = searchParams.get('kind') === 'original' ? 'original' : 'active';
+  return {
+    id: String(searchParams.get('id') || ''),
+    kind,
   };
 }
 

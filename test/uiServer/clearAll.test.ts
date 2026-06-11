@@ -273,6 +273,78 @@ test('ui server updates cache entry TTL', async () => {
   assert.equal((await (await getEngine(options)).list())[0].expiresAt, '9999-12-31T23:59:59.999Z');
 });
 
+test('ui server reads active and original cache body payloads', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-read-body-'));
+  const options = { baseDir: root };
+  await (await getEngine(options)).clearAll();
+  await (await getEngine(options)).record({
+    method: 'GET',
+    url: 'https://api.example.com/users',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  const [entry] = await (await getEngine(options)).list();
+  await (await getEngine(options)).updateActiveBody({
+    id: entry.id,
+    body: Buffer.from('{"ok":false}'),
+    expectedUpdatedAt: entry.updatedAt,
+  });
+
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupUiServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const activeResponse = createJsonResponse();
+  await handler?.({ method: 'GET', url: `/cgi-bin/cache/body?id=${entry.id}&kind=active` }, activeResponse);
+  const activeBody = activeResponse.body as { bodyText: string; kind: string };
+  assert.equal(activeBody.bodyText, '{"ok":false}');
+  assert.equal(activeBody.kind, 'active');
+
+  const originalResponse = createJsonResponse();
+  await handler?.({ method: 'GET', url: `/cgi-bin/cache/body?id=${entry.id}&kind=original` }, originalResponse);
+  const originalBody = originalResponse.body as { bodyText: string; kind: string };
+  assert.equal(originalBody.bodyText, '{"ok":true}');
+  assert.equal(originalBody.kind, 'original');
+});
+
+test('ui server maps cache body update conflicts to 409', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-body-conflict-'));
+  const options = { baseDir: root };
+  await (await getEngine(options)).clearAll();
+  await (await getEngine(options)).record({
+    method: 'GET',
+    url: 'https://api.example.com/users',
+    requestHeaders: {},
+    statusCode: 200,
+    responseHeaders: { 'content-type': 'application/json' },
+    body: Buffer.from('{"ok":true}'),
+  });
+
+  const [entry] = await (await getEngine(options)).list();
+  let handler: ((req: any, res: any) => void | Promise<void>) | undefined;
+  setupUiServer({
+    on(event: string, nextHandler: typeof handler) {
+      if (event === 'request') handler = nextHandler;
+    },
+  }, options);
+
+  const response = createJsonResponse();
+  await handler?.(createJsonRequest('/cgi-bin/cache/body', {
+    id: entry.id,
+    bodyText: '{"ok":false}',
+    expectedUpdatedAt: '2026-01-01T00:00:00.000Z',
+  }), response);
+
+  assert.equal(response.statusCode, 409);
+  assert.equal((response.body as { code: string }).code, 'CACHE_BODY_CONFLICT');
+});
+
 test('ui server exports and imports cache bundles', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-ui-import-export-'));
   const options = { baseDir: root };
