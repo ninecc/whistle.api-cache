@@ -194,6 +194,7 @@ async function refresh(options = {}) {
 function applyState(data, options = {}) {
   state.entries = data.entries || [];
   state.selectedEntryIds = new Set(Array.from(state.selectedEntryIds).filter((id) => state.entries.some((entry) => entry.id === id)));
+  reconcileManagedSelection();
   state.events = data.events || [];
   state.contentTypePolicy = data.contentTypePolicy || {};
   state.replayHeaderPolicy = data.replayHeaderPolicy || {};
@@ -213,7 +214,10 @@ function applyState(data, options = {}) {
   renderSyncStatus();
   renderPolicy();
   renderEntries();
-  if (state.workspaceTab === 'manager') renderRequestManager();
+  if (state.workspaceTab === 'manager') {
+    renderRequestManager();
+    renderManagedBody();
+  }
 }
 
 function startDiagnosticsSync() {
@@ -416,6 +420,12 @@ async function loadManagedBody(entryId, kind = 'active') {
     renderManagedBody();
     return;
   }
+  if (!hasEntry(entryId)) {
+    clearManagedSelection();
+    renderRequestManager();
+    renderManagedBody();
+    return;
+  }
   try {
     hideError();
     const payload = await requestJson(`cgi-bin/cache/body?id=${encodeURIComponent(entryId)}&kind=${kind}`);
@@ -431,6 +441,38 @@ async function loadManagedBody(entryId, kind = 'active') {
   } catch (error) {
     showError(error);
   }
+}
+
+function reconcileManagedSelection() {
+  if (!state.managerSelectedId) {
+    if (state.managerBody || state.managerOriginalBody || state.managerDraft || state.managerDirty) {
+      clearManagedSelection();
+    }
+    return;
+  }
+  if (!hasEntry(state.managerSelectedId)) {
+    clearManagedSelection();
+    return;
+  }
+  if (state.managerBody && state.managerBody.entry.id !== state.managerSelectedId) {
+    state.managerBody = undefined;
+    state.managerOriginalBody = undefined;
+    state.managerDraft = '';
+    state.managerDirty = false;
+  }
+}
+
+function clearManagedSelection() {
+  state.managerSelectedId = undefined;
+  state.managerBody = undefined;
+  state.managerOriginalBody = undefined;
+  state.managerDraft = '';
+  state.managerDirty = false;
+  if (state.managerMode === 'original') state.managerMode = 'preview';
+}
+
+function hasEntry(entryId) {
+  return Boolean(entryId && state.entries.some((entry) => entry.id === entryId));
 }
 
 async function setManagerMode(mode) {
