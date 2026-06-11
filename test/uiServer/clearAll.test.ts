@@ -22,6 +22,10 @@ test('ui status panel presents proxy state as a readable overview', async () => 
   assert.ok(/openEntryManager/.test(app));
   assert.ok(/id="cacheListView"/.test(html));
   assert.ok(/id="requestManagerView"/.test(html));
+  assert.ok(/缓存管理/.test(html));
+  assert.ok(!/请求管理/.test(html));
+  assert.ok(/在缓存管理中打开/.test(app));
+  assert.ok(/缓存管理 Method 过滤/.test(html));
   assert.ok(/id="managerBodyEditor"/.test(html));
   assert.ok(/id="managerJsonEditor"/.test(html));
   assert.ok(/vendor\/vanilla-jsoneditor\/standalone\.js/.test(html));

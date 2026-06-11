@@ -1451,7 +1451,7 @@ function renderEntryDetails(entry) {
       </div>
       <div class="headersBlock">
         <strong>响应数据</strong>
-        <button type="button" data-action="manage" data-id="${escapeHtml(entry.id)}">在请求管理中打开</button>
+        <button type="button" data-action="manage" data-id="${escapeHtml(entry.id)}">在缓存管理中打开</button>
       </div>
     </div>
   `;
