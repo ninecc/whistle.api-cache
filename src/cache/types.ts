@@ -48,3 +48,5 @@ export interface CacheRecordInput {
   responseHeaders: HeaderMap;
   body: Buffer;
 }
+
+export type CacheBodyKind = 'active' | 'original';

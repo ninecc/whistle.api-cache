@@ -128,6 +128,18 @@ test('updates active editable body without losing original body', async () => {
   assert.equal((await store.readBody(restored)).toString(), 'original');
 });
 
+test('reads active and original bodies separately from file store', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-read-body-kind-'));
+  const store = new FileCacheStore(root);
+
+  await store.putEntry(createEntry('entry-1', 'GET https://api.example.com/edit'), Buffer.from('original'));
+  const edited = await store.updateActiveBody('entry-1', Buffer.from('edited'));
+
+  assert.equal((await store.readBody(edited)).toString(), 'edited');
+  assert.equal((await store.readBody(edited, 'active')).toString(), 'edited');
+  assert.equal((await store.readBody(edited, 'original')).toString(), 'original');
+});
+
 function createEntry(id: string, key: string): CacheEntry {
   const url = key.replace(/^GET /, '');
   return {

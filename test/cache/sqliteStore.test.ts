@@ -56,6 +56,20 @@ test('sqlite store restores original body state', async () => {
   store.close();
 });
 
+test('sqlite store reads active and original bodies separately', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'whistle-cache-sqlite-read-body-kind-'));
+  const store = new SqliteCacheStore(root);
+  const entry = createEntry('entry-1', 'GET https://api.example.com/users');
+
+  await store.putEntry(entry, Buffer.from('original'));
+  const edited = await store.updateActiveBody('entry-1', Buffer.from('edited'));
+
+  assert.equal((await store.readBody(edited)).toString(), 'edited');
+  assert.equal((await store.readBody(edited, 'active')).toString(), 'edited');
+  assert.equal((await store.readBody(edited, 'original')).toString(), 'original');
+  store.close();
+});
+
 test('sqlite store migrates legacy cache-index to sqlite', async () => {
   const root = await mkdtemp(join(tmpdir(), 'whistle-cache-sqlite-migrate-'));
   const entry = createEntry('entry-1', 'GET https://api.example.com/users');

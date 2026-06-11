@@ -2,7 +2,7 @@ import { mkdir } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BodyObjectStore, CacheStore } from './store';
-import { CacheEntry } from './types';
+import { CacheBodyKind, CacheEntry } from './types';
 
 interface BetterSqliteDatabase {
   exec(sql: string): void;
@@ -81,8 +81,11 @@ export class SqliteCacheStore implements CacheStore {
     return row ? rowToEntry(row) : undefined;
   }
 
-  async readBody(entry: CacheEntry): Promise<Buffer> {
-    return this.bodyObjects.read(entry.activeBodyKey || entry.originalBodyKey || `${entry.bodyHash}.body`);
+  async readBody(entry: CacheEntry, kind: CacheBodyKind = 'active'): Promise<Buffer> {
+    const key = kind === 'original'
+      ? (entry.originalBodyKey || legacyBodyKey(entry.originalBodyHash || entry.bodyHash))
+      : (entry.activeBodyKey || entry.originalBodyKey || legacyBodyKey(entry.bodyHash));
+    return this.bodyObjects.read(key);
   }
 
   async putEntry(entry: CacheEntry, body: Buffer): Promise<void> {

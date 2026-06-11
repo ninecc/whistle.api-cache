@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, rm, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve, sep } from 'node:path';
-import { CacheEntry } from './types';
+import { CacheBodyKind, CacheEntry } from './types';
 
 interface CacheIndex {
   entries: CacheEntry[];
@@ -10,7 +10,7 @@ interface CacheIndex {
 export interface CacheStore {
   listEntries(): Promise<CacheEntry[]>;
   getEntryByKey(profileId: string, key: string): Promise<CacheEntry | undefined>;
-  readBody(entry: CacheEntry): Promise<Buffer>;
+  readBody(entry: CacheEntry, kind?: CacheBodyKind): Promise<Buffer>;
   putEntry(entry: CacheEntry, body: Buffer): Promise<void>;
   updateActiveBody(id: string, body: Buffer, options?: { expectedUpdatedAt?: string }): Promise<CacheEntry>;
   restoreOriginalBody(id: string): Promise<CacheEntry>;
@@ -123,8 +123,8 @@ export class FileCacheStore {
     return index.entries.find((entry) => entry.profileId === profileId && entry.key === key && entry.enabled);
   }
 
-  async readBody(entry: CacheEntry): Promise<Buffer> {
-    return this.bodyObjects.read(getActiveBodyKey(entry));
+  async readBody(entry: CacheEntry, kind: CacheBodyKind = 'active'): Promise<Buffer> {
+    return this.bodyObjects.read(getBodyKey(entry, kind));
   }
 
   async putEntry(entry: CacheEntry, body: Buffer): Promise<void> {
@@ -355,6 +355,10 @@ function normalizeStoredEntry(entry: CacheEntry): CacheEntry {
 
 function getActiveBodyKey(entry: CacheEntry): string {
   return entry.activeBodyKey || getOriginalBodyKey(entry);
+}
+
+function getBodyKey(entry: CacheEntry, kind: CacheBodyKind): string {
+  return kind === 'original' ? getOriginalBodyKey(entry) : getActiveBodyKey(entry);
 }
 
 function getOriginalBodyKey(entry: CacheEntry): string {
