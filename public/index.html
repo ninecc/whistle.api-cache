@@ -255,9 +255,9 @@
     </main>
 
     <script type="module">
-      import { createJSONEditor, toTextContent } from './vendor/vanilla-jsoneditor/standalone.js';
+      import { createJSONEditor, stringifyJSONPath, toTextContent } from './vendor/vanilla-jsoneditor/standalone.js';
 
-      window.apiCacheJsonEditor = { createJSONEditor, toTextContent };
+      window.apiCacheJsonEditor = { createJSONEditor, stringifyJSONPath, toTextContent };
       window.dispatchEvent(new Event('api-cache-jsoneditor-ready'));
     </script>
     <script src="app.js"></script>

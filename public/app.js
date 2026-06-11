@@ -615,6 +615,7 @@ function initManagedJsonEditor() {
       navigationBar: true,
       statusBar: true,
       askToFormat: true,
+      onRenderContextMenu: renderManagedJsonContextMenu,
       onChange: (content) => {
         if (state.managerJsonEditorSuppressChange) return;
         state.managerJsonEditorContent = content;
@@ -658,6 +659,7 @@ function setManagedJsonEditorContent(content, options = {}) {
     navigationBar: true,
     statusBar: true,
     askToFormat: true,
+    onRenderContextMenu: renderManagedJsonContextMenu,
   });
   state.managerJsonEditorSuppressChange = false;
 }
@@ -691,6 +693,78 @@ function contentToText(content) {
 
 function getJsonEditorApi() {
   return window.apiCacheJsonEditor;
+}
+
+function renderManagedJsonContextMenu(items, context) {
+  const path = getManagedJsonSelectionPath(context.selection);
+  if (!path) return items;
+  return [
+    ...items,
+    { type: 'separator' },
+    {
+      type: 'button',
+      text: '复制子数据',
+      title: '复制当前 JSON 节点的值',
+      onClick: () => copyManagedJsonSubtree(path),
+    },
+    {
+      type: 'button',
+      text: '复制路径',
+      title: '复制当前 JSON 节点路径',
+      onClick: () => copyManagedJsonPath(path),
+    },
+  ];
+}
+
+function getManagedJsonSelectionPath(selection) {
+  if (!selection) return undefined;
+  if (Array.isArray(selection.path)) return selection.path;
+  if (Array.isArray(selection.focusPath)) return selection.focusPath;
+  if (Array.isArray(selection.anchorPath)) return selection.anchorPath;
+  return undefined;
+}
+
+async function copyManagedJsonSubtree(path) {
+  const value = getJsonValueByPath(getManagedJsonRoot(), path);
+  await writeClipboardText(formatCopiedJsonValue(value));
+  showToast('已复制 JSON 子数据。');
+}
+
+async function copyManagedJsonPath(path) {
+  const api = getJsonEditorApi();
+  const pathText = api?.stringifyJSONPath ? api.stringifyJSONPath(path) : path.join('.');
+  await writeClipboardText(pathText || '(document root)');
+  showToast('已复制 JSON 路径。');
+}
+
+function getManagedJsonRoot() {
+  const content = state.managerJsonEditor ? state.managerJsonEditor.get() : state.managerJsonEditorContent;
+  if (content && Object.prototype.hasOwnProperty.call(content, 'json')) return content.json;
+  return JSON.parse(content?.text || 'null');
+}
+
+function getJsonValueByPath(json, path) {
+  return path.reduce((value, key) => value == null ? undefined : value[key], json);
+}
+
+function formatCopiedJsonValue(value) {
+  return typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+}
+
+async function writeClipboardText(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  textarea.remove();
 }
 
 async function saveManagedBody() {

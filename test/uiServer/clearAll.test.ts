@@ -36,6 +36,9 @@ test('ui status panel presents proxy state as a readable overview', async () => 
   assert.ok(/managerSavedDraft/.test(app));
   assert.ok(/initManagedJsonEditor/.test(app));
   assert.ok(/createJSONEditor/.test(html));
+  assert.ok(/onRenderContextMenu/.test(app));
+  assert.ok(/copyManagedJsonSubtree/.test(app));
+  assert.ok(/copyManagedJsonPath/.test(app));
   assert.ok(/jsonEditorHost/.test(styles));
   assert.ok(/button:disabled\s*\{[^}]*cursor: default/s.test(styles));
 });
