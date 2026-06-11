@@ -265,7 +265,7 @@ button:hover {
 }
 
 button:disabled {
-  cursor: progress;
+  cursor: default;
   opacity: 0.65;
 }
 

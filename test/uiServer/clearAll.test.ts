@@ -9,6 +9,7 @@ import { getEngine, getRecentEvents, recordEvent, clearRecentEvents } from '../.
 test('ui status panel presents proxy state as a readable overview', async () => {
   const html = await readFile(join(__dirname, '../../../..', 'public/index.html'), 'utf8');
   const app = await readFile(join(__dirname, '../../../..', 'public/app.js'), 'utf8');
+  const styles = await readFile(join(__dirname, '../../../..', 'public/styles.css'), 'utf8');
 
   assert.ok(/<h2>状态总览<\/h2>/.test(html));
   assert.ok(/id="statusOverview"/.test(html));
@@ -31,6 +32,7 @@ test('ui status panel presents proxy state as a readable overview', async () => 
   assert.ok(/getFormattedBodyText/.test(app));
   assert.ok(/getEditableDraft/.test(app));
   assert.ok(/managerSavedDraft/.test(app));
+  assert.ok(/button:disabled\s*\{[^}]*cursor: default/s.test(styles));
 });
 
 test('ui server resolves public assets from the runtime dist layout', () => {
