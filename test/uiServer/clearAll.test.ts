@@ -49,6 +49,10 @@ test('ui status panel presents proxy state as a readable overview', async () => 
   assert.ok(/managerRequestSummary/.test(app));
   assert.ok(/没有符合条件的缓存/.test(app));
   assert.ok(/jsonEditorHost/.test(styles));
+  assert.ok(/\.managerShell/.test(styles));
+  assert.ok(/\.managerListPanel/.test(styles));
+  assert.ok(/\.managerEditorPanel/.test(styles));
+  assert.ok(/\.jsonEditorHost\s*\{[^}]*--jse-theme-color/s.test(styles));
   assert.ok(/button:disabled\s*\{[^}]*cursor: default/s.test(styles));
 });
 
