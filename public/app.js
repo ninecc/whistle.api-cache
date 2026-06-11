@@ -19,6 +19,7 @@ const state = {
   managerOriginalBody: undefined,
   managerMode: 'preview',
   managerDraft: '',
+  managerSavedDraft: '',
   managerDirty: false,
   managerFilters: {
     search: '',
@@ -146,7 +147,7 @@ elements.managerSaveBtn.addEventListener('click', saveManagedBody);
 elements.managerRestoreBtn.addEventListener('click', restoreManagedBody);
 elements.managerBodyEditor.addEventListener('input', () => {
   state.managerDraft = elements.managerBodyEditor.value;
-  state.managerDirty = state.managerBody && state.managerDraft !== state.managerBody.bodyText;
+  state.managerDirty = Boolean(state.managerBody && state.managerDraft !== state.managerSavedDraft);
   renderManagerActions();
 });
 window.addEventListener('beforeunload', (event) => {
@@ -415,6 +416,7 @@ async function loadManagedBody(entryId, kind = 'active') {
     state.managerBody = undefined;
     state.managerOriginalBody = undefined;
     state.managerDraft = '';
+    state.managerSavedDraft = '';
     state.managerDirty = false;
     renderRequestManager();
     renderManagedBody();
@@ -433,7 +435,8 @@ async function loadManagedBody(entryId, kind = 'active') {
     state.managerOriginalBody = kind === 'original' ? payload : state.managerOriginalBody;
     if (kind === 'active') {
       state.managerOriginalBody = undefined;
-      state.managerDraft = payload.bodyText || '';
+      state.managerDraft = getEditableDraft(payload);
+      state.managerSavedDraft = state.managerDraft;
       state.managerDirty = false;
     }
     renderRequestManager();
@@ -458,6 +461,7 @@ function reconcileManagedSelection() {
     state.managerBody = undefined;
     state.managerOriginalBody = undefined;
     state.managerDraft = '';
+    state.managerSavedDraft = '';
     state.managerDirty = false;
   }
 }
@@ -467,6 +471,7 @@ function clearManagedSelection() {
   state.managerBody = undefined;
   state.managerOriginalBody = undefined;
   state.managerDraft = '';
+  state.managerSavedDraft = '';
   state.managerDirty = false;
   if (state.managerMode === 'original') state.managerMode = 'preview';
 }
@@ -501,7 +506,7 @@ function renderManagedBody() {
     return;
   }
 
-  const text = payload.encoding === 'utf8' ? (state.managerMode === 'edit' ? state.managerDraft : payload.bodyText) : payload.bodyBase64;
+  const text = payload.encoding === 'utf8' ? (state.managerMode === 'edit' ? state.managerDraft : getFormattedBodyText(payload)) : payload.bodyBase64;
   elements.managerBodyEditor.value = state.managerDraft;
   elements.managerBodyPreview.textContent = text || '';
   elements.managerBodyNotice.textContent = payload.editable
@@ -532,7 +537,7 @@ function renderManagedEntryInfo() {
 function renderManagerActions() {
   const active = state.managerBody;
   elements.managerSaveBtn.disabled = !active || !active.editable || !state.managerDirty;
-  elements.managerFormatJsonBtn.disabled = !active || !active.editable || state.managerMode !== 'edit';
+  elements.managerFormatJsonBtn.disabled = !active || !active.editable || state.managerMode !== 'edit' || !isJsonPayload(active);
   elements.managerRestoreBtn.disabled = !active || active.entry.activeBodyKind !== 'editable';
   const entries = getManagerEntries();
   const index = entries.findIndex((entry) => entry.id === state.managerSelectedId);
@@ -542,13 +547,37 @@ function renderManagerActions() {
 
 function formatManagedJson() {
   try {
-    state.managerDraft = JSON.stringify(JSON.parse(elements.managerBodyEditor.value), null, 2);
+    state.managerDraft = formatJsonText(elements.managerBodyEditor.value);
     elements.managerBodyEditor.value = state.managerDraft;
-    state.managerDirty = state.managerBody && state.managerDraft !== state.managerBody.bodyText;
+    state.managerDirty = Boolean(state.managerBody && state.managerDraft !== state.managerSavedDraft);
     renderManagerActions();
   } catch {
     showToast('JSON 格式错误，无法格式化。');
   }
+}
+
+function getEditableDraft(payload) {
+  if (!payload || payload.encoding !== 'utf8') return '';
+  return getFormattedBodyText(payload);
+}
+
+function getFormattedBodyText(payload) {
+  if (!payload || payload.encoding !== 'utf8') return '';
+  if (!isJsonPayload(payload)) return payload.bodyText || '';
+  try {
+    return formatJsonText(payload.bodyText || '');
+  } catch {
+    return payload.bodyText || '';
+  }
+}
+
+function formatJsonText(value) {
+  return JSON.stringify(JSON.parse(value), null, 2);
+}
+
+function isJsonPayload(payload) {
+  const type = String(payload.contentType || '').toLowerCase().split(';')[0].trim();
+  return type === 'application/json' || type.endsWith('+json');
 }
 
 async function saveManagedBody() {

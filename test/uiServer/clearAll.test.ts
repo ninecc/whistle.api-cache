@@ -28,6 +28,9 @@ test('ui status panel presents proxy state as a readable overview', async () => 
   assert.ok(/reconcileManagedSelection/.test(app));
   assert.ok(/clearManagedSelection/.test(app));
   assert.ok(/!hasEntry\(entryId\)/.test(app));
+  assert.ok(/getFormattedBodyText/.test(app));
+  assert.ok(/getEditableDraft/.test(app));
+  assert.ok(/managerSavedDraft/.test(app));
 });
 
 test('ui server resolves public assets from the runtime dist layout', () => {
