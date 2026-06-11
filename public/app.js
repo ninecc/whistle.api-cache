@@ -75,6 +75,7 @@ const elements = {
   managerEditableOnly: document.querySelector('#managerEditableOnly'),
   managerPrevBtn: document.querySelector('#managerPrevBtn'),
   managerNextBtn: document.querySelector('#managerNextBtn'),
+  managerRequestSummary: document.querySelector('#managerRequestSummary'),
   managerRequestList: document.querySelector('#managerRequestList'),
   managerEntryInfo: document.querySelector('#managerEntryInfo'),
   managerPreviewModeBtn: document.querySelector('#managerPreviewModeBtn'),
@@ -385,6 +386,7 @@ function getManagerEntries() {
 
 function renderRequestManager() {
   const entries = getManagerEntries();
+  elements.managerRequestSummary.textContent = `${entries.length} 条结果${state.managerSelectedId ? ' · 1 条已选' : ''}`;
   elements.managerRequestList.innerHTML = entries.length ? entries.map((entry) => {
     const parsed = parseUrl(entry.url);
     const selected = entry.id === state.managerSelectedId;
@@ -400,7 +402,7 @@ function renderRequestManager() {
         </span>
       </button>
     `;
-  }).join('') : '<div class="empty compact">没有符合条件的缓存请求。</div>';
+  }).join('') : '<div class="empty compact">没有符合条件的缓存。</div>';
 
   for (const item of elements.managerRequestList.querySelectorAll('[data-id]')) {
     item.addEventListener('click', () => selectManagedEntry(item.dataset.id));

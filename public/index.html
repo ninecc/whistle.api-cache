@@ -192,38 +192,54 @@
           </div>
         </div>
         <div id="requestManagerView" class="requestManager" hidden>
-          <div class="managerToolbar">
-            <input id="managerSearchInput" type="search" placeholder="搜索 Method / URL / Content-Type">
-            <select id="managerMethodSelect" aria-label="缓存管理 Method 过滤">
-              <option value="all">全部 Method</option>
-              <option value="GET">GET</option>
-              <option value="POST">POST</option>
-            </select>
-            <label class="checkFilter"><input id="managerModifiedOnly" type="checkbox"> 已修改</label>
-            <label class="checkFilter"><input id="managerEditableOnly" type="checkbox"> 仅可编辑</label>
-            <button id="managerPrevBtn" type="button">上一条</button>
-            <button id="managerNextBtn" type="button">下一条</button>
-          </div>
-          <div class="managerLayout">
-            <div id="managerRequestList" class="managerRequestList"></div>
-            <div class="managerDetail">
-              <div id="managerEntryInfo" class="managerEntryInfo"></div>
-              <div class="managerBodyHeader">
-                <div class="segmented" role="group" aria-label="响应体视图">
-                  <button id="managerPreviewModeBtn" class="active" type="button">预览</button>
-                  <button id="managerEditModeBtn" type="button">编辑</button>
-                  <button id="managerOriginalModeBtn" type="button">原始</button>
+          <div class="managerShell">
+            <div class="managerIntro">
+              <div>
+                <h3>缓存管理</h3>
+                <p>查看、筛选、编辑缓存响应。</p>
+              </div>
+            </div>
+            <div class="managerToolbar">
+              <input id="managerSearchInput" type="search" placeholder="搜索 Method / URL / Content-Type">
+              <select id="managerMethodSelect" aria-label="缓存管理 Method 过滤">
+                <option value="all">全部 Method</option>
+                <option value="GET">GET</option>
+                <option value="POST">POST</option>
+              </select>
+              <label class="checkFilter"><input id="managerModifiedOnly" type="checkbox"> 已修改</label>
+              <label class="checkFilter"><input id="managerEditableOnly" type="checkbox"> 仅可编辑</label>
+              <button id="managerPrevBtn" type="button">上一条</button>
+              <button id="managerNextBtn" type="button">下一条</button>
+            </div>
+            <div class="managerLayout">
+              <aside class="managerListPanel">
+                <div class="managerListHeader">
+                  <strong>缓存条目</strong>
+                  <span id="managerRequestSummary">0 条结果</span>
                 </div>
-                <div class="inlineActions">
-                  <button id="managerFormatJsonBtn" type="button">格式化 JSON</button>
-                  <button id="managerSaveBtn" type="button">保存修改</button>
-                  <button id="managerRestoreBtn" class="danger" type="button">恢复原始</button>
+                <div id="managerRequestList" class="managerRequestList"></div>
+              </aside>
+              <div class="managerDetail">
+                <div id="managerEntryInfo" class="managerEntryInfo"></div>
+                <div class="managerEditorPanel">
+                  <div class="managerBodyHeader">
+                    <div class="segmented" role="group" aria-label="响应体视图">
+                      <button id="managerPreviewModeBtn" class="active" type="button">预览</button>
+                      <button id="managerEditModeBtn" type="button">编辑</button>
+                      <button id="managerOriginalModeBtn" type="button">原始</button>
+                    </div>
+                    <div class="inlineActions">
+                      <button id="managerFormatJsonBtn" type="button">格式化 JSON</button>
+                      <button id="managerSaveBtn" type="button">保存修改</button>
+                      <button id="managerRestoreBtn" class="danger" type="button">恢复原始</button>
+                    </div>
+                  </div>
+                  <div id="managerJsonEditor" class="jsonEditorHost" hidden></div>
+                  <textarea id="managerBodyEditor" spellcheck="false"></textarea>
+                  <pre id="managerBodyPreview" class="bodyPreview"></pre>
+                  <div id="managerBodyNotice" class="hint"></div>
                 </div>
               </div>
-              <div id="managerJsonEditor" class="jsonEditorHost" hidden></div>
-              <textarea id="managerBodyEditor" spellcheck="false"></textarea>
-              <pre id="managerBodyPreview" class="bodyPreview"></pre>
-              <div id="managerBodyNotice" class="hint"></div>
             </div>
           </div>
         </div>
