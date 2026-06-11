@@ -1,0 +1,235 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1581" height="1260" viewBox="0 0 1581 1260">
+  <defs>
+    <clipPath id="viewport">
+      <rect x="0" y="0" width="1581" height="1260" rx="0"/>
+    </clipPath>
+    <style>
+      .page { fill: #f6f7f9; }
+      .panel { fill: #ffffff; stroke: #dfe3e8; stroke-width: 1.4; }
+      .soft { fill: #f8fafc; stroke: #e4e7ec; stroke-width: 1.2; }
+      .selected { fill: #eff6ff; stroke: #bfdbfe; stroke-width: 1.2; }
+      .muted { fill: #667085; font: 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .body { fill: #20242a; font: 20px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .small { fill: #475467; font: 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .strong { fill: #20242a; font: 600 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .title { fill: #20242a; font: 700 26px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .mono { fill: #263238; font: 17px "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+      .mono-key { fill: #b42318; font: 17px "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+      .mono-string { fill: #027a48; font: 17px "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+      .button { fill: #ffffff; stroke: #c8d0da; stroke-width: 1.2; }
+      .primary { fill: #2563eb; stroke: #1d4ed8; stroke-width: 1.2; }
+      .badge-blue { fill: #eff6ff; stroke: #bfdbfe; stroke-width: 1; }
+      .badge-green { fill: #ecfdf3; stroke: #abefc6; stroke-width: 1; }
+      .badge-yellow { fill: #fffaeb; stroke: #fedf89; stroke-width: 1; }
+      .badge-red { fill: #fff1f3; stroke: #fecdd3; stroke-width: 1; }
+      .tab-active { fill: #2563eb; stroke: #1d4ed8; stroke-width: 1.2; }
+      .tab { fill: #ffffff; stroke: #c8d0da; stroke-width: 1.2; }
+      .line { stroke: #eaecf0; stroke-width: 1.2; }
+      .mark { fill: #101828; opacity: 0.92; }
+      .mark-num { fill: #eff6ff; stroke: #93c5fd; stroke-width: 1; }
+      .mark-text { fill: #ffffff; font: 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .mark-num-text { fill: #175cd3; font: 700 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .shadow { filter: drop-shadow(0 1px 2px rgba(16,24,40,0.08)); }
+    </style>
+  </defs>
+
+  <rect class="page" x="0" y="0" width="1581" height="1260"/>
+
+  <g clip-path="url(#viewport)" opacity="0.84">
+    <image href="current-cache-ui-detail.png" x="0" y="-420" width="1581" height="3291"/>
+  </g>
+
+  <rect x="0" y="0" width="1581" height="1260" fill="rgba(246,247,249,0.18)"/>
+
+  <!-- 不重做顶部信息区，仅将主工作区扩展为缓存管理页签。 -->
+  <g class="shadow">
+    <rect class="panel" x="44" y="354" width="1494" height="838" rx="6"/>
+
+    <rect class="soft" x="44" y="354" width="1494" height="72" rx="6"/>
+    <text class="title" x="72" y="399">缓存请求</text>
+
+    <rect class="tab" x="194" y="374" width="108" height="36" rx="6"/>
+    <text class="body" x="218" y="398" style="font-size:17px;">缓存列表</text>
+    <rect class="tab-active" x="314" y="374" width="122" height="36" rx="6"/>
+    <text class="body" x="338" y="398" style="font-size:17px; fill:#ffffff;">缓存管理</text>
+
+    <rect class="button" x="897" y="374" width="96" height="36" rx="6"/>
+    <text class="body" x="919" y="398" style="font-size:17px;">上一条</text>
+    <rect class="button" x="1006" y="374" width="96" height="36" rx="6"/>
+    <text class="body" x="1028" y="398" style="font-size:17px;">下一条</text>
+    <rect class="button" x="1116" y="374" width="126" height="36" rx="6"/>
+    <text class="body" x="1137" y="398" style="font-size:17px;">仅看已修改</text>
+    <rect class="button" x="1255" y="374" width="116" height="36" rx="6"/>
+    <text class="body" x="1275" y="398" style="font-size:17px;">仅可编辑</text>
+    <rect class="primary" x="1384" y="374" width="126" height="36" rx="6"/>
+    <text class="body" x="1413" y="398" style="font-size:17px; fill:#ffffff;">保存修改</text>
+
+    <line class="line" x1="44" y1="426" x2="1538" y2="426"/>
+
+    <!-- 筛选区 -->
+    <rect class="soft" x="70" y="448" width="430" height="52" rx="6"/>
+    <text class="muted" x="92" y="481">搜索 URL / Host / Path</text>
+    <rect class="button" x="516" y="448" width="116" height="52" rx="6"/>
+    <text class="body" x="546" y="481" style="font-size:17px;">Method</text>
+    <rect class="button" x="646" y="448" width="116" height="52" rx="6"/>
+    <text class="body" x="684" y="481" style="font-size:17px;">Host</text>
+    <rect class="button" x="776" y="448" width="116" height="52" rx="6"/>
+    <text class="body" x="814" y="481" style="font-size:17px;">Path</text>
+    <text class="muted" x="916" y="481">当前筛选 12 条 · 已修改 3 条 · 选中第 2 条</text>
+
+    <!-- 左侧请求列表 -->
+    <rect class="panel" x="70" y="522" width="506" height="636" rx="6"/>
+    <rect class="soft" x="70" y="522" width="506" height="48" rx="6"/>
+    <text class="strong" x="94" y="554">请求列表</text>
+    <text class="muted" x="432" y="554">按更新时间排序</text>
+
+    <line class="line" x1="70" y1="570" x2="576" y2="570"/>
+
+    <g>
+      <rect class="soft" x="88" y="590" width="470" height="88" rx="6"/>
+      <rect class="badge-green" x="106" y="608" width="48" height="26" rx="5"/>
+      <text class="small" x="116" y="627" style="fill:#027a48;">GET</text>
+      <text class="body" x="166" y="628" style="font-size:17px;">/api/profile</text>
+      <rect class="badge-blue" x="432" y="606" width="68" height="28" rx="5"/>
+      <text class="small" x="446" y="626" style="fill:#175cd3;">已修改</text>
+      <text class="muted" x="106" y="660">application/json · 21.7 KB · 13:18:02</text>
+    </g>
+
+    <g>
+      <rect class="selected" x="88" y="690" width="470" height="96" rx="6"/>
+      <rect class="badge-green" x="106" y="708" width="48" height="26" rx="5"/>
+      <text class="small" x="116" y="727" style="fill:#027a48;">GET</text>
+      <text class="body" x="166" y="728" style="font-size:17px;">/api/station/list</text>
+      <rect class="badge-blue" x="432" y="706" width="68" height="28" rx="5"/>
+      <text class="small" x="446" y="726" style="fill:#175cd3;">已修改</text>
+      <text class="muted" x="106" y="760">application/json · 34.2 KB · 13:16:45</text>
+      <text class="small" x="106" y="780">当前正在编辑，切换前会检查未保存修改</text>
+    </g>
+
+    <g>
+      <rect class="soft" x="88" y="798" width="470" height="88" rx="6"/>
+      <rect class="badge-yellow" x="106" y="816" width="54" height="26" rx="5"/>
+      <text class="small" x="115" y="835" style="fill:#b54708;">POST</text>
+      <text class="body" x="172" y="836" style="font-size:17px;">/api/order/create</text>
+      <rect class="badge-red" x="432" y="814" width="68" height="28" rx="5"/>
+      <text class="small" x="446" y="834" style="fill:#b42318;">已过期</text>
+      <text class="muted" x="106" y="868">application/json · 8.6 KB · 12:58:10</text>
+    </g>
+
+    <g>
+      <rect class="soft" x="88" y="898" width="470" height="88" rx="6"/>
+      <rect class="badge-green" x="106" y="916" width="48" height="26" rx="5"/>
+      <text class="small" x="116" y="935" style="fill:#027a48;">GET</text>
+      <text class="body" x="166" y="936" style="font-size:17px;">/api/coupon/list</text>
+      <rect class="badge-green" x="432" y="914" width="58" height="28" rx="5"/>
+      <text class="small" x="445" y="934" style="fill:#027a48;">原始</text>
+      <text class="muted" x="106" y="968">application/json · 11.9 KB · 12:30:21</text>
+    </g>
+
+    <g>
+      <rect class="soft" x="88" y="998" width="470" height="88" rx="6"/>
+      <rect class="badge-green" x="106" y="1016" width="48" height="26" rx="5"/>
+      <text class="small" x="116" y="1035" style="fill:#027a48;">GET</text>
+      <text class="body" x="166" y="1036" style="font-size:17px;">/api/member/level</text>
+      <rect class="badge-green" x="432" y="1014" width="58" height="28" rx="5"/>
+      <text class="small" x="445" y="1034" style="fill:#027a48;">原始</text>
+      <text class="muted" x="106" y="1068">application/json · 6.4 KB · 12:11:06</text>
+    </g>
+
+    <!-- 右侧编辑区 -->
+    <rect class="panel" x="600" y="522" width="910" height="636" rx="6"/>
+    <rect class="soft" x="600" y="522" width="910" height="60" rx="6"/>
+    <text class="strong" x="624" y="560">GET /api/station/list</text>
+    <rect class="badge-blue" x="850" y="538" width="68" height="28" rx="5"/>
+    <text class="small" x="864" y="558" style="fill:#175cd3;">已修改</text>
+    <rect class="button" x="1178" y="536" width="78" height="34" rx="6"/>
+    <text class="body" x="1200" y="559" style="font-size:16px;">复制</text>
+    <rect class="button" x="1268" y="536" width="78" height="34" rx="6"/>
+    <text class="body" x="1290" y="559" style="font-size:16px;">下载</text>
+    <rect class="button" x="1358" y="536" width="126" height="34" rx="6"/>
+    <text class="body" x="1380" y="559" style="font-size:16px;">恢复原始</text>
+
+    <line class="line" x1="600" y1="582" x2="1510" y2="582"/>
+
+    <text class="muted" x="624" y="618">Host: example.com · Cache Key: 5f1a... · Active body: editable · 34.2 KB</text>
+
+    <rect class="soft" x="624" y="642" width="400" height="78" rx="6"/>
+    <text class="small" x="644" y="670">命中策略</text>
+    <text class="body" x="644" y="700" style="font-size:17px;">method + url + query + request body hash</text>
+
+    <rect class="soft" x="1042" y="642" width="442" height="78" rx="6"/>
+    <text class="small" x="1062" y="670">Response Headers</text>
+    <text class="body" x="1062" y="700" style="font-size:17px;">content-type: application/json;charset=utf-8</text>
+
+    <rect class="tab" x="624" y="746" width="86" height="36" rx="6"/>
+    <text class="body" x="650" y="770" style="font-size:16px;">预览</text>
+    <rect class="tab-active" x="718" y="746" width="86" height="36" rx="6"/>
+    <text class="body" x="744" y="770" style="font-size:16px; fill:#ffffff;">编辑</text>
+    <rect class="tab" x="812" y="746" width="86" height="36" rx="6"/>
+    <text class="body" x="838" y="770" style="font-size:16px;">原始</text>
+    <text class="muted" x="924" y="770">保存后仅影响当前请求的 active body</text>
+
+    <rect class="soft" x="624" y="800" width="860" height="256" rx="6"/>
+    <rect x="624" y="800" width="52" height="256" fill="#f2f4f7"/>
+    <line class="line" x1="676" y1="800" x2="676" y2="1056"/>
+
+    <text class="mono" x="646" y="832">1</text>
+    <text class="mono" x="646" y="862">2</text>
+    <text class="mono" x="646" y="892">3</text>
+    <text class="mono" x="646" y="922">4</text>
+    <text class="mono" x="646" y="952">5</text>
+    <text class="mono" x="646" y="982">6</text>
+    <text class="mono" x="646" y="1012">7</text>
+    <text class="mono" x="646" y="1042">8</text>
+
+    <text class="mono" x="696" y="832">{</text>
+    <text class="mono-key" x="724" y="862">"code"</text><text class="mono" x="790" y="862">: 0,</text>
+    <text class="mono-key" x="724" y="892">"data"</text><text class="mono" x="784" y="892">: {</text>
+    <text class="mono-key" x="756" y="922">"stations"</text><text class="mono" x="852" y="922">: [</text><text class="mono-string" x="884" y="922">"A001"</text><text class="mono" x="940" y="922">, </text><text class="mono-string" x="958" y="922">"B009"</text><text class="mono" x="1014" y="922">],</text>
+    <text class="mono-key" x="756" y="952">"hasMore"</text><text class="mono" x="852" y="952">: false,</text>
+    <text class="mono-key" x="756" y="982">"source"</text><text class="mono" x="832" y="982">: </text><text class="mono-string" x="856" y="982">"local editable cache"</text>
+    <text class="mono" x="724" y="1012">}</text>
+    <text class="mono" x="696" y="1042">}</text>
+
+    <rect class="primary" x="624" y="1080" width="112" height="44" rx="6"/>
+    <text class="body" x="655" y="1109" style="fill:#ffffff;">保存修改</text>
+    <rect class="button" x="752" y="1080" width="120" height="44" rx="6"/>
+    <text class="body" x="778" y="1109">格式化 JSON</text>
+    <rect class="button" x="888" y="1080" width="82" height="44" rx="6"/>
+    <text class="body" x="912" y="1109">取消</text>
+    <text class="muted" x="998" y="1108">切换请求前如果有未保存内容，会提示保存或丢弃。</text>
+  </g>
+
+  <!-- 关键交互标注直接叠加在界面上，避免依赖单独说明图。 -->
+  <g>
+    <rect class="mark" x="448" y="372" width="152" height="34" rx="17"/>
+    <circle class="mark-num" cx="468" cy="389" r="12"/>
+    <text class="mark-num-text" x="464" y="394">1</text>
+    <text class="mark-text" x="486" y="394">新建缓存管理 Tab</text>
+
+    <rect class="mark" x="916" y="448" width="176" height="34" rx="17"/>
+    <circle class="mark-num" cx="936" cy="465" r="12"/>
+    <text class="mark-num-text" x="932" y="470">2</text>
+    <text class="mark-text" x="954" y="470">筛选与上下条导航</text>
+
+    <rect class="mark" x="112" y="574" width="142" height="34" rx="17"/>
+    <circle class="mark-num" cx="132" cy="591" r="12"/>
+    <text class="mark-num-text" x="128" y="596">3</text>
+    <text class="mark-text" x="150" y="596">左侧请求列表</text>
+
+    <rect class="mark" x="624" y="592" width="172" height="34" rx="17"/>
+    <circle class="mark-num" cx="644" cy="609" r="12"/>
+    <text class="mark-num-text" x="640" y="614">4</text>
+    <text class="mark-text" x="662" y="614">基础信息与响应头</text>
+
+    <rect class="mark" x="1016" y="746" width="178" height="34" rx="17"/>
+    <circle class="mark-num" cx="1036" cy="763" r="12"/>
+    <text class="mark-num-text" x="1032" y="768">5</text>
+    <text class="mark-text" x="1054" y="768">Body 预览/编辑/原始</text>
+
+    <rect class="mark" x="1162" y="1074" width="178" height="34" rx="17"/>
+    <circle class="mark-num" cx="1182" cy="1091" r="12"/>
+    <text class="mark-num-text" x="1178" y="1096">6</text>
+    <text class="mark-text" x="1200" y="1096">未保存切换保护</text>
+  </g>
+</svg>
