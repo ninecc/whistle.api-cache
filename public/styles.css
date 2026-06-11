@@ -311,6 +311,17 @@ textarea {
   color: #475467;
 }
 
+.modifiedHint {
+  display: inline-flex;
+  width: max-content;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 4px 7px;
+  font-size: 12px;
+  line-height: 1;
+}
+
 .ruleBuilder {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(210px, auto);

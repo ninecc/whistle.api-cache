@@ -16,6 +16,9 @@ test('ui status panel presents proxy state as a readable overview', async () => 
   assert.ok(/缓存边界/.test(app));
   assert.ok(/数据目录/.test(app));
   assert.ok(/录制与回放都已开启/.test(app));
+  assert.ok(/已修改/.test(app));
+  assert.ok(/data-action="manage"/.test(app));
+  assert.ok(/openEntryManager/.test(app));
 });
 
 test('ui server resolves public assets from the runtime dist layout', () => {

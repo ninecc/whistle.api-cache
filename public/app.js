@@ -213,6 +213,7 @@ function renderEntries() {
         ${parsed.hiddenQueryCount ? `<small class="queryHint">已折叠 ${escapeHtml(String(parsed.hiddenQueryCount))} 个忽略参数</small>` : ''}
         <small>${escapeHtml(entry.contentType || '-')}</small>
         ${bodyHint ? `<small class="bodyHint">${escapeHtml(bodyHint)}</small>` : ''}
+        ${entry.activeBodyKind === 'editable' ? '<small class="modifiedHint">已修改</small>' : ''}
       </td>
       <td><span class="badge">${escapeHtml(String(entry.statusCode))}</span></td>
       <td>${formatBytes(entry.bodySize || 0)}</td>
@@ -224,6 +225,7 @@ function renderEntries() {
       </td>
       <td class="rowActions">
         <button type="button" data-action="details" data-id="${escapeHtml(entry.id)}">${state.expandedEntryId === entry.id ? '收起' : '详情'}</button>
+        <button type="button" data-action="manage" data-id="${escapeHtml(entry.id)}">管理</button>
         <button type="button" data-action="enabled" data-id="${escapeHtml(entry.id)}">${entry.enabled ? '禁用' : '启用'}</button>
         <select data-action="ttl" data-id="${escapeHtml(entry.id)}" aria-label="TTL 操作">
           <option value="">TTL</option>
@@ -239,6 +241,7 @@ function renderEntries() {
     `;
     row.querySelector('[data-action="select"]').addEventListener('change', (event) => toggleEntrySelection(entry.id, event.target.checked));
     row.querySelector('[data-action="details"]').addEventListener('click', () => toggleEntryDetails(entry.id));
+    row.querySelector('[data-action="manage"]').addEventListener('click', () => openEntryManager(entry.id));
     row.querySelector('[data-action="enabled"]').addEventListener('click', () => setEntryEnabled(entry.id, !entry.enabled));
     row.querySelector('[data-action="ttl"]').addEventListener('change', (event) => updateEntryTtl(entry.id, event.target.value, event.target));
     row.querySelector('[data-action="same-host"]').addEventListener('click', () => deleteBatch({ scope: 'same-host', entryId: entry.id }));
@@ -250,8 +253,14 @@ function renderEntries() {
       detailRow.className = 'detailRow';
       detailRow.innerHTML = `<td colspan="10">${renderEntryDetails(entry)}</td>`;
       elements.cacheRows.appendChild(detailRow);
+      detailRow.querySelector('[data-action="manage"]').addEventListener('click', () => openEntryManager(entry.id));
     }
   }
+}
+
+function openEntryManager(entryId) {
+  state.managerSelectedId = entryId;
+  showToast('请求管理即将打开该缓存。');
 }
 
 function getEntryBodyHint(entry) {
@@ -860,6 +869,9 @@ function renderEntryDetails(entry) {
     ['Request Body Hash', entry.requestBodyHash || '-'],
     ['Body Hash', entry.bodyHash],
     ['Content Type', entry.contentType || '-'],
+    ['响应体状态', entry.activeBodyKind === 'editable' ? '已修改响应' : '原始响应'],
+    ['Active Body', `${shortHash(entry.activeBodyHash || entry.bodyHash)} · ${formatBytes(entry.activeBodySize || entry.bodySize || 0)}`],
+    ['Original Body', `${shortHash(entry.originalBodyHash || entry.bodyHash)} · ${formatBytes(entry.originalBodySize || entry.bodySize || 0)}`],
     ['启用状态', entry.enabled ? '启用' : '禁用'],
     ['创建时间', formatAbsoluteDate(entry.createdAt)],
     ['过期时间', formatAbsoluteDate(entry.expiresAt)],
@@ -883,6 +895,10 @@ function renderEntryDetails(entry) {
       <div class="headersBlock">
         <strong>Response Headers</strong>
         <dl>${headers || '<div><dt>-</dt><dd>暂无响应头</dd></div>'}</dl>
+      </div>
+      <div class="headersBlock">
+        <strong>响应数据</strong>
+        <button type="button" data-action="manage" data-id="${escapeHtml(entry.id)}">在请求管理中打开</button>
       </div>
     </div>
   `;
