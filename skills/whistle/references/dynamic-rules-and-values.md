@@ -79,6 +79,8 @@ ${version} ${port} ${host} ${realPort} ${realHost}
 ${env.NAME}
 ```
 
+这只是常用变量。冷门变量还可能包括 `${hostname}`、`${path}`、`${remoteAddress}`、`${remotePort}`、`${clientId}`、`${localClientId}`、`${realUrl}`、`${whistle.plugin-name}` 等；生产关键规则使用前按当前 Whistle 版本核对。
+
 ## 内嵌块
 
 需要在 Rules 里放一次性内容时，用内嵌块：
@@ -124,6 +126,10 @@ www.example.com/page resRules://{response-debug.txt}
 ````
 
 源码别名关系：`reqScript` / `reqRules` 会归一到 `rulesFile`，`resRules` 会归一到 `resScript`。对用户输出时仍可使用更直观的 `reqRules://`、`reqScript://`、`resRules://`。
+
+UI 解析同一行多个 operation 时，会拆成多条同 pattern 规则；但批量规则仍更适合可复用、多行、需要注释的组合，不要把复杂规则硬塞到一行。
+
+`resRules` / `resScript` 只在响应阶段生成响应阶段规则。不要期望 `file://`、`http://` 这类请求阶段规则在响应阶段短路返回；响应阶段改内容用 `resBody://`、`resHeaders://`、`replaceStatus://` 等。
 
 适合：
 
@@ -187,6 +193,7 @@ www.example.com/api reqScript://{pick-rule.js}
 - 同一匹配下固定多条规则：`reqRules` / `resRules`。
 - 条件逻辑依赖 method、URL、headers、body：`reqScript`。
 - 需要长逻辑、UI、外部服务、复用能力：考虑 Whistle 插件。
+- 已经出现插件包、`whistle.xxx`、hook、`whistleConfig`、`lack watch`：切换到 `whistle-plugin` skill。
 
 ## 生成动态规则的回答格式
 

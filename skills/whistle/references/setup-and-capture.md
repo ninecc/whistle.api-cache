@@ -92,9 +92,24 @@ w2 run
 平台注意事项：
 
 - iOS：安装描述文件后，还要在证书信任设置中启用完全信任。
+- iOS 路径通常是：设置 > 通用 > 关于本机 > 证书信任设置；只安装描述文件还不够。
 - Android：浏览器一般较容易；App 可能不信任用户 CA，需要调试包的 network security config 支持用户 CA，或使用测试环境。
+- Android 原生浏览器下载证书失败时，改用 Chrome；Android 12+ 或部分厂商系统可能需要额外确认 CA 安装入口。
 - Firefox：可能需要单独导入证书，或启用使用系统根证书。
 - 证书锁定：如果 App 或 SDK 做了 pinning，Whistle 不能单靠根证书解密该域名。
+
+精细开关：
+
+```txt
+example.com enable://forHttps
+example.com enable://forHttp
+example.com disable://captureHttps
+example.com disable://captureHttp
+example.com disable://captureSNI
+example.com disable://captureNoSNI
+```
+
+只想影响 HTTPS 或 HTTP 时用 `forHttps` / `forHttp` 或对应 `captureHttps` / `captureHttp`；SNI/无 SNI/IP 请求异常时再考虑 `captureSNI`、`captureNoSNI`、`captureIp`。
 
 自定义证书注意事项：
 
@@ -120,6 +135,7 @@ w2 run
 - VPN、公司网络、热点隔离是否阻断局域网访问。
 - 代理 IP 是否选错，尤其电脑有多个网卡时。
 - iOS 是否完成“完全信任”。
+- 二维码打不开时，改用手机浏览器直接访问电脑 LAN IP + Whistle 端口，再下载证书。
 
 ## 多实例和端口
 

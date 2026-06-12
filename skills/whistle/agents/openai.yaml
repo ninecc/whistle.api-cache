@@ -1,4 +1,4 @@
 interface:
   display_name: "Whistle"
-  short_description: "配置 Whistle 抓包、代理规则和排错。"
-  default_prompt: "帮我生成 Whistle 规则或排查 Whistle 抓包问题。"
+  short_description: "生成 Whistle 规则并排查抓包问题。"
+  default_prompt: "使用 $whistle 生成 Whistle Rules/Values 或排查抓包问题。"

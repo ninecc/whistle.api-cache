@@ -10,7 +10,8 @@
 - 匹配请求头用 `includeFilter://reqH.header-name:pattern`。
 - 匹配响应头用 `includeFilter://resH.header-name:pattern`。
 - 匹配响应状态码用 `includeFilter://s:/^20/`。
-- 多个 include filter 是“或”关系，不是严格 AND。
+- 多个 `includeFilter` 任一命中即可通过；多个 `excludeFilter` 任一命中即排除。
+- 同时存在 include 和 exclude 时，必须至少命中一个 include，且不能命中任何 exclude。
 - 复杂 AND、JSON body 字段判断、依赖响应体内容时，优先考虑 `reqScript/resScript`。
 
 ## 基本语法
@@ -117,7 +118,10 @@ www.example.com/api resHeaders://x-ip=1 includeFilter://i:/^10\./
 
 # 概率命中
 www.example.com/api statusCode://500 includeFilter://chance:0.1
+www.example.com/api statusCode://500 includeFilter://probability:0.1
 ```
+
+其他可用过滤维度包括 `clientPort`、`serverPort`、`remoteAddress`、`remotePort`、`host`、`from`、`env`。冷门维度在不同版本可能有差异，生成生产规则前让用户确认当前 Whistle 版本。
 
 ## URL filter
 
@@ -130,7 +134,12 @@ www.example.com resHeaders://x-hit=1 includeFilter://https://www.example.com/pat
 
 ## include/exclude 关系
 
-官方语义里多个过滤器间为“或”匹配，只要匹配其中一个过滤条件就成立。
+准确语义：
+
+- 多个 `includeFilter`：任一 include 命中即可通过。
+- 多个 `excludeFilter`：任一 exclude 命中即排除。
+- include 与 exclude 同时存在：必须至少命中一个 include，且不能命中任何 exclude。
+- 没有 include 时，只要未命中 exclude 即可通过。
 
 实践建议：
 
@@ -139,7 +148,9 @@ www.example.com resHeaders://x-hit=1 includeFilter://https://www.example.com/pat
 - 必须同时满足多个条件时，优先把 pattern 缩窄，再加一个 filter。
 - 仍表达不了时，用 `reqScript/resScript`。
 
-## ignore/skip
+## filter/ignore/skip
+
+老式 `filter://...` 可表达过滤条件，但新规则优先用语义更清楚的 `includeFilter://...` / `excludeFilter://...`。
 
 `includeFilter` / `excludeFilter` 是过滤当前规则是否生效；`ignore://` / `skip://` 用于忽略或跳过某类协议匹配，语义层级不同。
 

@@ -13,6 +13,8 @@
 
 不要仅凭关键词选 protocol。例如“代理到本地”可能是 `http://localhost:port`，不是 `proxy://localhost:port`；“改 host”可能是连接 IP 覆盖，不是改 `Host` 请求头。
 
+裸 IP/host operation（如 `www.example.com 127.0.0.1:5173`）按连接目标覆盖处理，接近 `host://`；URL 转发必须写完整 `http://127.0.0.1:5173` 或 `https://...`。两者对目标服务看到的 URL/Host 影响不同。
+
 ## 用户说法到语法
 
 | 用户意图 | 正确语法 | 避免误用 |
@@ -97,6 +99,18 @@ www.example.com proxy://localhost:port
 ```
 
 `proxy://` 表示上游代理服务器，不是目标服务。
+
+不要把下面这种裸 host 写法当作 URL 转发：
+
+```txt
+www.example.com 127.0.0.1:5173
+```
+
+它只改连接目标，原始请求 Host/URL 语义仍可能保留。需要本地服务接收转发后的 URL 时，用：
+
+```txt
+www.example.com http://127.0.0.1:5173
+```
 
 ### 本地文件路径
 

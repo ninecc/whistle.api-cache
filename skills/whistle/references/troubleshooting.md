@@ -57,6 +57,8 @@ w2 status
 192.168.1.10:443 enable://capture
 ```
 
+需要只影响 HTTPS/HTTP 或区分 SNI 场景时，再用 `enable://forHttps`、`enable://forHttp`、`disable://captureHttps`、`disable://captureHttp`、`disable://captureSNI`、`disable://captureNoSNI`。
+
 如果仍是 Tunnel，先确认是否真的是 HTTP/HTTPS。普通 TCP 不能按 HTTP 解析。
 
 ## captureError

@@ -2,6 +2,13 @@
 
 用于判断“该用哪个 operation”。不要把索引当成完整协议文档；生成高风险或冷门协议规则前，优先核对官方文档或让用户提供当前 Whistle 版本。
 
+## 解析事实
+
+- 一行规则格式是 `pattern operation [operation...] [lineProps...] [filters...]`；Whistle UI 的规则解析会把同一行多个 operation 展开为多条同 pattern 规则，并保留 filters。
+- `lineProps://...` 和 `includeFilter://...` / `excludeFilter://...` 可放在行尾；filters 过滤当前规则是否生效，不是 operation。
+- 源码别名：`pathReplace` 归一到 `urlReplace`，`reqScript` / `reqRules` 归一到 `rulesFile`，`resRules` 归一到 `resScript`，`includeFilter` / `excludeFilter` 归一到 `filter`。
+- 对用户输出时仍使用更直观的公开写法：`pathReplace://`、`reqScript://`、`reqRules://`、`resRules://`、`includeFilter://`、`excludeFilter://`。
+
 ## Map Local
 
 把响应映射到本地内容。
@@ -242,9 +249,11 @@ www.example.com jsAppend://(console.log(1)) lineProps://safeHtml
 
 `lineProps` 只影响同一行 operation，不能单独作为 operation。
 
-常见 `enable/disable`：`capture`、`captureIp`、`https`、`http2`/`h2`、`intercept`、`cache`、`safeHtml`、`strictHtml`、`proxyFirst`、`proxyHost`、`gzip`、`br`、`deflate`、`abort`、`abortReq`、`abortRes`、`hide`、`keepCSP`、`keepCache`、`bigData`、`auto2http`、`ignoreSend`、`ignoreReceive`、`pauseSend`、`pauseReceive`、`authCapture`、`customParser`。
+常见 `enable/disable`：`capture`、`captureIp`、`captureHttp`、`captureHttps`、`captureSNI`、`captureNoSNI`、`forHttp`、`forHttps`、`https`、`http2`/`h2`、`intercept`、`cache`、`safeHtml`、`strictHtml`、`proxyFirst`、`proxyHost`、`gzip`、`br`、`deflate`、`abort`、`abortReq`、`abortRes`、`hide`、`keepCSP`、`keepCache`、`bigData`、`auto2http`、`ignoreSend`、`ignoreReceive`、`pauseSend`、`pauseReceive`、`authCapture`、`customParser`。
 
 常见 `lineProps`：`important`、`safeHtml`、`strictHtml`、`disableAutoCors`、`disableUserLogin`、`proxyHost`、`proxyFirst`、`proxyTunnel`、`internal`、`internalOnly`、`internalProxy`、`weakRule`、`enableBigData`。
+
+HTML 注入保护优先输出 `lineProps://safeHtml` / `lineProps://strictHtml` 或 `enable://safeHtml`；不要推荐旧式 `includeFilter://safeHtml` / `includeFilter://strictHtml`，即使部分版本会兼容归一。
 
 `style://color=@f00` 或 `style://color=red` 设置文字颜色，`style://bgColor=@ffeeaa` 设置背景色，`style://fontStyle=italic|bold` 设置字体样式。
 
