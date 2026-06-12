@@ -16,29 +16,28 @@
     </header>
 
     <main id="appMain" aria-busy="false">
-      <section class="summary">
+      <nav class="pageTabs" role="tablist" aria-label="页面功能">
+        <button id="overviewPageTab" class="active" type="button" role="tab" aria-selected="true">调试概览</button>
+        <button id="diagnosticsPageTab" type="button" role="tab" aria-selected="false">最近诊断</button>
+        <button id="cachePageTab" type="button" role="tab" aria-selected="false">缓存数据</button>
+      </nav>
+
+      <div id="overviewTabPanel" class="tabPanel overviewPanel">
+      <section class="summary singleSummary profileSummary">
         <div>
           <span class="label">Profile</span>
           <strong id="profileId">default</strong>
         </div>
-        <div>
-          <span class="label">缓存条目</span>
-          <strong id="entryCount">0</strong>
-        </div>
-        <div>
-          <span class="label">占用空间</span>
-          <strong id="totalSize">0 B</strong>
-        </div>
       </section>
 
-      <section class="panel statusPanel">
+      <section class="panel statusPanel overviewStatusPanel">
         <div class="panelHeader">
           <h2>状态总览</h2>
         </div>
         <div id="statusOverview" class="statusOverview"></div>
       </section>
 
-      <section class="dashboard">
+      <section class="dashboard overviewDashboard">
         <section class="panel">
           <div class="panelHeader">
             <h2>快速规则</h2>
@@ -86,26 +85,6 @@
 
       <section class="panel">
         <div class="panelHeader">
-          <h2>最近诊断</h2>
-          <div class="inlineActions">
-            <span id="syncStatusText" class="muted">实时同步 · 最近 20 条</span>
-            <select id="eventFilterSelect" aria-label="诊断过滤">
-              <option value="all">全部</option>
-              <option value="HIT">HIT</option>
-              <option value="MISS">MISS</option>
-              <option value="STORE">STORE</option>
-              <option value="BYPASS">BYPASS</option>
-              <option value="ERROR">ERROR</option>
-              <option value="CONFIG">CONFIG</option>
-            </select>
-            <button id="clearEventsBtn" type="button">清理诊断</button>
-          </div>
-        </div>
-        <div id="eventsList" class="eventsList"></div>
-      </section>
-
-      <section class="panel">
-        <div class="panelHeader">
           <h2>测试匹配</h2>
           <button id="matchTestBtn" type="button">测试</button>
         </div>
@@ -130,16 +109,76 @@
       </section>
 
       <section class="panel">
+        <div class="panelHeader">
+          <h2>当前策略</h2>
+          <button id="saveIgnoredQueryBtn" type="button">保存忽略参数</button>
+        </div>
+        <label class="settingField">
+          <span class="label">忽略 URL Query 参数</span>
+          <textarea id="ignoredQueryInput" rows="2" spellcheck="false" placeholder="_t, t, timestamp, wsgsig"></textarea>
+        </label>
+        <div class="quickTags">
+          <span class="muted">常见变化参数：</span>
+          <button type="button" data-query-name="wsgsig">wsgsig</button>
+          <button type="button" data-query-name="_t">_t</button>
+          <button type="button" data-query-name="timestamp">timestamp</button>
+        </div>
+        <dl id="policyList" class="policyList"></dl>
+        <dl id="contentTypePolicyList" class="policyList compactPolicy"></dl>
+        <dl id="replayHeaderPolicyList" class="policyList compactPolicy"></dl>
+        <p class="hint">带 Cookie、Authorization 或 Set-Cookie 的请求/响应会被跳过；HTTPS 接口需要 Whistle 能解密响应 body。</p>
+      </section>
+      </div>
+
+      <div id="diagnosticsTabPanel" class="tabPanel diagnosticsPage" hidden>
+      <section class="panel diagnosticsPanel">
+        <div class="panelHeader mainWorkspaceHeader">
+          <div>
+            <h2>最近诊断</h2>
+          </div>
+          <div id="diagnosticsToolbar" class="inlineActions">
+            <span id="syncStatusText" class="muted">实时同步 · 最近 20 条</span>
+            <select id="eventFilterSelect" aria-label="诊断过滤">
+              <option value="all">全部</option>
+              <option value="HIT">HIT</option>
+              <option value="MISS">MISS</option>
+              <option value="STORE">STORE</option>
+              <option value="BYPASS">BYPASS</option>
+              <option value="ERROR">ERROR</option>
+              <option value="CONFIG">CONFIG</option>
+            </select>
+            <button id="clearEventsBtn" type="button">清理诊断</button>
+          </div>
+        </div>
+        <div id="diagnosticsView">
+          <div id="eventsList" class="eventsList"></div>
+        </div>
+      </section>
+      </div>
+
+      <div id="cacheTabPanel" class="tabPanel cachePage" hidden>
+      <section class="summary cacheSummary cacheStats">
+        <div>
+          <span class="label">缓存条目</span>
+          <strong id="entryCount">0</strong>
+        </div>
+        <div>
+          <span class="label">占用空间</span>
+          <strong id="totalSize">0 B</strong>
+        </div>
+      </section>
+
+      <section class="panel cacheWorkbench">
         <div class="panelHeader mainWorkspaceHeader">
           <div>
             <h2>缓存数据</h2>
-            <div class="workspaceTabs" role="tablist" aria-label="缓存工作区">
+            <div class="workspaceTabs" role="tablist" aria-label="缓存数据">
               <button id="cacheListTab" class="active" type="button" role="tab" aria-selected="true">缓存列表</button>
               <button id="requestManagerTab" type="button" role="tab" aria-selected="false">缓存管理</button>
             </div>
           </div>
           <span id="loadingText" class="loadingText" hidden>正在刷新缓存数据...</span>
-          <div class="tableActions">
+          <div id="cacheToolbar" class="tableActions">
             <button id="exportCacheBtn" type="button">导出</button>
             <button id="importCacheBtn" type="button">导入</button>
             <input id="importCacheInput" type="file" accept="application/json,.json" hidden>
@@ -244,27 +283,7 @@
           </div>
         </div>
       </section>
-
-      <section class="panel">
-        <div class="panelHeader">
-          <h2>当前策略</h2>
-          <button id="saveIgnoredQueryBtn" type="button">保存忽略参数</button>
-        </div>
-        <label class="settingField">
-          <span class="label">忽略 URL Query 参数</span>
-          <textarea id="ignoredQueryInput" rows="2" spellcheck="false" placeholder="_t, t, timestamp, wsgsig"></textarea>
-        </label>
-        <div class="quickTags">
-          <span class="muted">常见变化参数：</span>
-          <button type="button" data-query-name="wsgsig">wsgsig</button>
-          <button type="button" data-query-name="_t">_t</button>
-          <button type="button" data-query-name="timestamp">timestamp</button>
-        </div>
-        <dl id="policyList" class="policyList"></dl>
-        <dl id="contentTypePolicyList" class="policyList compactPolicy"></dl>
-        <dl id="replayHeaderPolicyList" class="policyList compactPolicy"></dl>
-        <p class="hint">带 Cookie、Authorization 或 Set-Cookie 的请求/响应会被跳过；HTTPS 接口需要 Whistle 能解密响应 body。</p>
-      </section>
+      </div>
 
       <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 

@@ -13,6 +13,7 @@ const state = {
   selectedEntryIds: new Set(),
   syncTimer: undefined,
   lastSyncAt: undefined,
+  pageTab: 'overview',
   workspaceTab: 'list',
   managerSelectedId: undefined,
   managerBody: undefined,
@@ -65,8 +66,17 @@ const elements = {
   cacheTable: document.querySelector('#cacheTable'),
   cacheRows: document.querySelector('#cacheRows'),
   empty: document.querySelector('#empty'),
+  overviewPageTab: document.querySelector('#overviewPageTab'),
+  diagnosticsPageTab: document.querySelector('#diagnosticsPageTab'),
+  cachePageTab: document.querySelector('#cachePageTab'),
+  overviewTabPanel: document.querySelector('#overviewTabPanel'),
+  diagnosticsTabPanel: document.querySelector('#diagnosticsTabPanel'),
+  cacheTabPanel: document.querySelector('#cacheTabPanel'),
   cacheListTab: document.querySelector('#cacheListTab'),
   requestManagerTab: document.querySelector('#requestManagerTab'),
+  diagnosticsToolbar: document.querySelector('#diagnosticsToolbar'),
+  cacheToolbar: document.querySelector('#cacheToolbar'),
+  diagnosticsView: document.querySelector('#diagnosticsView'),
   cacheListView: document.querySelector('#cacheListView'),
   requestManagerView: document.querySelector('#requestManagerView'),
   managerSearchInput: document.querySelector('#managerSearchInput'),
@@ -125,6 +135,9 @@ elements.matchTestBtn.addEventListener('click', testMatch);
 elements.matchInput.addEventListener('input', updateRule);
 elements.searchInput.addEventListener('input', renderEntries);
 elements.filterSelect.addEventListener('change', renderEntries);
+elements.overviewPageTab.addEventListener('click', () => switchPageTab('overview'));
+elements.diagnosticsPageTab.addEventListener('click', () => switchPageTab('diagnostics'));
+elements.cachePageTab.addEventListener('click', () => switchPageTab('cache'));
 elements.cacheListTab.addEventListener('click', () => switchWorkspaceTab('list'));
 elements.requestManagerTab.addEventListener('click', () => switchWorkspaceTab('manager'));
 elements.managerSearchInput.addEventListener('input', () => {
@@ -353,6 +366,7 @@ async function switchWorkspaceTab(tab) {
   elements.cacheListTab.setAttribute('aria-selected', String(tab === 'list'));
   elements.requestManagerTab.classList.toggle('active', tab === 'manager');
   elements.requestManagerTab.setAttribute('aria-selected', String(tab === 'manager'));
+  elements.cacheToolbar.hidden = tab !== 'list';
   elements.cacheListView.hidden = tab !== 'list';
   elements.requestManagerView.hidden = tab !== 'manager';
   if (tab === 'manager') {
@@ -361,9 +375,29 @@ async function switchWorkspaceTab(tab) {
   }
 }
 
+async function switchPageTab(tab) {
+  if (tab === state.pageTab) return;
+  if (!(await confirmDiscardManagedChanges())) return;
+  state.pageTab = tab;
+  elements.overviewPageTab.classList.toggle('active', tab === 'overview');
+  elements.overviewPageTab.setAttribute('aria-selected', String(tab === 'overview'));
+  elements.diagnosticsPageTab.classList.toggle('active', tab === 'diagnostics');
+  elements.diagnosticsPageTab.setAttribute('aria-selected', String(tab === 'diagnostics'));
+  elements.cachePageTab.classList.toggle('active', tab === 'cache');
+  elements.cachePageTab.setAttribute('aria-selected', String(tab === 'cache'));
+  elements.overviewTabPanel.hidden = tab !== 'overview';
+  elements.diagnosticsTabPanel.hidden = tab !== 'diagnostics';
+  elements.cacheTabPanel.hidden = tab !== 'cache';
+  if (tab === 'cache' && state.workspaceTab === 'manager') {
+    if (!state.managerSelectedId && state.entries[0]) state.managerSelectedId = state.entries[0].id;
+    await loadManagedBody(state.managerSelectedId);
+  }
+}
+
 async function openEntryManager(entryId) {
   if (!(await confirmDiscardManagedChanges())) return;
   state.managerSelectedId = entryId;
+  await switchPageTab('cache');
   await switchWorkspaceTab('manager');
   await loadManagedBody(entryId);
 }

@@ -9,8 +9,51 @@
   align-items: flex-start;
 }
 
+.pageTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  background: #eef2f7;
+}
+
+.pageTabs button {
+  min-height: 36px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.pageTabs button.active {
+  border-color: #ffffff;
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12);
+}
+
+.tabPanel[hidden] {
+  display: none;
+}
+
+.tabPanel {
+  display: grid;
+  gap: 14px;
+}
+
+.overviewPanel {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.diagnosticsPage,
+.cachePage {
+  align-content: start;
+}
+
 .workspaceTabs {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-top: 10px;
   padding: 3px;
@@ -31,6 +74,16 @@
   background: #ffffff;
   color: #111827;
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12);
+}
+
+#diagnosticsToolbar,
+#cacheToolbar {
+  align-self: flex-start;
+}
+
+#diagnosticsToolbar[hidden],
+#cacheToolbar[hidden] {
+  display: none;
 }
 
 .requestManager {
@@ -341,6 +394,14 @@ main.isLoading {
   gap: 12px;
 }
 
+.singleSummary {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cacheSummary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .summary > div,
 .panel {
   min-width: 0;
@@ -352,6 +413,45 @@ main.isLoading {
 
 .summary > div {
   padding: 14px;
+}
+
+.profileSummary > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 58px;
+  border-color: #d6e3f3;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.profileSummary .label {
+  margin-bottom: 0;
+}
+
+.profileSummary strong {
+  overflow: hidden;
+  max-width: 70%;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #175cd3;
+  padding: 6px 10px;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cacheStats > div {
+  display: grid;
+  gap: 6px;
+  min-height: 76px;
+  align-content: center;
+}
+
+.cacheStats strong {
+  color: #111827;
+  font-size: 24px;
+  line-height: 1.1;
 }
 
 .label {
@@ -430,8 +530,16 @@ textarea {
   gap: 14px;
 }
 
+.overviewDashboard > .panel {
+  min-height: 100%;
+}
+
 .statusPanel .panelHeader {
   margin-bottom: 10px;
+}
+
+.overviewStatusPanel {
+  border-color: #d6e3f3;
 }
 
 .statusOverview {
@@ -442,9 +550,14 @@ textarea {
 
 .statusItem {
   min-width: 0;
+  border: 1px solid #edf2f8;
   border-radius: 7px;
   background: #f8fafc;
   padding: 12px;
+}
+
+.statusItem:hover {
+  background: #fbfdff;
 }
 
 .statusValueLine {
@@ -643,6 +756,7 @@ textarea {
 }
 
 .healthGrid > div {
+  border: 1px solid #edf2f8;
   border-radius: 7px;
   background: #f8fafc;
   padding: 12px;
@@ -725,6 +839,8 @@ pre {
 
 .tableWrap {
   max-width: 100%;
+  border: 1px solid #edf0f3;
+  border-radius: 8px;
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -775,6 +891,7 @@ td {
 }
 
 th {
+  background: #fbfcfe;
   color: #667085;
   font-weight: 600;
 }
@@ -955,17 +1072,46 @@ ul {
   gap: 4px;
 }
 
+#diagnosticsTabPanel .panelHeader {
+  margin-bottom: 0;
+  border-bottom: 1px solid #edf0f3;
+  padding-bottom: 12px;
+}
+
+#diagnosticsView {
+  margin-top: 12px;
+}
+
+#diagnosticsTabPanel .eventsList {
+  max-height: min(560px, calc(100vh - 260px));
+  min-height: 180px;
+  border: 1px solid #edf0f3;
+  border-radius: 8px;
+  background: #fbfcfe;
+  overflow: auto;
+  padding: 8px;
+  overscroll-behavior: contain;
+}
+
 .eventItem {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   gap: 10px;
-  border-bottom: 1px solid #edf0f3;
-  padding: 10px 0;
+  border: 1px solid #edf0f3;
+  border-radius: 7px;
+  background: #ffffff;
+  padding: 10px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.eventItem:hover {
+  border-color: #d6e3f3;
+  background: #fbfdff;
 }
 
 .eventItem:last-child {
-  border-bottom: 0;
+  border-bottom: 1px solid #edf0f3;
 }
 
 .eventItem p {
@@ -1058,6 +1204,17 @@ ul {
   margin-left: auto;
   justify-content: flex-end;
   max-width: min(100%, 980px);
+}
+
+.cacheWorkbench {
+  overflow: hidden;
+}
+
+.cacheWorkbench .panelHeader {
+  margin: -16px -16px 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #edf0f3;
+  background: #fbfcfe;
 }
 
 .tableActions input {
@@ -1225,6 +1382,14 @@ ul {
     width: 100%;
   }
 
+  .cacheWorkbench .panelHeader {
+    margin: -16px -16px 14px;
+  }
+
+  #diagnosticsToolbar {
+    justify-content: flex-start;
+  }
+
   .tableActions input,
   .tableActions select {
     width: 100%;
@@ -1239,6 +1404,10 @@ ul {
   .eventMain {
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+
+  #diagnosticsTabPanel .eventsList {
+    max-height: min(520px, 62vh);
   }
 }
 
@@ -1258,6 +1427,11 @@ ul {
 
   .panel,
   .summary > div {
+    padding: 12px;
+  }
+
+  .cacheWorkbench .panelHeader {
+    margin: -12px -12px 12px;
     padding: 12px;
   }
 
