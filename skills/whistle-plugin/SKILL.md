@@ -1,6 +1,6 @@
 ---
 name: whistle-plugin
-description: 用于创建、修改、审查、调试或发布 Whistle 插件 npm 包（如 whistle.xxx 或 @scope/whistle.xxx），包括 lack 脚手架、插件 hook、whistleConfig、插件 UI 扩展、规则补全、插件协议、TypeScript 导出和插件加载失败排查。
+description: 用于创建、修改、审查、调试或发布 Whistle 插件 npm 包（如 whistle.xxx 或 @scope/whistle.xxx），包括 lack 脚手架、rules.txt/_rules.txt/resRules.txt、插件 hook、whistleConfig、插件 UI 扩展、规则补全、插件协议、pluginVars、TypeScript 导出和插件加载失败排查。普通 Whistle Rules/Values、抓包、映射、mock 或 HTTPS 证书问题应使用 whistle skill。
 ---
 
 # Whistle Plugin Development
@@ -39,7 +39,7 @@ description: 用于创建、修改、审查、调试或发布 Whistle 插件 npm
 | 动态生成 TUNNEL 规则 | `tunnelRulesServer` | `api-reference.md`；它与 `rulesServer` 一样监听 `request` |
 | mock API 响应或完全接管 HTTP | `server` | `patterns.md` |
 | WebSocket 或 CONNECT/Tunnel 接管 | `server` 的 `upgrade` / `connect` | `api-reference.md`、`patterns.md` |
-| 登录认证、拦截放行请求 | `auth` | `patterns.md`；需要 `enableAuthUI: true` |
+| 登录认证、拦截放行请求 | `auth` | `patterns.md`；普通流量不需要 `enableAuthUI`，只有要让 auth 作用于插件自身 UI 时才慎用 `enableAuthUI: true` |
 | 自定义 HTTPS 解密或证书 | `sniCallback` | `patterns.md`；Rules 用 `sniCallback://plugin(sniValue)` |
 | 观察请求或响应，不修改 | `statsServer` / `resStatsServer` | `patterns.md` |
 | 加解密、自定义二进制流 | pipe 12 个 hook | `scaffolding.md`、`patterns.md` |
@@ -60,6 +60,9 @@ description: 用于创建、修改、审查、调试或发布 Whistle 插件 npm
 - 版本要求：`lack >= 1.4.0`、`whistle >= 2.9.100`、`whistle-client >= 1.3.8`。
 - TypeScript 编译到 `dist/` 时，`index.js` 通常导出 `.default`。
 - `lack watch` 是调试主命令：代码变更自动重载插件，并在终端显示插件进程的 `console.xxx`。
+- `rules.txt` 安装后自动加载且低于界面 Rules；`_rules.txt` 和 `resRules.txt` 只对命中插件协议的请求生效。
+- `rulesServer` / `resRulesServer` 返回规则文本；需要同时下发 Values 时返回 `JSON.stringify({ rules, values })`。
+- `server` 接管请求时必须消费/透传请求体，并处理 `upgrade` / `connect`，否则 WebSocket 或 Tunnel 可能卡住。
 - 涉及真实 Whistle 进程、全局 npm 包、系统代理或证书时，说明影响并请求授权。
 
 官方入口：`https://wproxy.org/docs/extensions/dev.html`、`https://github.com/avwo/lack`、`https://github.com/whistle-plugins/examples`。

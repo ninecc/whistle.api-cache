@@ -132,8 +132,19 @@ whistle 内部解析插件导出时的名称回退。该映射来源于源码实
 | resRulesServer | `resRulesServer`（无别名） |
 | tunnelRulesServer | 复用 `pluginRulesServer`，独立 `tunnelRulesServer` |
 | tunnelServer | `pluginServer` → `tunnelServer` → `connectServer`（回退到 server） |
+| HTTP pipe | `reqReadServer` / `reqWriteServer` / `resReadServer` / `resWriteServer` 兼容旧命名；新代码用 `reqRead` / `reqWrite` / `resRead` / `resWrite` |
+| WS/Tunnel pipe | 兼容 `wsReqReadServer`、`tunnelReqReadServer` 等旧命名；新代码用无 `Server` 后缀的标准 hook 名 |
 
 建议始终使用标准名称（每行第一个），别名仅为兼容旧版保留。
+
+TypeScript 编译产物通常需要在 `index.js` 里导出 `.default`：
+
+```js
+exports.rulesServer = require('./dist/rulesServer').default;
+exports.uiServer = require('./dist/uiServer').default;
+```
+
+如果 hook 不触发，先用 `node -e "console.log(typeof require('./dist/rulesServer').default)"` 确认导出为 `function`。
 
 ## Request 类型常用能力
 
@@ -146,7 +157,7 @@ whistle 内部解析插件导出时的名称回退。该映射来源于源码实
 | `req.setHtml(html)` | 设置 HTML 响应 |
 | `req.setRedirect(url)` | 设置跳转 |
 | `req.setLogin(boolean)` | 标记登录态 |
-| `req.setHeader(name, value)` | 设置响应头 |
+| `req.setHeader(name, value)` | 设置 Whistle 控制头；优先只用于 `x-whistle-*` 或 `proxy-authorization` |
 | `req.setUrl(url)` | 设置重定向 URL |
 | `req.setFile(url)` | 设置文件响应 |
 | `req.set(key, value)` | 通用设置器 |
@@ -162,6 +173,7 @@ whistle 内部解析插件导出时的名称回退。该映射来源于源码实
 | `req.originalRes` | 响应上下文，响应阶段可用 |
 | `req.request(options, cb)` / `req.connect(options)` | 插件 server 子请求 |
 | `req.setReqRules(rules)` / `res.setResRules(rules)` | 在 server hook 内设置请求/响应阶段规则 |
+| `req.passThrough()` | 在 server / upgrade / connect 中透传未接管的请求 |
 | `res.writeHead(statusCode, headers?)` | `PluginServerResponse` 写响应头 |
 
 ### originalReq 重要字段
@@ -171,7 +183,7 @@ whistle 内部解析插件导出时的名称回退。该映射来源于源码实
 ```txt
 id fullUrl method headers clientIp serverIp statusCode
 isH2 isHttp2 enableCapture customParser
-ruleValue pipeValue sniValue ruleUrl ruleProtocol realUrl
+ruleValue pipeValue sniValue servername ruleUrl ruleProtocol realUrl
 isUIRequest isFromPlugin pluginVars globalPluginVars
 ```
 

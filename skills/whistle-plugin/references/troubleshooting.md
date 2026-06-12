@@ -14,13 +14,15 @@
 |---|---|
 | 插件不加载 | 包名是否 `whistle.xxx`，`main` 是否存在，是否在 Whistle 插件搜索路径，`lack watch` 是否报错 |
 | Hook 不触发 | `index.js` 是否导出标准名称，TS 是否 `.default`，是否已编译，Rules 是否匹配插件协议 |
-| auth 不生效 | `enableAuthUI: true`，请求是否匹配插件规则，是否误拦插件自身页面 |
+| auth 不生效 | 请求是否匹配插件协议规则，`index.js` 是否导出 `auth`，是否把 `enableAuthUI` 误认为普通流量开关 |
 | sniCallback 不生效 | Rules 是否有 `sniCallback://plugin-name(sniValue)`，HTTPS 是否已进入 Whistle |
 | rulesServer 没效果 | 返回的是否是规则文本，是否被缓存，协议值是否来自 `req.originalReq.ruleValue` |
 | tunnelRulesServer 没效果 | 它监听 `request`，不是 `connect`；确认流量是 TUNNEL 请求 |
 | server 造成请求卡住 | 是否消费请求体或 `passThrough()`，是否处理 `upgrade/connect` |
 | pipe 没触发 | Rules 是否用 `pipe://plugin(value)`，hook 名是否匹配 HTTP/WS/Tunnel 类型 |
+| pipe 写出方向看不到修改 | `reqWrite/resWrite/ws*Write/tunnel*Write` 的实际修改不显示在 Network body；到目标服务或最终响应侧验证 |
 | UI 空白 | 静态资源路径是否相对，Vite `base` 是否 `./`，`uiServer` 是否挂到 `request` |
+| staticDir 不生效 | 是否已经导出 `uiServer`；有 `uiServer` 时不会自动用 `staticDir` 接管 |
 | 子进程崩溃 | 看 `lack watch` 输出，捕获异步异常，确认依赖已安装 |
 | 短协议冲突 | 用长协议 `whistle.xxx://...` 或调整插件名 |
 

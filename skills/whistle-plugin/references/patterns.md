@@ -82,6 +82,16 @@ export default async (req: Whistle.PluginAuthRequest, options: Whistle.PluginOpt
 };
 ```
 
+**触发规则：**
+
+```txt
+www.example.com whistle.my-plugin://
+```
+
+普通流量鉴权不需要 `enableAuthUI`。`enableAuthUI: true` 只用于让 auth 也拦截插件自身 UI 请求，容易导致插件页面无法打开，除非用户明确需要，否则不要配置。
+
+`req.setHeader()` 只适合设置 `x-whistle-*` 或 `proxy-authorization` 这类 Whistle 允许透传的控制头；不要把它当任意响应头设置器。
+
 ---
 
 ## 模式3：数据加密/解密管道
@@ -91,7 +101,7 @@ export default async (req: Whistle.PluginAuthRequest, options: Whistle.PluginOpt
 **选择 hook：** pipe 系列。HTTP 用 `reqRead/reqWrite/resRead/resWrite`；WebSocket 用 `wsReqRead/wsReqWrite/wsResRead/wsResWrite`；Tunnel 用 `tunnelReqRead/tunnelReqWrite/tunnelResRead/tunnelResWrite`。
 
 ```ts
-// src/reqRead.ts — 解密请求体。pipe hook 文件内部仍监听 request 事件。
+// src/reqRead.ts — 解密请求体。HTTP pipe hook 监听 request 事件。
 export default (server: Whistle.PluginServer, options: Whistle.PluginOptions) => {
   server.on('request', (req: Whistle.PluginRequest, res: Whistle.PluginResponse) => {
     const chunks: Buffer[] = [];
@@ -108,7 +118,7 @@ export default (server: Whistle.PluginServer, options: Whistle.PluginOptions) =>
   });
 };
 
-// src/resRead.ts — 解密响应体。pipe hook 文件内部仍监听 request 事件。
+// src/resRead.ts — 解密响应体。HTTP pipe hook 监听 request 事件。
 export default (server: Whistle.PluginServer, options: Whistle.PluginOptions) => {
   server.on('request', (req: Whistle.PluginRequest, res: Whistle.PluginResponse) => {
     const chunks: Buffer[] = [];
@@ -126,7 +136,19 @@ export default (server: Whistle.PluginServer, options: Whistle.PluginOptions) =>
 };
 ```
 
-**注意：** `reqRead/resRead/wsReqRead/wsResRead/tunnelReqRead/tunnelResRead` 处理读入方向；`reqWrite/resWrite/wsReqWrite/wsResWrite/tunnelReqWrite/tunnelResWrite` 处理写出方向。`reqWrite/resWrite` 的修改不显示在抓包界面。
+**注意：** HTTP pipe hook 内监听 `request`；WebSocket 和 Tunnel pipe hook 内监听 `connect`，参数是 socket。`reqRead/resRead/wsReqRead/wsResRead/tunnelReqRead/tunnelResRead` 处理读入方向；`reqWrite/resWrite/wsReqWrite/wsResWrite/tunnelReqWrite/tunnelResWrite` 处理写出方向。`reqWrite/resWrite` 的修改不显示在抓包界面。
+
+Whistle 官方文档说明所有 `*Write` 方向的实际修改内容都不会显示在 Network 抓包界面，这是预期行为；验证写出方向时要看目标服务收到的内容或最终响应，不要只看 Network body。
+
+WS/Tunnel pipe 最小模板：
+
+```ts
+export default (server: Whistle.PluginServer) => {
+  server.on('connect', (socket) => {
+    socket.pipe(socket);
+  });
+};
+```
 
 ---
 
@@ -195,6 +217,10 @@ export default (server: Whistle.PluginServer, options: Whistle.PluginOptions) =>
 
 ---
 
+`rulesServer` / `resRulesServer` 返回的是规则文本。需要同时生成临时 Values 时返回 `JSON.stringify({ rules, values })`；如果要直接返回 JSON 响应体，改用 `server` hook。
+
+---
+
 ## 模式6：自定义 TLS 证书
 
 **场景：** 特定域名使用自定义证书
@@ -244,6 +270,8 @@ export default async (req: Whistle.PluginSNIRequest, options: Whistle.PluginOpti
 **规则配置：** `*.example.com sniCallback://my-sni-plugin(sniValue)`
 
 `sniCallback` 返回值为 `boolean | { key: string, cert: string, mtime?: number }`；`mtime` 可用于证书缓存时间戳。
+
+优先从 `req.originalReq.servername` / `req.originalReq.sniValue` 取 SNI 相关上下文。返回值只使用 `true`、`false` 或 `{ key, cert, mtime? }`；其他返回值不要依赖。
 
 ---
 

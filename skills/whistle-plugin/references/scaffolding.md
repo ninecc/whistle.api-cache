@@ -19,9 +19,11 @@ lack watch
 - 项目类型：`ts` / `typescript`、`js` / `javascript`
 - 规则文件：`rules` / `rules.txt`、`_rules` / `_rules.txt` / `reqrules` / `reqrules.txt`、`resrules` / `resrules.txt`
 - 空插件：`blank` / `empty` / `none`
-- 常规 hook：`auth` / `verify`、`sni`、`rulesserver`、`resrulesserver`、`tunnelrulesserver`、`statsserver`、`resstatsserver`、`server`、`uiserver`
+- 常规 hook：`auth` / `verify`、`sni` / `snicallback`、`rulesserver`、`resrulesserver`、`tunnelrulesserver`、`statsserver`、`resstatsserver`、`server`、`uiserver`
 - pipe 组合：`pipe`、`pipehttp` / `httppipe`、`pipews` / `wspipe`、`pipetunnel` / `tunnelpipe`
 - pipe 细粒度：`reqread`、`reqwrite`、`resread`、`reswrite`、`wsreqread`、`wsreqwrite`、`wsresread`、`wsreswrite`、`tunnelreqread`、`tunnelreqwrite`、`tunnelresread`、`tunnelreswrite`
+
+源码里的 `lack init` 解析会把逗号、点、下划线等分隔符拆开，因此 `lack init ts,rulesserver,uiserver`、`lack init pipeTunnel.server` 这类写法都可用。生成命令时优先使用全小写快捷名，避免大小写混淆。
 
 ## package.json 和导出
 
@@ -75,6 +77,16 @@ $whistle.my-plugin/key
 
 `%plugin=value` / `%plugin.key=value` 是插件变量赋值；`$plugin/key` 是 Whistle Values 引用，不是插件专属变量语法。
 
+## 静态规则文件
+
+| 文件 | 触发范围 | 阶段 | 注意 |
+|---|---|---|---|
+| `rules.txt` | 插件安装/启用后自动加载 | 请求阶段 | 优先级低于界面 Rules；插件禁用即失效 |
+| `_rules.txt` | 仅命中 `whistle.my-plugin://...` 或 `my-plugin://...` 的请求 | 请求阶段 | 适合插件协议的固定请求规则 |
+| `resRules.txt` | 仅命中插件协议的请求 | 响应阶段 | 适合响应状态码、响应头、响应体改写 |
+
+当用户只需要一两条固定规则，优先用静态规则文件；需要按请求动态生成，再用 `rulesServer` / `resRulesServer`。
+
 ## pipe hook 名称
 
 ```txt
@@ -82,6 +94,8 @@ reqRead reqWrite resRead resWrite
 wsReqRead wsReqWrite wsResRead wsResWrite
 tunnelReqRead tunnelReqWrite tunnelResRead tunnelResWrite
 ```
+
+HTTP pipe hook 内监听 `request`；WebSocket 和 Tunnel pipe hook 内监听 `connect`，参数是 socket。不要把 WS/Tunnel pipe 写成 `server.on('request')`。
 
 ## 最小 hook 模板
 
@@ -95,6 +109,8 @@ export default (server: Whistle.PluginServer, options: Whistle.PluginOptions) =>
   });
 };
 ```
+
+`rulesServer` 可直接 `res.end(rulesText)`，也可返回 `JSON.stringify({ rules, values })` 同时注入临时 Values。不要返回响应 body；要 mock 响应用 `server` 或返回 `file://` / `resBody://` 规则。
 
 ### server
 
@@ -124,7 +140,13 @@ export default async (req: Whistle.PluginAuthRequest, options: Whistle.PluginOpt
 };
 ```
 
-`auth` 还需要：
+普通代理流量的 `auth` 由插件协议规则触发，例如：
+
+```txt
+www.example.com whistle.my-plugin://
+```
+
+只有要让 `auth` 也作用于插件自身 UI 请求时，才在 `package.json` 里慎用：
 
 ```json
 {
